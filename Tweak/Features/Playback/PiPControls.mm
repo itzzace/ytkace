@@ -82,26 +82,6 @@
     return nil;
 }
 
-- (BOOL)askResponderForPiP {
-    UIResponder *responder = self.overlay;
-    NSArray<NSString *> *selectors = @[
-        @"startPictureInPicture",
-        @"activatePictureInPicture",
-        @"startPiP"
-    ];
-    while (responder != nil) {
-        for (NSString *name in selectors) {
-            SEL selector = NSSelectorFromString(name);
-            if ([responder respondsToSelector:selector]) {
-                ((void (*)(id, SEL))objc_msgSend)(responder, selector);
-                return YES;
-            }
-        }
-        responder = responder.nextResponder;
-    }
-    return NO;
-}
-
 - (id)currentPlayerResponse {
     id player = [self activeYouTubePlayer];
     for (NSString *name in @[@"contentPlayerResponse", @"playerResponse"]) {
@@ -163,14 +143,6 @@
         }
     }
     self.youtubePlayer = nil;
-}
-
-- (UIViewController *)topController {
-    UIViewController *controller = [self keyWindow].rootViewController;
-    while (controller.presentedViewController != nil) {
-        controller = controller.presentedViewController;
-    }
-    return controller;
 }
 
 - (void)showLoading {
