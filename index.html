@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YTKACE</title>
+<meta name="description" content="Open-source YouTube enhancement for iOS. Downloads, SponsorBlock, background playback, and no ads.">
+<meta property="og:title" content="YTKACE">
+<meta property="og:description" content="Open-source YouTube enhancement for iOS.">
+<meta name="theme-color" content="#0b0b0c">
+<style>
+  :root {
+    --accent: #bf0013;
+    --accent-soft: rgba(191, 0, 19, 0.15);
+    --bg: #0b0b0c;
+    --panel: #141416;
+    --line: rgba(255, 255, 255, 0.09);
+    --text: #f2f2f3;
+    --muted: #9a9aa2;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .wrap { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+  header {
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+    padding: 88px 0 72px;
+    text-align: center;
+  }
+  header::before {
+    content: "";
+    position: absolute;
+    inset: -40% 0 auto;
+    height: 460px;
+    background: radial-gradient(ellipse at 50% 0, var(--accent-soft), transparent 65%);
+    pointer-events: none;
+  }
+  .mark {
+    position: relative;
+    display: inline-block;
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  .mark span { color: var(--accent); }
+  .tagline {
+    position: relative;
+    margin: 16px auto 0;
+    max-width: 34rem;
+    color: var(--muted);
+    font-size: 18px;
+  }
+  .version {
+    position: relative;
+    display: inline-block;
+    margin-top: 20px;
+    padding: 4px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .actions {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 32px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 22px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #d40016; }
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--line);
+    color: var(--text);
+    font: inherit;
+    font-weight: 600;
+  }
+  .btn-ghost:hover { border-color: rgba(255, 255, 255, 0.28); }
+
+  .repo-line {
+    position: relative;
+    margin-top: 22px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .repo-line code {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 4px 9px;
+    font-size: 13px;
+    color: var(--text);
+    user-select: all;
+  }
+
+  section { padding: 72px 0; border-bottom: 1px solid var(--line); }
+  h2 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .lede { margin: 0 0 36px; color: var(--muted); }
+
+  .shots {
+    display: grid;
+    gap: 22px;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+  figure { margin: 0; }
+  figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+  }
+  figcaption {
+    margin-top: 10px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .steps { counter-reset: step; list-style: none; margin: 0; padding: 0; }
+  .steps li {
+    position: relative;
+    padding: 0 0 20px 44px;
+    color: var(--muted);
+  }
+  .steps li::before {
+    counter-increment: step;
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .steps strong { color: var(--text); font-weight: 600; }
+
+  footer {
+    padding: 40px 0 56px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  footer a { color: var(--muted); }
+  footer a:hover { color: var(--text); }
+  .disclaimer { margin-top: 10px; font-size: 12px; opacity: 0.75; }
+
+  @media (max-width: 600px) {
+    header { padding: 64px 0 56px; }
+    .mark { font-size: 32px; }
+    section { padding: 56px 0; }
+    .shots { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1 class="mark">YT<span>KACE</span></h1>
+    <p class="tagline">An open-source YouTube enhancement for iOS. Downloads, SponsorBlock, background playback, and a player without ads.</p>
+    <div class="version">Version 0.9.2</div>
+    <div class="actions">
+      <a class="btn btn-primary" href="sileo://source/https://itzzace.github.io/ytkace/">Add to Sileo</a>
+      <button class="btn btn-ghost" id="copy" type="button" data-url="https://itzzace.github.io/ytkace/">Copy repo URL</button>
+      <a class="btn btn-ghost" href="https://github.com/itzzace/ytkace/releases/latest">Download IPA</a>
+    </div>
+    <p class="repo-line"><code>https://itzzace.github.io/ytkace/</code></p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>Screenshots</h2>
+    <p class="lede">Running on iOS.</p>
+    <div class="shots">
+      <figure><img src="screenshots/settings.png" alt="YTKACE settings" loading="lazy" width="800" height="1200"><figcaption>Settings</figcaption></figure>
+      <figure><img src="screenshots/video-player.png" alt="Video player" loading="lazy" width="800" height="1200"><figcaption>Player</figcaption></figure>
+      <figure><img src="screenshots/player-settings.png" alt="Player settings" loading="lazy" width="800" height="1200"><figcaption>Player settings</figcaption></figure>
+      <figure><img src="screenshots/video-download-menu.png" alt="Download menu" loading="lazy" width="800" height="1200"><figcaption>Download menu</figcaption></figure>
+      <figure><img src="screenshots/shorts-download-menu.png" alt="Shorts download menu" loading="lazy" width="800" height="1200"><figcaption>Shorts downloads</figcaption></figure>
+      <figure><img src="screenshots/download-progress.png" alt="Download progress" loading="lazy" width="800" height="1200"><figcaption>Download progress</figcaption></figure>
+      <figure><img src="screenshots/download-library.png" alt="Download library" loading="lazy" width="800" height="1200"><figcaption>Library</figcaption></figure>
+      <figure><img src="screenshots/audio-player.png" alt="Audio player" loading="lazy" width="800" height="1200"><figcaption>Audio player</figcaption></figure>
+      <figure><img src="screenshots/audio-queue.png" alt="Audio queue" loading="lazy" width="800" height="1200"><figcaption>Queue</figcaption></figure>
+      <figure><img src="screenshots/sponsorblock-settings.png" alt="SponsorBlock settings" loading="lazy" width="800" height="1200"><figcaption>SponsorBlock</figcaption></figure>
+      <figure><img src="screenshots/tab-editor.png" alt="Tab editor" loading="lazy" width="800" height="1200"><figcaption>Tab editor</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Install</h2>
+    <p class="lede">Jailbroken devices install from the repo. Everyone else sideloads the IPA.</p>
+    <ol class="steps">
+      <li><strong>Jailbroken.</strong> Tap Add to Sileo above, or add the URL by hand in Sileo, Zebra, or Cydia. Rootless and roothide packages are both published.</li>
+      <li><strong>Sideloaded.</strong> Download the IPA from the latest release and install it with TrollStore, AltStore, SideStore, or LiveContainer.</li>
+      <li><strong>Open YouTube.</strong> YTKACE appears as its own tab and inside the native settings.</li>
+    </ol>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p><a href="https://github.com/itzzace/ytkace">GitHub</a> &nbsp;·&nbsp; <a href="https://github.com/itzzace/ytkace/issues">Issues</a> &nbsp;·&nbsp; <a href="https://github.com/itzzace/ytkace/releases">Releases</a></p>
+    <p class="disclaimer">Not affiliated with, endorsed by, or sponsored by YouTube or Google.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById("copy").addEventListener("click", function (event) {
+    var button = event.currentTarget;
+    var url = button.dataset.url;
+    var done = function () {
+      button.textContent = "Copied";
+      setTimeout(function () { button.textContent = "Copy repo URL"; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, done);
+      return;
+    }
+    var field = document.createElement("textarea");
+    field.value = url;
+    document.body.appendChild(field);
+    field.select();
+    try { document.execCommand("copy"); } catch (error) {}
+    document.body.removeChild(field);
+    done();
+  });
+</script>
+
+</body>
+</html>
