@@ -5,6 +5,16 @@
 #include <zlib.h>
 
 static NSString * const YTKACEBackupErrorDomain = @"YTKACEBackup";
+static const NSUInteger YTKACEMaxBackupEntries = 10000;
+static const uint64_t YTKACEMaxBackupEntrySize = 16ULL * 1024ULL * 1024ULL * 1024ULL;
+static const uint64_t YTKACEMaxBackupTotalSize = 64ULL * 1024ULL * 1024ULL * 1024ULL;
+
+static BOOL YTKACEIsRestorablePreference(NSString *key, id value) {
+    return [key isKindOfClass:NSString.class] &&
+        [key hasPrefix:@"YTKACE.Preference."] && value != nil &&
+        [NSPropertyListSerialization propertyList:value
+                                 isValidForFormat:NSPropertyListXMLFormat_v1_0];
+}
 
 static NSError *YTKACEBackupError(NSInteger code, NSString *message) {
     return [NSError errorWithDomain:YTKACEBackupErrorDomain code:code
@@ -132,7 +142,7 @@ static void YTKACEApplyBackupSettings(NSDictionary *settings) {
     __block NSUInteger applied = 0;
     [settings enumerateKeysAndObjectsUsingBlock:^(NSString *key, id value, BOOL *stop) {
         (void)stop;
-        if ([key isKindOfClass:NSString.class] && value != nil) {
+        if (YTKACEIsRestorablePreference(key, value)) {
             [defaults setObject:value forKey:key];
             applied++;
         }
@@ -394,6 +404,8 @@ static BOOL YTKACEExtractStoredZip(NSURL *URL, NSURL *destination, NSError **err
     NSFileHandle *input = [NSFileHandle fileHandleForReadingFromURL:URL error:error];
     if (input == nil) return NO;
     NSFileManager *manager = NSFileManager.defaultManager;
+    NSUInteger entryCount = 0;
+    uint64_t totalSize = 0;
     while (true) {
         NSData *fixed = [input readDataOfLength:30];
         if (fixed.length == 0) break;
@@ -480,6 +492,26 @@ static BOOL YTKACEExtractStoredZip(NSURL *URL, NSURL *destination, NSError **err
             [input closeFile];
             return NO;
         }
+        entryCount += 1;
+        if (entryCount > YTKACEMaxBackupEntries || size > YTKACEMaxBackupEntrySize ||
+            UINT64_MAX - totalSize < size ||
+            totalSize + size > YTKACEMaxBackupTotalSize) {
+            if (error != NULL) *error = YTKACEBackupError(15, @"The backup is too large");
+            [input closeFile];
+            return NO;
+        }
+        NSNumber *available = nil;
+        [destination getResourceValue:&available
+                               forKey:NSURLVolumeAvailableCapacityForImportantUsageKey
+                                error:nil];
+        const uint64_t reserve = 128ULL * 1024ULL * 1024ULL;
+        if (available != nil &&
+            (size > UINT64_MAX - reserve || available.unsignedLongLongValue < size + reserve)) {
+            if (error != NULL) *error = YTKACEBackupError(14, @"Not enough free space to restore the backup");
+            [input closeFile];
+            return NO;
+        }
+        totalSize += size;
         NSString *clean = name.stringByStandardizingPath;
         BOOL allowed = [clean isEqualToString:@"SettingsBackup.plist"] ||
             [clean hasPrefix:@"Downloads/"];

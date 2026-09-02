@@ -8,9 +8,9 @@ static NSURL *YTKACEDownloadLogURL(void) {
     static NSURL *cached = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        NSArray<NSNumber *> *candidates = @[@(NSDocumentDirectory),
-                                            @(NSApplicationSupportDirectory),
-                                            @(NSCachesDirectory)];
+        NSArray<NSNumber *> *candidates = @[@(NSApplicationSupportDirectory),
+                                            @(NSCachesDirectory),
+                                            @(NSDocumentDirectory)];
         for (NSNumber *candidate in candidates) {
             NSURL *base = [NSFileManager.defaultManager
                 URLsForDirectory:(NSSearchPathDirectory)candidate.unsignedIntegerValue
