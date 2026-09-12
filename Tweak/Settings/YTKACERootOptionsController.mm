@@ -9,7 +9,6 @@
 #import "../Features/Downloads/DownloadLog.h"
 
 #import <objc/runtime.h>
-#import <stdlib.h>
 #import <sys/utsname.h>
 
 static UIColor *YTKACERootBackground(void) {
@@ -587,14 +586,11 @@ UIViewController *YTKACEMakeDownloadLogController(void) {
 
 - (void)applySettings {
     [NSUserDefaults.standardUserDefaults synchronize];
-    [NSNotificationCenter.defaultCenter postNotificationName:@"YTKACEPreferencesDidChange"
+    [NSNotificationCenter.defaultCenter postNotificationName:YTKACEPreferencesDidChangeNotification
                                                       object:nil];
     [NSNotificationCenter.defaultCenter postNotificationName:@"YTKACETabConfigDidChange"
                                                       object:nil];
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)),
-                   dispatch_get_main_queue(), ^{
-        exit(0);
-    });
+    [self dismissViewControllerAnimated:YES completion:nil];
 }
 
 - (void)closeSettings {

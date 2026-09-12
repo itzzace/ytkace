@@ -19,9 +19,26 @@ static NSMutableDictionary<NSString *, NSDictionary<NSString *, NSString *> *> *
 static NSMutableDictionary<NSString *, NSData *> *YTKACESABRBodiesByVideo;
 static NSMutableDictionary<NSData *, NSDictionary<NSString *, NSString *> *> *YTKACESABRHeadersByConfig;
 static NSMutableDictionary<NSData *, NSData *> *YTKACESABRBodiesByConfig;
+static const NSUInteger YTKACESABRRequestCacheLimit = 32;
 static NSString *YTKACEPBFieldSummary(NSData *data);
 static BOOL YTKACESABRIsPlaybackBody(NSData *data);
 static NSData *YTKACEPBDataField(NSData *data, NSUInteger wanted);
+
+static BOOL YTKACESABRIsAllowedServerURL(NSURL *URL) {
+    if (URL == nil || ![URL.scheme.lowercaseString isEqualToString:@"https"] ||
+        URL.user.length != 0 || URL.password.length != 0 ||
+        (URL.port != nil && URL.port.integerValue != 443)) {
+        return NO;
+    }
+    NSString *host = URL.host.lowercaseString;
+    if (host.length == 0) return NO;
+    return [host isEqualToString:@"googlevideo.com"] ||
+        [host hasSuffix:@".googlevideo.com"] ||
+        [host isEqualToString:@"youtube.com"] ||
+        [host hasSuffix:@".youtube.com"] ||
+        [host isEqualToString:@"youtube-nocookie.com"] ||
+        [host hasSuffix:@".youtube-nocookie.com"];
+}
 
 void YTKACESABRSetCurrentVideoID(NSString *videoID) {
     if (videoID.length == 0) return;
@@ -44,15 +61,16 @@ void YTKACESABRSetNativeHeaders(NSDictionary<NSString *, NSString *> *headers) {
             if (YTKACESABRHeadersByVideo == nil) {
                 YTKACESABRHeadersByVideo = [NSMutableDictionary dictionary];
             }
+            if (YTKACESABRHeadersByVideo[YTKACESABRCurrentVideoID] == nil &&
+                YTKACESABRHeadersByVideo.count >= YTKACESABRRequestCacheLimit) {
+                [YTKACESABRHeadersByVideo removeAllObjects];
+                [YTKACESABRBodiesByVideo removeAllObjects];
+            }
             YTKACESABRHeadersByVideo[YTKACESABRCurrentVideoID] = [headers copy];
         }
     }
-    NSMutableArray<NSString *> *summary = [NSMutableArray array];
-    for (NSString *key in headers) {
-        [summary addObject:[NSString stringWithFormat:@"%@:%lu", key,
-            (unsigned long)[headers[key] length]]];
-    }
-    YTKACEDownloadLog(@"native", @"headers %@", [summary componentsJoinedByString:@","]);
+    YTKACEDownloadLog(@"native", @"captured headers count=%lu",
+        (unsigned long)headers.count);
 }
 
 static NSDictionary<NSString *, NSString *> *YTKACESABRCurrentNativeHeaders(
@@ -83,6 +101,11 @@ void YTKACESABRSetNativeRequest(NSURLRequest *request) {
             if (YTKACESABRBodiesByVideo == nil) {
                 YTKACESABRBodiesByVideo = [NSMutableDictionary dictionary];
             }
+            if (YTKACESABRBodiesByVideo[YTKACESABRCurrentVideoID] == nil &&
+                YTKACESABRBodiesByVideo.count >= YTKACESABRRequestCacheLimit) {
+                [YTKACESABRHeadersByVideo removeAllObjects];
+                [YTKACESABRBodiesByVideo removeAllObjects];
+            }
             YTKACESABRBodiesByVideo[YTKACESABRCurrentVideoID] = [request.HTTPBody copy];
         }
         NSData *config = YTKACEPBDataField(request.HTTPBody, 5);
@@ -91,7 +114,7 @@ void YTKACESABRSetNativeRequest(NSURLRequest *request) {
                 YTKACESABRBodiesByConfig = [NSMutableDictionary dictionary];
                 YTKACESABRHeadersByConfig = [NSMutableDictionary dictionary];
             }
-            if (YTKACESABRBodiesByConfig.count >= 32) {
+            if (YTKACESABRBodiesByConfig.count >= YTKACESABRRequestCacheLimit) {
                 [YTKACESABRBodiesByConfig removeAllObjects];
                 [YTKACESABRHeadersByConfig removeAllObjects];
             }
@@ -99,12 +122,10 @@ void YTKACESABRSetNativeRequest(NSURLRequest *request) {
             YTKACESABRHeadersByConfig[config] = [request.allHTTPHeaderFields copy];
         }
     }
-    NSString *path = [NSTemporaryDirectory() stringByAppendingPathComponent:@"ytkace-native.pb"];
-    [request.HTTPBody writeToFile:path atomically:YES];
-    YTKACEDownloadLog(@"native", @"body video=%@ bytes=%lu fields=%@ dump=%@",
+    YTKACEDownloadLog(@"native", @"body video=%@ bytes=%lu fields=%@",
         YTKACESABRCurrentVideoID ?: @"unknown",
         (unsigned long)request.HTTPBody.length,
-        YTKACEPBFieldSummary(request.HTTPBody), path);
+        YTKACEPBFieldSummary(request.HTTPBody));
 }
 
 static NSData *YTKACESABRCurrentNativeBody(NSString *videoID, NSData *config) {
@@ -592,10 +613,15 @@ static NSData *YTKACESABRClientInfo(void) {
         if (error != NULL) *error = [self error:@"YouTube did not provide SABR session data." code:1];
         return NO;
     }
+    NSURL *parsedServerURL = [NSURL URLWithString:serverURL];
+    if (!YTKACESABRIsAllowedServerURL(parsedServerURL)) {
+        if (error != NULL) *error = [self error:@"YouTube returned an unsafe SABR server URL." code:2];
+        return NO;
+    }
     self.playerResponse = response;
     self.streamingData = streamingData;
     self.ustreamerConfig = ustreamerConfig;
-    self.serverURL = serverURL;
+    self.serverURL = parsedServerURL.absoluteString;
     NSArray<YTKACEStreamOption *> *options =
         [YTKACEStreamResolver optionsFromPlayerResponse:playerData];
     for (YTKACEStreamOption *option in options) {
@@ -778,11 +804,9 @@ NSUInteger YTKACEPurgeDownloadScratch(BOOL includeActive) {
     [self clearRound:self.video];
     [self clearRound:self.audio];
     if (self.requestNumber == 0) {
-        NSString *path = [NSTemporaryDirectory() stringByAppendingPathComponent:@"ytkace-outgoing.pb"];
-        [request writeToFile:path atomically:YES];
-        YTKACEDownloadLog(self.identifier, @"request fields native=%lu outgoing=%lu summary=%@ dump=%@",
+        YTKACEDownloadLog(self.identifier, @"request fields native=%lu outgoing=%lu summary=%@",
             (unsigned long)nativeBody.length, (unsigned long)request.length,
-            YTKACEPBFieldSummary(request), path);
+            YTKACEPBFieldSummary(request));
     }
     return request;
 }
@@ -904,8 +928,8 @@ NSUInteger YTKACEPurgeDownloadScratch(BOOL includeActive) {
     NSInteger logicalRequestNumber = self.requestNumber;
     NSInteger wireRequestNumber = logicalRequestNumber;
     NSURL *baseURL = [NSURL URLWithString:self.serverURL];
-    if (baseURL == nil) {
-        [self fail:[self error:@"SABR setup did not provide a request URL." code:2]];
+    if (!YTKACESABRIsAllowedServerURL(baseURL)) {
+        [self fail:[self error:@"SABR setup did not provide a safe request URL." code:2]];
         return;
     }
     NSMutableURLRequest *request =
@@ -1205,9 +1229,14 @@ NSUInteger YTKACEPurgeDownloadScratch(BOOL includeActive) {
 - (void)handleRedirect:(NSData *)data {
     NSString *redirect = YTKACEPBStringField(data, 1);
     if (redirect.length != 0) {
-        self.serverURL = redirect;
+        NSURL *redirectURL = [NSURL URLWithString:redirect];
+        if (!YTKACESABRIsAllowedServerURL(redirectURL)) {
+            YTKACEDownloadLog(self.identifier, @"rejected unsafe SABR redirect");
+            return;
+        }
+        self.serverURL = redirectURL.absoluteString;
         YTKACEDownloadLog(self.identifier, @"redirect host=%@",
-            [NSURL URLWithString:redirect].host);
+            redirectURL.host);
     }
 }
 
@@ -1285,8 +1314,8 @@ NSUInteger YTKACEPurgeDownloadScratch(BOOL includeActive) {
         partCounts[partType] = @([partCounts[partType] unsignedIntegerValue] + 1);
         partBytes[partType] = @([partBytes[partType] unsignedLongLongValue] + size);
         if (self.requestNumber <= 1 && (type == 46 || type == 51)) {
-            YTKACEDownloadLog(self.identifier, @"directive type=%u data=%@", type,
-                [part base64EncodedStringWithOptions:0]);
+            YTKACEDownloadLog(self.identifier, @"directive type=%u bytes=%lu", type,
+                (unsigned long)part.length);
         }
         if (type == 20) [self handleHeader:part];
         else if (type == 21) [self handleMedia:part];

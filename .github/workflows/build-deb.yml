@@ -15,7 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Test
-        run: python3 -m unittest discover -s Tests -v
+        run: |
+          python3 -m unittest discover -s Tests -v
+          c++ -std=c++17 -O2 \
+            Tests/test_playback_watchdog.cpp \
+            Tweak/Features/Playback/PlaybackWatchdog.cpp \
+            -o /tmp/ytkace-playback-watchdog
+          /tmp/ytkace-playback-watchdog
 
   build:
     needs: test
