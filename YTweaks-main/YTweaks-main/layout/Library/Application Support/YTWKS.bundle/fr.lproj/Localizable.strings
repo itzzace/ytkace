@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Avertissement";
+"APPLY_DESC" = "Cette action va quitter YouTube. Voulez-vous vraiment continuer ?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Désactivé";
+"FULLSCREEN_LEFT" = "Gauche";
+"FULLSCREEN_RIGHT" = "Droite";
+"FULLSCREEN_PORTRAIT" = "Portrait";
+"FULLSCREEN_BUTTON_MODE" = "Forcer la direction plein écran (Bouton)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Seul le bouton plein écran utilise l'orientation choisie. Les gestes et la rotation conservent le comportement par défaut.";
+"FULLSCREEN_SWIPE_MODE" = "Forcer la direction plein écran (Geste)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Seul le geste de balayage vers le haut utilise l'orientation choisie. Le bouton plein écran et la rotation conservent le comportement par défaut.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Désactiver le mini lecteur flottant";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Restaure le mini lecteur classique en désactivant l'option A/B enableIosFloatingMiniplayer. Redémarrage de l'app requis.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Cadres virtuels plein écran";
+"VIRTUAL_BEZEL_DESC" = "Ajoute des zones tactiles invisibles sur les bandes noires pour éviter les appuis et sauts accidentels. Pour iPhones sans bouton d'accueil.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "Masquer les résumés IA";
+"HIDE_AI_SUMMARIES_DESC" = "Masque les boutons de résumé générés par l'IA sous les vidéos dans le fil.";
+
+// Fix Casting
+"FIX_CASTING" = "Corriger le cast";
+"FIX_CASTING_DESC" = "Tente de corriger le cast en modifiant certaines options A/B. Fonctionne uniquement en v20.10.4 ou antérieure";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Gestion des préférences";
+"IMPORT_PREFERENCES" = "Importer les préférences";
+"EXPORT_PREFERENCES" = "Exporter les préférences";
+"RESTORE_DEFAULTS" = "Restaurer les paramètres par défaut";
+"IMPORT_CONFIRM" = "Cela remplacera les préférences actuelles. Continuer ?";
+"RESTORE_CONFIRM" = "Cela réinitialisera tous les paramètres. Continuer ?";
+"IMPORT_SUCCESS" = "Préférences importées avec succès";
+"EXPORT_SUCCESS" = "Préférences exportées avec succès";
+"IMPORT_FAILED" = "Échec de l'import des préférences";
+"CANCEL" = "Annuler";
+"YES" = "Oui";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Luminosité simulée";
+"FAKE_BRIGHTNESS_DESC" = "Réduit la luminosité apparente en dessous du minimum système";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Planifier la luminosité simulée (Mode nuit)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Applique automatiquement la luminosité simulée pendant une plage horaire définie";
+"SCHEDULE_TIME_RANGE" = "Heures d'activation";
+"START_TIME_LABEL" = "De";
+"END_TIME_LABEL" = "à";

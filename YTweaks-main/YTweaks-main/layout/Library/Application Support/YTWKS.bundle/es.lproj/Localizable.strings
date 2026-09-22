@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Advertencia";
+"APPLY_DESC" = "Esta acción cerrará YouTube. ¿Está seguro de que desea continuar?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "No";
+"FULLSCREEN_LEFT" = "Izquierda";
+"FULLSCREEN_RIGHT" = "Derecha";
+"FULLSCREEN_PORTRAIT" = "Retrato";
+"FULLSCREEN_BUTTON_MODE" = "Forzar dirección pantalla completa (Botón)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Solo el botón de pantalla completa entra en la orientación elegida. Los gestos y la rotación mantienen el comportamiento predeterminado.";
+"FULLSCREEN_SWIPE_MODE" = "Forzar dirección pantalla completa (Gesto)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Solo el gesto de deslizar hacia arriba entra en la orientación elegida. El botón de pantalla completa y la rotación mantienen el comportamiento predeterminado.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Desactivar miniplayer flotante";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Restaura el miniplayer clásico desactivando la opción A/B enableIosFloatingMiniplayer. Requiere reiniciar la aplicación.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Bordes virtuales de pantalla completa";
+"VIRTUAL_BEZEL_DESC" = "Añade zonas táctiles invisibles en las barras negras para evitar toques y saltos accidentales. Diseñado para iPhones sin botón de inicio.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "Ocultar resúmenes de IA";
+"HIDE_AI_SUMMARIES_DESC" = "Oculta los botones de resumen generados por IA que aparecen debajo de los videos en el feed.";
+
+// Fix Casting
+"FIX_CASTING" = "Reparar emisión";
+"FIX_CASTING_DESC" = "Intenta reparar la emisión cambiando algunas banderas A/B. Solo funciona en v20.10.4 o inferior";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Gestión de preferencias";
+"IMPORT_PREFERENCES" = "Importar preferencias";
+"EXPORT_PREFERENCES" = "Exportar preferencias";
+"RESTORE_DEFAULTS" = "Restaurar configuración predeterminada";
+"IMPORT_CONFIRM" = "Esto reemplazará las preferencias actuales. ¿Continuar?";
+"RESTORE_CONFIRM" = "Esto restablecerá toda la configuración a los valores predeterminados. ¿Continuar?";
+"IMPORT_SUCCESS" = "Preferencias importadas correctamente";
+"EXPORT_SUCCESS" = "Preferencias exportadas correctamente";
+"IMPORT_FAILED" = "Error al importar preferencias";
+"CANCEL" = "Cancelar";
+"YES" = "Sí";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Brillo simulado";
+"FAKE_BRIGHTNESS_DESC" = "Reduce el brillo aparente por debajo del mínimo del sistema";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Programar brillo simulado (Modo nocturno)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Aplica automáticamente el brillo simulado durante un intervalo de tempo establecido";
+"SCHEDULE_TIME_RANGE" = "Horas activas";
+"START_TIME_LABEL" = "Desde";
+"END_TIME_LABEL" = "hasta";

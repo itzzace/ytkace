@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Попередження";
+"APPLY_DESC" = "Ця дія закриє YouTube. Продовжити?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Вимкнено";
+"FULLSCREEN_LEFT" = "Зліва";
+"FULLSCREEN_RIGHT" = "Справа";
+"FULLSCREEN_PORTRAIT" = "Портрет";
+"FULLSCREEN_BUTTON_MODE" = "Примусова орієнтація повноекранного режиму (Кнопка)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Лише кнопка повноекранного режиму входить у вибрану орієнтацію. Жести та обертання зберігають стандартну поведінку.";
+"FULLSCREEN_SWIPE_MODE" = "Примусова орієнтація повноекранного режиму (Жест)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Лише жест проведення вгору входить у вибрану орієнтацію. Кнопка повноекранного режиму та обертання зберігають стандартну поведінку.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Вимкнути плаваючий міні-плеєр";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Відновлює класичний міні-плеєр, вимкнувши прапорець A/B enableIosFloatingMiniplayer. Потрібен перезапуск програми.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Віртуальні рамки повноекранного режиму";
+"VIRTUAL_BEZEL_DESC" = "Додає невидимі безпечні зони на чорних смугах, щоб уникнути випадкових натискань і пропусків. Для iPhone без кнопки «Додому».";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "Приховати підсумки AI";
+"HIDE_AI_SUMMARIES_DESC" = "Приховує кнопки підсумків, згенерованих ШІ, під відео в стрічці.";
+
+// Fix Casting
+"FIX_CASTING" = "Виправити трансляцію";
+"FIX_CASTING_DESC" = "Намагається виправити трансляцію зміною деяких прапорців A/B. Працює лише на v20.10.4 або нижче";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Керування налаштуваннями";
+"IMPORT_PREFERENCES" = "Імпортувати налаштування";
+"EXPORT_PREFERENCES" = "Експортувати налаштування";
+"RESTORE_DEFAULTS" = "Відновити типові налаштування";
+"IMPORT_CONFIRM" = "Це замінить поточні налаштування. Продовжити?";
+"RESTORE_CONFIRM" = "Це скине всі налаштування. Продовжити?";
+"IMPORT_SUCCESS" = "Налаштування успішно імпортовано";
+"EXPORT_SUCCESS" = "Налаштування успішно експортовано";
+"IMPORT_FAILED" = "Не вдалося імпортувати налаштування";
+"CANCEL" = "Скасувати";
+"YES" = "Так";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Імітація яскравості";
+"FAKE_BRIGHTNESS_DESC" = "Знижує видиму яскравість нижче системного мінімуму за допомогою темного накладання. 100% — норма; менші значення затемнюють екран.";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Розклад імітації яскравості (Нічний режим)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Автоматично застосовувати імітацію яскравості в заданий проміжок часу";
+"SCHEDULE_TIME_RANGE" = "Активні години";
+"START_TIME_LABEL" = "З";
+"END_TIME_LABEL" = "до";

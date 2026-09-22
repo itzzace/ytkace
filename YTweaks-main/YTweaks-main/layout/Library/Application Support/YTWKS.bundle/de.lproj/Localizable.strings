@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Warnung";
+"APPLY_DESC" = "Diese Aktion wird YouTube beenden. Sind Sie sicher, dass Sie fortfahren möchten?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Aus";
+"FULLSCREEN_LEFT" = "Links";
+"FULLSCREEN_RIGHT" = "Rechts";
+"FULLSCREEN_PORTRAIT" = "Hochformat";
+"FULLSCREEN_BUTTON_MODE" = "Vollbild-Richtung erzwingen (Button)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Nur der Vollbild-Button wechselt in die gewählte Ausrichtung. Wischen und Drehen behalten das Standardverhalten.";
+"FULLSCREEN_SWIPE_MODE" = "Vollbild-Richtung erzwingen (Geste)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Nur die Wisch-nach-oben-Geste wechselt in die gewählte Ausrichtung. Vollbild-Button und Drehen behalten das Standardverhalten.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Schwebenden Miniplayer deaktivieren";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Stellt den klassischen Miniplayer wieder her, indem die A/B-Option enableIosFloatingMiniplayer deaktiviert wird. App-Neustart erforderlich.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Virtuelle Vollbild-Ränder";
+"VIRTUAL_BEZEL_DESC" = "Fügt unsichtbare berührungssichere Zonen auf schwarzen Balken hinzu, um versehentliche Berührungen und Sprünge zu verhindern. Für iPhones ohne Home-Button gedacht.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "KI-Zusammenfassungen ausblenden";
+"HIDE_AI_SUMMARIES_DESC" = "Blendet KI-generierte Zusammenfassungs-Schaltflächen aus, die unter Videos im Feed erscheinen.";
+
+// Fix Casting
+"FIX_CASTING" = "Casting reparieren";
+"FIX_CASTING_DESC" = "Versucht, das Casting zu reparieren, indem einige A/B-Flags geändert werden. Funktioniert nur bei v20.10.4 oder niedriger";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Einstellungsverwaltung";
+"IMPORT_PREFERENCES" = "Einstellungen importieren";
+"EXPORT_PREFERENCES" = "Einstellungen exportieren";
+"RESTORE_DEFAULTS" = "Standardeinstellungen wiederherstellen";
+"IMPORT_CONFIRM" = "Dies wird die aktuellen Einstellungen ersetzen. Fortfahren?";
+"RESTORE_CONFIRM" = "Dies setzt alle Einstellungen auf die Standardwerte zurück. Fortfahren?";
+"IMPORT_SUCCESS" = "Einstellungen erfolgreich importiert";
+"EXPORT_SUCCESS" = "Einstellungen erfolgreich exportiert";
+"IMPORT_FAILED" = "Fehler beim Importieren der Einstellungen";
+"CANCEL" = "Abbrechen";
+"YES" = "Ja";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Fake-Helligkeit";
+"FAKE_BRIGHTNESS_DESC" = "Senkt die scheinbare Helligkeit unter das Systemminimum";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Fake-Helligkeit planen (Nachtmodus)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Wendet die Fake-Helligkeit automatisch während eines festgelegten Zeitraums an";
+"SCHEDULE_TIME_RANGE" = "Aktive Stunden";
+"START_TIME_LABEL" = "Von";
+"END_TIME_LABEL" = "bis";

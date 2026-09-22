@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Ostrzeżenie";
+"APPLY_DESC" = "Ta czynność zamknie YouTube. Czy na pewno chcesz kontynuować?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Wyłącz";
+"FULLSCREEN_LEFT" = "Lewo";
+"FULLSCREEN_RIGHT" = "Prawo";
+"FULLSCREEN_PORTRAIT" = "Pion";
+"FULLSCREEN_BUTTON_MODE" = "Wymuś kierunek pełnego ekranu (Przycisk)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Tylko przycisk pełnego ekranu wchodzi w wybraną orientację. Gesty i obrót zachowują domyślne zachowanie.";
+"FULLSCREEN_SWIPE_MODE" = "Wymuś kierunek pełnego ekranu (Gest)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Tylko gest przesunięcia w górę wchodzi w wybraną orientację. Przycisk pełnego ekranu i obrót zachowują domyślne zachowanie.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Wyłącz pływający mini odtwarzacz";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Przywraca klasyczny mini odtwarzacz przez wyłączenie flagi A/B enableIosFloatingMiniplayer. Wymaga ponownego uruchomienia aplikacji.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Wirtualne ramki pełnego ekranu";
+"VIRTUAL_BEZEL_DESC" = "Dodaje niewidoczne strefy dotyku na czarnych paskach, aby zapobiec przypadkowym naciśnięciom i przewijaniu. Dla iPhone'ów bez przycisku głównego.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "Ukryj podsumowania AI";
+"HIDE_AI_SUMMARIES_DESC" = "Ukrywa przyciski podsumowań generowanych przez AI pod filmami w feedzie.";
+
+// Fix Casting
+"FIX_CASTING" = "Napraw transmisję";
+"FIX_CASTING_DESC" = "Próbuje naprawić transmisję przez zmianę niektórych flag A/B. Działa tylko w wersji v20.10.4 lub niższej";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Zarządzanie preferencjami";
+"IMPORT_PREFERENCES" = "Importuj preferencje";
+"EXPORT_PREFERENCES" = "Eksportuj preferencje";
+"RESTORE_DEFAULTS" = "Przywróć ustawienia domyślne";
+"IMPORT_CONFIRM" = "To zastąpi bieżące preferencje. Kontynuować?";
+"RESTORE_CONFIRM" = "To zresetuje wszystkie ustawienia. Kontynuować?";
+"IMPORT_SUCCESS" = "Preferencje zaimportowane pomyślnie";
+"EXPORT_SUCCESS" = "Preferencje wyeksportowane pomyślnie";
+"IMPORT_FAILED" = "Nie udało się zaimportować preferencji";
+"CANCEL" = "Anuluj";
+"YES" = "Tak";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Sztuczna jasność";
+"FAKE_BRIGHTNESS_DESC" = "Obniża pozorną jasność poniżej minimum systemowego za pomocą ciemnej nakładki. 100% to normalnie; niższe wartości przyciemniają ekran.";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Zaplanuj sztuczną jasność (Tryb nocny)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Automatycznie stosuje sztuczną jasność w ustawionym przedziale czasowym";
+"SCHEDULE_TIME_RANGE" = "Aktywne godziny";
+"START_TIME_LABEL" = "Od";
+"END_TIME_LABEL" = "do";

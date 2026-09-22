@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "تحذير";
+"APPLY_DESC" = "سيؤدي هذا الإجراء إلى إغلاق التطبيق. هل أنت متأكد أنك تَوَد الاستمرار؟";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "إيقاف";
+"FULLSCREEN_LEFT" = "يسار";
+"FULLSCREEN_RIGHT" = "يمين";
+"FULLSCREEN_PORTRAIT" = "عمودي";
+"FULLSCREEN_BUTTON_MODE" = "فرض اتجاه ملء الشاشة (زر)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "زر ملء الشاشة فقط يدخل الاتجاه المختار. الإيماءات والتدوير يحافظان على السلوك الافتراضي.";
+"FULLSCREEN_SWIPE_MODE" = "فرض اتجاه ملء الشاشة (إيماءة)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "إيماءة السحب لأعلى فقط تدخل الاتجاه المختار. زر ملء الشاشة والتدوير يحافظان على السلوك الافتراضي.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "تعطيل مشغل مصغر عائم";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "يعيد المشغل المصغر الكلاسيكي بتعطيل علامة A/B: enableIosFloatingMiniplayer. يتطلب إعادة تشغيل التطبيق.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "حواف الشاشة الكاملة الافتراضية";
+"VIRTUAL_BEZEL_DESC" = "يضيف مناطق لمس آمنة غير مرئية على الأشرطة السوداء لمنع النقرات والقفزات العرضية. مخصص لأجهزة iPhone بدون زر الصفحة الرئيسية.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "إخفاء ملخصات الذكاء الاصطناعي";
+"HIDE_AI_SUMMARIES_DESC" = "إخفاء أزرار الملخصات التي تم إنشاؤها بواسطة الذكاء الاصطناعي والتي تظهر أسفل مقاطع الفيديو في الخلاصة.";
+
+// Fix Casting
+"FIX_CASTING" = "إصلاح البث";
+"FIX_CASTING_DESC" = "محاولة إصلاح البث عن طريق تغيير بعض علامات A/B. يعمل فقط على الإصدار v20.10.4 أو الأقل";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "إدارة التفضيلات";
+"IMPORT_PREFERENCES" = "استيراد التفضيلات";
+"EXPORT_PREFERENCES" = "تصدير التفضيلات";
+"RESTORE_DEFAULTS" = "استعادة الإعدادات الافتراضية";
+"IMPORT_CONFIRM" = "سيؤدي هذا إلى استبدال التفضيلات الحالية. هل تريد المتابعة؟";
+"RESTORE_CONFIRM" = "سيؤدي هذا إلى إعادة تعيين جميع الإعدادات إلى القيم الافتراضية. هل تريد المتابعة؟";
+"IMPORT_SUCCESS" = "تم استيراد التفضيلات بنجاح";
+"EXPORT_SUCCESS" = "تم تصدير التفضيلات بنجاح";
+"IMPORT_FAILED" = "فشل استيراد التفضيلات";
+"CANCEL" = "إلغاء";
+"YES" = "نعم";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "سطوع وهمي";
+"FAKE_BRIGHTNESS_DESC" = "يخفض السطوع الظاهري دون الحد الأدنى للنظام بطبقة داكنة. ‎100%‎ طبيعي؛ القيم الأقل تعتم الشاشة.";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "جدولة السطوع الوهمي (الوضع الليلي)";
+"SCHEDULE_NIGHT_MODE_DESC" = "تطبيق السطوع الوهمي تلقائيًا خلال نطاق زمني محدد";
+"SCHEDULE_TIME_RANGE" = "ساعات التفعيل";
+"START_TIME_LABEL" = "من";
+"END_TIME_LABEL" = "إلى";

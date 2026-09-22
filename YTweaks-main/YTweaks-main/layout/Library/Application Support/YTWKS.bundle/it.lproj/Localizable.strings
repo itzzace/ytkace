@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Attenzione";
+"APPLY_DESC" = "Questa azione chiuderà YouTube. Sei sicuro di voler continuare?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Disattivato";
+"FULLSCREEN_LEFT" = "Sinistra";
+"FULLSCREEN_RIGHT" = "Destra";
+"FULLSCREEN_PORTRAIT" = "Verticale";
+"FULLSCREEN_BUTTON_MODE" = "Forza direzione schermo intero (Pulsante)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Solo il pulsante schermo intero entra nell'orientamento scelto. Gesti e rotazione mantengono il comportamento predefinito.";
+"FULLSCREEN_SWIPE_MODE" = "Forza direzione schermo intero (Gesto)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Solo il gesto di scorrimento verso l'alto entra nell'orientamento scelto. Il pulsante schermo intero e la rotazione mantengono il comportamento predefinito.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Disattiva mini player flottante";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Ripristina il mini player classico disattivando l'opzione A/B enableIosFloatingMiniplayer. Richiede riavvio dell'app.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Cornici virtuali schermo intero";
+"VIRTUAL_BEZEL_DESC" = "Aggiunge zone touch invisibili sulle barre nere per evitare tocchi e salti accidentali. Per iPhone senza pulsante home.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "Nascondi riepiloghi IA";
+"HIDE_AI_SUMMARIES_DESC" = "Nasconde i pulsanti di riepilogo generati dall'IA sotto i video nel feed.";
+
+// Fix Casting
+"FIX_CASTING" = "Ripara casting";
+"FIX_CASTING_DESC" = "Tenta di riparare il casting modificando alcune opzioni A/B. Funziona solo su v20.10.4 o precedente";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Gestione preferenze";
+"IMPORT_PREFERENCES" = "Importa preferenze";
+"EXPORT_PREFERENCES" = "Esporta preferenze";
+"RESTORE_DEFAULTS" = "Ripristina impostazioni predefinite";
+"IMPORT_CONFIRM" = "Questo sostituirà le preferenze attuali. Continuare?";
+"RESTORE_CONFIRM" = "Questo reimposterà tutte le impostazioni. Continuare?";
+"IMPORT_SUCCESS" = "Preferenze importate con successo";
+"EXPORT_SUCCESS" = "Preferenze esportate con successo";
+"IMPORT_FAILED" = "Importazione preferenze non riuscita";
+"CANCEL" = "Annulla";
+"YES" = "Sì";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Simulazione luminosità";
+"FAKE_BRIGHTNESS_DESC" = "Riduce la luminosità apparente al di sotto del minimo di sistema";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Pianifica simulazione luminosità (Modalità notte)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Applica automaticamente la simulazione della luminosità durante un intervallo di tempo impostato";
+"SCHEDULE_TIME_RANGE" = "Ore attive";
+"START_TIME_LABEL" = "Da";
+"END_TIME_LABEL" = "a";

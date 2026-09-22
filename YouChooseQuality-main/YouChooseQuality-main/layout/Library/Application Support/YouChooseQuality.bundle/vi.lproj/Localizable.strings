@@ -1,0 +1,14 @@
+// Cài đặt
+
+"ENABLED" = "Đã bật";
+"TWEAK_DESC" = "YouChooseQuality sẽ chọn chất lượng video chính xác hoặc gần nhất với chất lượng bạn chọn cho từng trường hợp.";
+"QUALITY_FOR_SCENARIO_0" = "Chất lượng video cho Wi-Fi";
+"QUALITY_FOR_SCENARIO_0_SHORT" = "Wi-Fi";
+"QUALITY_FOR_SCENARIO_1" = "Chất lượng video cho Cellular";
+"QUALITY_FOR_SCENARIO_1_SHORT" = "Cellular";
+"QUALITY_FOR_SCENARIO_2" = "Chất lượng video cho Wi-Fi có AirPlay";
+"QUALITY_FOR_SCENARIO_2_SHORT" = "Wi-Fi có AirPlay";
+"QUALITY_FOR_SCENARIO_3" = "Chất lượng video cho Cellular có AirPlay";
+"QUALITY_FOR_SCENARIO_3_SHORT" = "Cellular có AirPlay";
+"QUALITY_FOR_SCENARIO_4" = "Chất lượng video cho Low Power Mode";
+"QUALITY_FOR_SCENARIO_4_SHORT" = "Low Power Mode";

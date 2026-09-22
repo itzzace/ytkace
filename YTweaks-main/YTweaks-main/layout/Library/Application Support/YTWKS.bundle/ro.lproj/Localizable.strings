@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Avertizare";
+"APPLY_DESC" = "Această acțiune va închide YouTube. Sunteți sigur că doriți să continuați?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Oprit";
+"FULLSCREEN_LEFT" = "Stânga";
+"FULLSCREEN_RIGHT" = "Dreapta";
+"FULLSCREEN_PORTRAIT" = "Portret";
+"FULLSCREEN_BUTTON_MODE" = "Forțează direcția ecran complet (Buton)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Doar butonul ecran complet intră în orientarea aleasă. Gesturile și rotația păstrează comportamentul implicit.";
+"FULLSCREEN_SWIPE_MODE" = "Forțează direcția ecran complet (Gest)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Doar gestul de glisare în sus intră în orientarea aleasă. Butonul ecran complet și rotația păstrează comportamentul implicit.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Dezactivare miniplayer flotant";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Restabilește miniplayer-ul clasic prin dezactivarea parametrului A/B enableIosFloatingMiniplayer. Necesită repornirea aplicației.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Borduri virtuale ecran complet";
+"VIRTUAL_BEZEL_DESC" = "Adaugă zone de atingere sigure invizibile pe barele negre pentru a preveni atingerile și săriturile accidentale. Destinat pentru iPhone-uri fără buton de acasă.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "Ascunde Rezumatul AI";
+"HIDE_AI_SUMMARIES_DESC" = "Ascunde butoanele de rezumat generate de AI care apar sub videoclipuri în feed.";
+
+// Fix Casting
+"FIX_CASTING" = "Repară Casting";
+"FIX_CASTING_DESC" = "Încearcă să repare castingul prin modificarea unor parametri A/B. Funcționează doar pe v20.10.4 sau mai mic";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Gestionarea preferințelor";
+"IMPORT_PREFERENCES" = "Importă preferințe";
+"EXPORT_PREFERENCES" = "Exportă preferințe";
+"RESTORE_DEFAULTS" = "Restaurează setările implicite";
+"IMPORT_CONFIRM" = "Aceasta va înlocui preferințele curente. Continuați?";
+"RESTORE_CONFIRM" = "Aceasta va reseta toate setările la valorile implicite. Continuați?";
+"IMPORT_SUCCESS" = "Preferințe importate cu succes";
+"EXPORT_SUCCESS" = "Preferințe exportate cu succes";
+"IMPORT_FAILED" = "Importarea preferințelor a eșuat";
+"CANCEL" = "Anulează";
+"YES" = "Da";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Luminozitate simulată";
+"FAKE_BRIGHTNESS_DESC" = "Reduce luminozitatea aparentă sub minimul sistemului cu un strat întunecat. 100% este normal; valori mai mici întunecă ecranul.";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Programare luminozitate simulată (Mod Noapte)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Aplică automat luminozitatea simulată într-un interval de timp setat";
+"SCHEDULE_TIME_RANGE" = "Ore active";
+"START_TIME_LABEL" = "De la";
+"END_TIME_LABEL" = "la";

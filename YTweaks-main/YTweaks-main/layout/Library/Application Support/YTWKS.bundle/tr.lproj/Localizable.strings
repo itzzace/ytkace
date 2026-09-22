@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Uyarı";
+"APPLY_DESC" = "Bu işlem YouTube'u kapatacak. Devam etmek istiyor musun?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Kapalı";
+"FULLSCREEN_LEFT" = "Sol";
+"FULLSCREEN_RIGHT" = "Sağ";
+"FULLSCREEN_PORTRAIT" = "Dikey";
+"FULLSCREEN_BUTTON_MODE" = "Tam Ekran Yönünü Zorla (Düğme)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Yalnızca tam ekran düğmesi seçilen yönde girer. Kaydırma ve döndürme varsayılan davranışı korur.";
+"FULLSCREEN_SWIPE_MODE" = "Tam Ekran Yönünü Zorla (Hareket)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Yalnızca yukarı kaydırma hareketi seçilen yönde girer. Tam ekran düğmesi ve döndürme varsayılan davranışı korur.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Kayan mini oynatıcıyı devre dışı bırak";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "A/B bayrağı enableIosFloatingMiniplayer'ı devre dışı bırakarak klasik mini oynatıcıyı geri getirir. Uygulama yeniden başlatma gerekir.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Sanal tam ekran çerçeveleri";
+"VIRTUAL_BEZEL_DESC" = "Yanlışlıkla dokunma ve atlamaları önlemek için siyah çubuklara görünmez dokunma güvenli bölgeler ekler. Ana ekran düğmesi olmayan iPhone'lar için tasarlanmıştır.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "AI Özetlerini Gizle";
+"HIDE_AI_SUMMARIES_DESC" = "Akıştaki videoların altında görünen AI tarafından oluşturulan özet düğmelerini gizler.";
+
+// Fix Casting
+"FIX_CASTING" = "Yayınlamayı Düzelt";
+"FIX_CASTING_DESC" = "Bazı A/B bayraklarını değiştirerek yayınlamayı düzeltmeye çalışır. Yalnızca v20.10.4 veya daha düşük sürümlerde çalışır";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Tercih yönetimi";
+"IMPORT_PREFERENCES" = "Tercihleri içe aktar";
+"EXPORT_PREFERENCES" = "Tercihleri dışa aktar";
+"RESTORE_DEFAULTS" = "Varsayılan ayarları geri yükle";
+"IMPORT_CONFIRM" = "Bu, mevcut tercihleri değiştirecek. Devam etmek istiyor musun?";
+"RESTORE_CONFIRM" = "Bu, tüm ayarları varsayılan değerlere sıfırlayacak. Devam etmek istiyor musun?";
+"IMPORT_SUCCESS" = "Tercihler başarıyla içe aktarıldı";
+"EXPORT_SUCCESS" = "Tercihler başarıyla dışa aktarıldı";
+"IMPORT_FAILED" = "Tercihler içe aktarılamadı";
+"CANCEL" = "İptal";
+"YES" = "Evet";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Sahte parlaklık";
+"FAKE_BRIGHTNESS_DESC" = "Koyu bir katmanla görünen parlaklığı sistem minimumunun altına düşürür. %100 normaldir; daha düşük değerler ekranı karartır.";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Sahte parlaklığı planla (Gece Modu)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Belirli bir zaman aralığında sahte parlaklığı otomatik olarak uygular";
+"SCHEDULE_TIME_RANGE" = "Aktif saatler";
+"START_TIME_LABEL" = "Başlangıç";
+"END_TIME_LABEL" = "Bitiş";

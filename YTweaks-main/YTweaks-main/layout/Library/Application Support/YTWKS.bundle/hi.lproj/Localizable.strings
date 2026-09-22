@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "चेतावनी";
+"APPLY_DESC" = "इस क्रिया से YouTube बंद हो जाएगा। क्या आप जारी रखना चाहते हैं?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "बंद";
+"FULLSCREEN_LEFT" = "बाएं";
+"FULLSCREEN_RIGHT" = "दाएं";
+"FULLSCREEN_PORTRAIT" = "पोर्ट्रेट";
+"FULLSCREEN_BUTTON_MODE" = "फ़ुलस्क्रीन दिशा बल दें (बटन)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "केवल फ़ुलस्क्रीन बटन चुनी गई दिशा में प्रवेश करता है। स्वाइप और रोटेशन डिफ़ॉल्ट व्यवहार रखते हैं।";
+"FULLSCREEN_SWIPE_MODE" = "फ़ुलस्क्रीन दिशा बल दें (जेस्चर)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "केवल ऊपर स्वाइप जेस्चर चुनी गई दिशा में प्रवेश करता है। फ़ुलस्क्रीन बटन और रोटेशन डिफ़ॉल्ट व्यवहार रखते हैं।";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "फ़्लोटिंग मिनीप्लेयर बंद करें";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "A/B फ़्लैग enableIosFloatingMiniplayer बंद करके क्लासिक मिनीप्लेयर वापस लाता है। ऐप रीस्टार्ट ज़रूरी।";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "वर्चुअल फ़ुलस्क्रीन बेज़ल";
+"VIRTUAL_BEZEL_DESC" = "गलती से टैप/स्किप रोकने के लिए काली पट्टियों पर अदृश्य टच-सुरक्षित ज़ोन जोड़ता है। बिना होम बटन वाले iPhone के लिए।";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "AI सारांश छिपाएं";
+"HIDE_AI_SUMMARIES_DESC" = "फ़ीड में वीडियो के नीचे दिखने वाले AI-जनित सारांश बटन छिपाता है।";
+
+// Fix Casting
+"FIX_CASTING" = "कास्टिंग ठीक करें";
+"FIX_CASTING_DESC" = "कुछ A/B फ़्लैग बदलकर कास्टिंग ठीक करने की कोशिश। सिर्फ v20.10.4 या नीचे काम करता है";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "प्राथमिकताएं प्रबंधन";
+"IMPORT_PREFERENCES" = "प्राथमिकताएं आयात करें";
+"EXPORT_PREFERENCES" = "प्राथमिकताएं निर्यात करें";
+"RESTORE_DEFAULTS" = "डिफ़ॉल्ट सेटिंग पुनर्स्थापित करें";
+"IMPORT_CONFIRM" = "इससे मौजूदा प्राथमिकताएं बदल जाएंगी। जारी रखें?";
+"RESTORE_CONFIRM" = "सभी सेटिंग डिफ़ॉल्ट पर रीसेट होंगी। जारी रखें?";
+"IMPORT_SUCCESS" = "प्राथमिकताएं सफलतापूर्वक आयात हुईं";
+"EXPORT_SUCCESS" = "प्राथमिकताएं सफलतापूर्वक निर्यात हुईं";
+"IMPORT_FAILED" = "प्राथमिकताएं आयात विफल";
+"CANCEL" = "रद्द करें";
+"YES" = "हाँ";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "नकली चमक";
+"FAKE_BRIGHTNESS_DESC" = "गहरे ओवरले से दिखने वाली चमक को सिस्टम न्यूनतम से नीचे करता है। 100% सामान्य है; कम मान स्क्रीन को और अंधेरा करते हैं।";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "नकली चमक शेड्यूल करें (नाइट मोड)";
+"SCHEDULE_NIGHT_MODE_DESC" = "एक निश्चित समय सीमा के दौरान स्वचालित रूप से नकली चमक लागू करता है";
+"SCHEDULE_TIME_RANGE" = "सक्रिय घंटे";
+"START_TIME_LABEL" = "से";
+"END_TIME_LABEL" = "तक";

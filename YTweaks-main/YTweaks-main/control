@@ -1,0 +1,9 @@
+Package: com.fosterbarnes.ytweaks
+Name: YTweaks
+Version: 0.6.9
+Architecture: iphoneos-arm
+Description: A good tweak for iOS YouTube app.
+Maintainer: fosterbarnes
+Author: fosterbarnes
+Section: Tweaks
+Depends: mobilesubstrate (>= 0.9.5000), firmware (>= 11.0)

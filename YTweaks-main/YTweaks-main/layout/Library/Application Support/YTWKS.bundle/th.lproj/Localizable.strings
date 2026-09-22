@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "คำเตือน";
+"APPLY_DESC" = "การดำเนินการนี้จะปิด YouTube คุณแน่ใจหรือว่าต้องการดำเนินการต่อ?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "ปิด";
+"FULLSCREEN_LEFT" = "ซ้าย";
+"FULLSCREEN_RIGHT" = "ขวา";
+"FULLSCREEN_PORTRAIT" = "แนวตั้ง";
+"FULLSCREEN_BUTTON_MODE" = "บังคับทิศทางเต็มจอ (ปุ่ม)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "เฉพาะปุ่มเต็มจอเท่านั้นที่เข้าสู่การวางแนวที่เลือก การปัดและการหมุนยังคงพฤติกรรมเริ่มต้น";
+"FULLSCREEN_SWIPE_MODE" = "บังคับทิศทางเต็มจอ (ท่าทาง)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "เฉพาะท่าปัดขึ้นเท่านั้นที่เข้าสู่การวางแนวที่เลือก ปุ่มเต็มจอและการหมุนยังคงพฤติกรรมเริ่มต้น";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "ปิดใช้งานมินิเพลเยอร์ลอย";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "นำมินิเพลเยอร์แบบคลาสสิกกลับมาโดยปิดใช้งานแฟล็ก A/B enableIosFloatingMiniplayer ต้องรีสตาร์ทแอป";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "ขอบจอเต็มหน้าจอเสมือน";
+"VIRTUAL_BEZEL_DESC" = "เพิ่มโซนสัมผัสที่ปลอดภัยแบบล่องหนบนแถบสีดำเพื่อป้องกันการแตะและการข้ามโดยไม่ตั้งใจสำหรับ iPhone ที่ไม่มีปุ่มโฮม";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "ซ่อนสรุป AI";
+"HIDE_AI_SUMMARIES_DESC" = "ซ่อนปุ่มสรุปที่สร้างโดย AI ที่ปรากฏใต้วิดีโอในฟีด";
+
+// Fix Casting
+"FIX_CASTING" = "แก้ไขการแคสต์";
+"FIX_CASTING_DESC" = "ลองแก้ไขการแคสต์โดยเปลี่ยนแฟล็ก A/B บางตัว ใช้งานได้ในเฉพาะ YouTube เวอร์ชั่น 20.10.4 หรือต่ำกว่า";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "การจัดการการตั้งค่า";
+"IMPORT_PREFERENCES" = "นำเข้าการตั้งค่า";
+"EXPORT_PREFERENCES" = "ส่งออกการตั้งค่า";
+"RESTORE_DEFAULTS" = "คืนค่าการตั้งค่าเริ่มต้น";
+"IMPORT_CONFIRM" = "การดำเนินการนี้จะแทนที่การตั้งค่าปัจจุบัน ดำเนินการต่อหรือไม่?";
+"RESTORE_CONFIRM" = "การดำเนินการนี้จะรีเซ็ตการตั้งค่าทั้งหมดเป็นค่าเริ่มต้น ดำเนินการต่อหรือไม่?";
+"IMPORT_SUCCESS" = "นำเข้าการตั้งค่าสำเร็จ";
+"EXPORT_SUCCESS" = "ส่งออกการตั้งค่าสำเร็จ";
+"IMPORT_FAILED" = "นำเข้าการตั้งค่าไม่สำเร็จ";
+"CANCEL" = "ยกเลิก";
+"YES" = "ใช่";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "ความสว่างจำลอง";
+"FAKE_BRIGHTNESS_DESC" = "ลดความสว่างที่เห็นต่ำกว่าค่าขั้นต่ำของระบบด้วยเลเยอร์มืด 100% คือปกติ ค่าที่ต่ำลงจะทำให้หน้าจอมืดลง";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "กำหนดเวลาความสว่างจำลอง (โหมดกลางคืน)";
+"SCHEDULE_NIGHT_MODE_DESC" = "ใช้ความสว่างจำลองโดยอัตโนมัติในช่วงเวลาที่กำหนด";
+"SCHEDULE_TIME_RANGE" = "เวลาเปิดใช้งาน";
+"START_TIME_LABEL" = "จาก";
+"END_TIME_LABEL" = "ถึง";

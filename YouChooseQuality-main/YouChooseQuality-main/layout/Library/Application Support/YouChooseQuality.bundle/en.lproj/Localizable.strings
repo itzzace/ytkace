@@ -1,0 +1,12 @@
+"ENABLED" = "Enabled";
+"TWEAK_DESC" = "YouChooseQuality will select the exact or closest video quality to the one you choose for each scenario.";
+"QUALITY_FOR_SCENARIO_0" = "Video quality for Wi-Fi";
+"QUALITY_FOR_SCENARIO_0_SHORT" = "Wi-Fi";
+"QUALITY_FOR_SCENARIO_1" = "Video quality for Cellular";
+"QUALITY_FOR_SCENARIO_1_SHORT" = "Cellular";
+"QUALITY_FOR_SCENARIO_2" = "Video quality for Wi-Fi with AirPlay";
+"QUALITY_FOR_SCENARIO_2_SHORT" = "Wi-Fi with AirPlay";
+"QUALITY_FOR_SCENARIO_3" = "Video quality for Cellular with AirPlay";
+"QUALITY_FOR_SCENARIO_3_SHORT" = "Cellular with AirPlay";
+"QUALITY_FOR_SCENARIO_4" = "Video quality for Low Power Mode";
+"QUALITY_FOR_SCENARIO_4_SHORT" = "Low Power Mode";

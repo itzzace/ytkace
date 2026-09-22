@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Upozornění";
+"APPLY_DESC" = "Tato akce ukončí YouTube. Opravdu chcete pokračovat?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Vypnuto";
+"FULLSCREEN_LEFT" = "Vlevo";
+"FULLSCREEN_RIGHT" = "Vpravo";
+"FULLSCREEN_PORTRAIT" = "Na výšku";
+"FULLSCREEN_BUTTON_MODE" = "Vynutit směr celé obrazovky (Tlačítko)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Pouze tlačítko celé obrazovky přejde do zvolené orientace. Gesta a otáčení zachovávají výchozí chování.";
+"FULLSCREEN_SWIPE_MODE" = "Vynutit směr celé obrazovky (Gesto)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Pouze gesto potažení nahoru přejde do zvolené orientace. Tlačítko celé obrazovky a otáčení zachovávají výchozí chování.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Vypnout plovoucí mini přehrávač";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Obnoví klasický mini přehrávač vypnutím příznaku A/B enableIosFloatingMiniplayer. Vyžaduje restart aplikace.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Virtuální rámečky celé obrazovky";
+"VIRTUAL_BEZEL_DESC" = "Přidává neviditelné bezpečné zóny na černé pruhy, aby zabránil náhodným klepnutím a přeskakování. Pro iPhony bez tlačítka domů.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "Skrýt souhrny AI";
+"HIDE_AI_SUMMARIES_DESC" = "Skryje tlačítka souhrnů generovaných AI pod videi ve výpisu.";
+
+// Fix Casting
+"FIX_CASTING" = "Opravit přenos";
+"FIX_CASTING_DESC" = "Pokusí se opravit přenos změnou některých příznaků A/B. Funguje pouze ve verzi v20.10.4 nebo nižší";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Správa předvoleb";
+"IMPORT_PREFERENCES" = "Importovat předvolby";
+"EXPORT_PREFERENCES" = "Exportovat předvolby";
+"RESTORE_DEFAULTS" = "Obnovit výchozí nastavení";
+"IMPORT_CONFIRM" = "Tím se nahradí aktuální předvolby. Pokračovat?";
+"RESTORE_CONFIRM" = "Tím se obnoví všechna nastavení. Pokračovat?";
+"IMPORT_SUCCESS" = "Předvolby úspěšně importovány";
+"EXPORT_SUCCESS" = "Předvolby úspěšně exportovány";
+"IMPORT_FAILED" = "Import předvoleb se nezdařil";
+"CANCEL" = "Zrušit";
+"YES" = "Ano";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Falešný jas";
+"FAKE_BRIGHTNESS_DESC" = "Sníží zdánlivý jas pod systémové minimum pomocí tmavé vrstvy. 100 % je normální; nižší hodnoty obrazovku ztmaví.";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Naplánovat falešný jas (Noční režim)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Automaticky použije falešný jas během nastaveného časového rozmezí";
+"SCHEDULE_TIME_RANGE" = "Aktivní hodiny";
+"START_TIME_LABEL" = "Od";
+"END_TIME_LABEL" = "do";

@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "אזהרה";
+"APPLY_DESC" = "פעולה זו תסגור את YouTube. האם להמשיך?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "כבוי";
+"FULLSCREEN_LEFT" = "שמאל";
+"FULLSCREEN_RIGHT" = "ימין";
+"FULLSCREEN_PORTRAIT" = "לאורך";
+"FULLSCREEN_BUTTON_MODE" = "כפיית כיוון מסך מלא (כפתור)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "רק כפתור מסך מלא נכנס לכיוון שנבחר. מחוות וסיבוב שומרים על ההתנהגות הרגילה.";
+"FULLSCREEN_SWIPE_MODE" = "כפיית כיוון מסך מלא (מחווה)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "רק מחוות ההחלקה למעלה נכנסת לכיוון שנבחר. כפתור מסך מלא וסיבוב שומרים על ההתנהגות הרגילה.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "כיבוי נגן מיני צף";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "מחזיר את נגן המיני הקלאסי על ידי כיבוי דגל A/B enableIosFloatingMiniplayer. נדרשת הפעלה מחדש של האפליקציה.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "מסגרות וירטואליות למסך מלא";
+"VIRTUAL_BEZEL_DESC" = "מוסיף אזורי מגע בלתי נראים על הפסים השחורים כדי למנוע לחיצות ודילוגים בשוגג. מיועד ל‑iPhone ללא כפתור הבית.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "הסתרת סיכומי AI";
+"HIDE_AI_SUMMARIES_DESC" = "מסתיר כפתורי סיכום שנוצרו על ידי AI מתחת לסרטונים בפיד.";
+
+// Fix Casting
+"FIX_CASTING" = "תיקון השידור";
+"FIX_CASTING_DESC" = "מנסה לתקן השידור על ידי שינוי דגלי A/B. פועל רק בגרסה v20.10.4 ומטה";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "ניהול העדפות";
+"IMPORT_PREFERENCES" = "ייבוא העדפות";
+"EXPORT_PREFERENCES" = "ייצוא העדפות";
+"RESTORE_DEFAULTS" = "שחזור הגדרות ברירת מחדל";
+"IMPORT_CONFIRM" = "זה יחליף את ההעדפות הנוכחיות. להמשיך?";
+"RESTORE_CONFIRM" = "זה יאפס את כל ההגדרות. להמשיך?";
+"IMPORT_SUCCESS" = "ההעדפות יובאו בהצלחה";
+"EXPORT_SUCCESS" = "ההעדפות יוצאו בהצלחה";
+"IMPORT_FAILED" = "ייבוא ההעדפות נכשל";
+"CANCEL" = "ביטול";
+"YES" = "כן";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "בהירות מדומה";
+"FAKE_BRIGHTNESS_DESC" = "מוריד את הבהירות הנראית מתחת למינימום של המערכת באמצעות שכבה כהה. 100% הוא רגיל; ערכים נמוכים יותר מחשיכים את המסך.";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "תזמון בהירות מדומה (מצב לילה)";
+"SCHEDULE_NIGHT_MODE_DESC" = "מחיל בהירות מדומה באופן אוטומטי במהלך טווח זמן מוגדר";
+"SCHEDULE_TIME_RANGE" = "שעות פעילות";
+"START_TIME_LABEL" = "מ-";
+"END_TIME_LABEL" = "עד";

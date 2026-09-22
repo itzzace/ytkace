@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "警告";
+"APPLY_DESC" = "この操作によりYouTubeアプリが終了します。本当に続けますか？";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "オフ";
+"FULLSCREEN_LEFT" = "左";
+"FULLSCREEN_RIGHT" = "右";
+"FULLSCREEN_PORTRAIT" = "縦";
+"FULLSCREEN_BUTTON_MODE" = "フルスクリーン方向を強制（ボタン）";
+"FULLSCREEN_BUTTON_MODE_DESC" = "フルスクリーンボタンのみが選択した向きで入ります。スワイプと回転はデフォルトの動作のままです。";
+"FULLSCREEN_SWIPE_MODE" = "フルスクリーン方向を強制（ジェスチャー）";
+"FULLSCREEN_SWIPE_MODE_DESC" = "上にスワイプするジェスチャーのみが選択した向きで入ります。フルスクリーンボタンと回転はデフォルトの動作のままです。";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "フローティングミニプレーヤーを無効化";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "A/Bフラグ enableIosFloatingMiniplayer を無効にしてクラシックミニプレーヤーを復元します。アプリの再起動が必要です。";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "仮想フルスクリーンベゼル";
+"VIRTUAL_BEZEL_DESC" = "黒いバーに目に見えないタッチ安全ゾーンを追加して、誤タップやスキップを防ぎます。ホームボタンのないiPhone向けです。";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "AI要約を非表示";
+"HIDE_AI_SUMMARIES_DESC" = "フィード内の動画の下に表示されるAI生成の要約を非表示にします。";
+
+// Fix Casting
+"FIX_CASTING" = "キャストの修正";
+"FIX_CASTING_DESC" = "一部のA/Bフラグを変更してキャスト機能を修正しようとします。v20.10.4以下でのみ動作します";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "設定管理";
+"IMPORT_PREFERENCES" = "設定をインポート";
+"EXPORT_PREFERENCES" = "設定をエクスポート";
+"RESTORE_DEFAULTS" = "デフォルト設定に戻す";
+"IMPORT_CONFIRM" = "現在の設定が置き換えられます。続けますか？";
+"RESTORE_CONFIRM" = "すべての設定がデフォルト値にリセットされます。続けますか？";
+"IMPORT_SUCCESS" = "設定を正常にインポートしました";
+"EXPORT_SUCCESS" = "設定を正常にエクスポートしました";
+"IMPORT_FAILED" = "設定のインポートに失敗しました";
+"CANCEL" = "キャンセル";
+"YES" = "はい";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "偽の輝度";
+"FAKE_BRIGHTNESS_DESC" = "見かけの輝度をシステム最小値以下に下げます";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "偽の輝度をスケジュール (ナイトモード)";
+"SCHEDULE_NIGHT_MODE_DESC" = "設定された時間帯に偽の輝度を自動的に適用します";
+"SCHEDULE_TIME_RANGE" = "アクティブ時間";
+"START_TIME_LABEL" = "開始";
+"END_TIME_LABEL" = "終了";

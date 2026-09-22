@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Peringatan";
+"APPLY_DESC" = "Tindakan ini akan menutup YouTube. Apakah Anda yakin ingin melanjutkan?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Mati";
+"FULLSCREEN_LEFT" = "Kiri";
+"FULLSCREEN_RIGHT" = "Kanan";
+"FULLSCREEN_PORTRAIT" = "Potret";
+"FULLSCREEN_BUTTON_MODE" = "Paksa Arah Layar Penuh (Tombol)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Hanya tombol layar penuh yang masuk ke orientasi yang dipilih. Gesekan dan rotasi tetap perilaku default.";
+"FULLSCREEN_SWIPE_MODE" = "Paksa Arah Layar Penuh (Gestur)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Hanya gestur geser ke atas yang masuk ke orientasi yang dipilih. Tombol layar penuh dan rotasi tetap perilaku default.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Nonaktifkan miniplayer mengambang";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Mengembalikan miniplayer klasik dengan menonaktifkan flag A/B enableIosFloatingMiniplayer. Memerlukan restart aplikasi.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Bingkai layar penuh virtual";
+"VIRTUAL_BEZEL_DESC" = "Menambahkan zona sentuh aman yang tidak terlihat pada bilah hitam untuk mencegah ketukan dan lompatan yang tidak disengaja. Ditujukan untuk iPhone tanpa tombol beranda.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "Sembunyikan Ringkasan AI";
+"HIDE_AI_SUMMARIES_DESC" = "Menyembunyikan tombol ringkasan yang dihasilkan AI yang muncul di bawah video di feed.";
+
+// Fix Casting
+"FIX_CASTING" = "Perbaiki Pemutaran";
+"FIX_CASTING_DESC" = "Mencoba memperbaiki pemutaran dengan mengubah beberapa flag A/B. Hanya berfungsi pada v20.10.4 atau lebih rendah";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Manajemen preferensi";
+"IMPORT_PREFERENCES" = "Impor preferensi";
+"EXPORT_PREFERENCES" = "Ekspor preferensi";
+"RESTORE_DEFAULTS" = "Kembalikan pengaturan default";
+"IMPORT_CONFIRM" = "Ini akan mengganti preferensi saat ini. Lanjutkan?";
+"RESTORE_CONFIRM" = "Ini akan mengatur ulang semua pengaturan ke nilai default. Lanjutkan?";
+"IMPORT_SUCCESS" = "Preferensi berhasil diimpor";
+"EXPORT_SUCCESS" = "Preferensi berhasil diekspor";
+"IMPORT_FAILED" = "Gagal mengimpor preferensi";
+"CANCEL" = "Batal";
+"YES" = "Ya";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Kecerahan palsu";
+"FAKE_BRIGHTNESS_DESC" = "Menurunkan kecerahan tampak di bawah minimum sistem dengan lapisan gelap. 100% normal; nilai lebih rendah menggelapkan layar.";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Jadwalkan Kecerahan Palsu (Mode Malam)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Menerapkan kecerahan palsu secara otomatis selama rentang waktu yang ditentukan";
+"SCHEDULE_TIME_RANGE" = "Jam Aktif";
+"START_TIME_LABEL" = "Dari";
+"END_TIME_LABEL" = "sampai";

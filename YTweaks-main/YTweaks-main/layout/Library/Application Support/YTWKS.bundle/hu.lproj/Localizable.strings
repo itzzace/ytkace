@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Figyelem";
+"APPLY_DESC" = "Ez a művelet kilépteti a YouTube-ot. Biztosan folytatni szeretné?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Ki";
+"FULLSCREEN_LEFT" = "Bal";
+"FULLSCREEN_RIGHT" = "Jobb";
+"FULLSCREEN_PORTRAIT" = "Álló";
+"FULLSCREEN_BUTTON_MODE" = "Teljes képernyő irányának kényszerítése (Gomb)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Csak a teljes képernyő gomb lép be a választott irányba. A gesztusok és forgatás az alapértelmezett viselkedést tartják.";
+"FULLSCREEN_SWIPE_MODE" = "Teljes képernyő irányának kényszerítése (Gesztus)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Csak a felfelé suhintó gesztus lép be a választott irányba. A teljes képernyő gomb és forgatás az alapértelmezett viselkedést tartja.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Lebegő minilejátszó kikapcsolása";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Visszaállítja a klasszikus minilejátszót az enableIosFloatingMiniplayer A/B jelző kikapcsolásával. Az alkalmazás újraindítása szükséges.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Virtuális teljes képernyős keretek";
+"VIRTUAL_BEZEL_DESC" = "Láthatatlan érintésbiztos zónákat ad hozzá a fekete sávokhoz, hogy megelőzze a véletlen érintéseket és átugrásokat. Otthongomb nélküli iPhone-okhoz készült.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "AI összefoglalók elrejtése";
+"HIDE_AI_SUMMARIES_DESC" = "Elrejti az AI által generált összefoglaló gombokat, amelyek a videók alatt jelennek meg a hírfolyamban.";
+
+// Fix Casting
+"FIX_CASTING" = "Küldés javítása";
+"FIX_CASTING_DESC" = "Megpróbálja javítani a küldést néhány A/B jelző megváltoztatásával. Csak v20.10.4 vagy alacsonyabb verzióban működik";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Beállítások kezelése";
+"IMPORT_PREFERENCES" = "Beállítások importálása";
+"EXPORT_PREFERENCES" = "Beállítások exportálása";
+"RESTORE_DEFAULTS" = "Alapértelmezett beállítások visszaállítása";
+"IMPORT_CONFIRM" = "Ez felülírja a jelenlegi beállításokat. Folytatja?";
+"RESTORE_CONFIRM" = "Ez visszaállítja az összes beállítást az alapértelmezett értékekre. Folytatja?";
+"IMPORT_SUCCESS" = "Beállítások sikeresen importálva";
+"EXPORT_SUCCESS" = "Beállítások sikeresen exportálva";
+"IMPORT_FAILED" = "A beállítások importálása sikertelen";
+"CANCEL" = "Mégse";
+"YES" = "Igen";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Hamis fényerő";
+"FAKE_BRIGHTNESS_DESC" = "Sötét réteggel a látszó fényerőt a rendszer minimuma alá csökkenti. 100% a normál; az alacsonyabb értékek sötétítik a képernyőt.";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Hamis fényerő ütemezése (Éjszakai mód)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Automatikusan alkalmazza a hamis fényerőt a beállított időtartományban";
+"SCHEDULE_TIME_RANGE" = "Aktív órák";
+"START_TIME_LABEL" = "Kezdet";
+"END_TIME_LABEL" = "eddig";

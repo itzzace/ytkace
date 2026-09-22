@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Babala";
+"APPLY_DESC" = "Isasara ng aksyong ito ang YouTube. Sigurado ka bang gusto mong magpatuloy?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Off";
+"FULLSCREEN_LEFT" = "Kaliwa";
+"FULLSCREEN_RIGHT" = "Kanan";
+"FULLSCREEN_PORTRAIT" = "Portrait";
+"FULLSCREEN_BUTTON_MODE" = "Pilitin ang Direksyon ng Full Screen (Button)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Ang full screen button lang ang papasok sa napiling orientation. Ang mga swipe at rotation ay nananatiling default.";
+"FULLSCREEN_SWIPE_MODE" = "Pilitin ang Direksyon ng Full Screen (Gesture)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Ang swipe pataas lang ang papasok sa napiling orientation. Ang full screen button at rotation ay nananatiling default.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "I-disable ang Floating Mini Player";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Ibinabalik ang classic mini player sa pag-disable ng A/B flag: enableIosFloatingMiniplayer. Kailangan i-restart ang app.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Virtual Full Screen Bezels";
+"VIRTUAL_BEZEL_DESC" = "Nagdadagdag ng invisible touch-safe zones sa black bars para maiwasan ang aksidenteng tap at skip. Para sa iPhone na walang home button.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "Itago ang AI Summaries";
+"HIDE_AI_SUMMARIES_DESC" = "Itinatago ang AI-generated summary buttons sa ilalim ng mga video sa feed.";
+
+// Fix Casting
+"FIX_CASTING" = "Ayusin ang Casting";
+"FIX_CASTING_DESC" = "Sinusubukang ayusin ang casting sa pagbabago ng ilang A/B flags. Gumagana lang sa v20.10.4 o mas mababa";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Pamamahala ng mga kagustuhan";
+"IMPORT_PREFERENCES" = "I-import ang mga kagustuhan";
+"EXPORT_PREFERENCES" = "I-export ang mga kagustuhan";
+"RESTORE_DEFAULTS" = "Ibalik ang default na mga setting";
+"IMPORT_CONFIRM" = "Papalitan nito ang kasalukuyang mga kagustuhan. Magpatuloy?";
+"RESTORE_CONFIRM" = "Ire-reset nito lahat ng mga setting. Magpatuloy?";
+"IMPORT_SUCCESS" = "Matagumpay na na-import ang mga kagustuhan";
+"EXPORT_SUCCESS" = "Matagumpay na na-export ang mga kagustuhan";
+"IMPORT_FAILED" = "Hindi na-import ang mga kagustuhan";
+"CANCEL" = "Kanselahin";
+"YES" = "Oo";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Fake Brightness";
+"FAKE_BRIGHTNESS_DESC" = "Pinapababa ang tila brightness sa ibaba ng system minimum gamit ang dark overlay. 100% ang normal; mas madilim ang screen kapag mas mababa ang value.";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "I-schedule ang Fake Brightness (Night Mode)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Awtomatikong nilalapat ang fake brightness sa loob ng itinakdang oras";
+"SCHEDULE_TIME_RANGE" = "Mga Aktibong Oras";
+"START_TIME_LABEL" = "Mula";
+"END_TIME_LABEL" = "hanggang";

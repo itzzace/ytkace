@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Warning";
+"APPLY_DESC" = "This action will quit YouTube. Are you sure you want to continue?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Off";
+"FULLSCREEN_LEFT" = "Left";
+"FULLSCREEN_RIGHT" = "Right";
+"FULLSCREEN_PORTRAIT" = "Portrait";
+"FULLSCREEN_BUTTON_MODE" = "Force Fullscreen Direction (Button)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Only the fullscreen button enters the chosen orientation. Swipes and rotation keep default behavior.";
+"FULLSCREEN_SWIPE_MODE" = "Force Fullscreen Direction (Gesture)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Only the swipe-up gesture enters the chosen orientation. The fullscreen button and rotation keep default behavior.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Disable Floating Miniplayer";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Brings back the classic miniplayer by disabling A/B flag: enableIosFloatingMiniplayer. Requires app restart.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Virtual Fullscreen Bezels";
+"VIRTUAL_BEZEL_DESC" = "Adds invisible touch-safe zones on black bars to prevent accidental taps and skips. Meant for iPhones with no home button.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "Hide AI Summaries";
+"HIDE_AI_SUMMARIES_DESC" = "Hides AI-generated summaries that appear below videos in the home feed. May take multiple app restarts to stick (WIP)";
+
+// Fix Casting
+"FIX_CASTING" = "Fix Casting";
+"FIX_CASTING_DESC" = "Attempts to fix casting by changing some A/B flags. Only works on v20.10.4 or lower";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Preferences management";
+"IMPORT_PREFERENCES" = "Import preferences";
+"EXPORT_PREFERENCES" = "Export preferences";
+"RESTORE_DEFAULTS" = "Restore default settings";
+"IMPORT_CONFIRM" = "This will replace current preferences. Continue?";
+"RESTORE_CONFIRM" = "This will reset all settings to defaults. Continue?";
+"IMPORT_SUCCESS" = "Preferences imported successfully";
+"EXPORT_SUCCESS" = "Preferences exported successfully";
+"IMPORT_FAILED" = "Failed to import preferences";
+"CANCEL" = "Cancel";
+"YES" = "Yes";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Fake Brightness";
+"FAKE_BRIGHTNESS_DESC" = "Lowers apparent brightness below the system minimum";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Schedule Fake Brightness (Night Mode)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Automatically applies fake brightness during a set time range";
+"SCHEDULE_TIME_RANGE" = "Active Hours";
+"START_TIME_LABEL" = "From";
+"END_TIME_LABEL" = "to";

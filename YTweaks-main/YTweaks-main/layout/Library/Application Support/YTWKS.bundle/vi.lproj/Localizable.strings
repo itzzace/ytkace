@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Chú ý";
+"APPLY_DESC" = "Áp dụng thay đổi này sẽ khởi động lại YouTube. Bạn có muốn tiếp tục không?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Tắt";
+"FULLSCREEN_LEFT" = "Trái";
+"FULLSCREEN_RIGHT" = "Phải";
+"FULLSCREEN_PORTRAIT" = "Dọc";
+"FULLSCREEN_BUTTON_MODE" = "Buộc hướng toàn màn hình (Nút)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Chỉ nút toàn màn hình vào hướng đã chọn. Vuốt và xoay giữ hành vi mặc định.";
+"FULLSCREEN_SWIPE_MODE" = "Buộc hướng toàn màn hình (Cử chỉ)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Chỉ cử chỉ vuốt lên vào hướng đã chọn. Nút toàn màn hình và xoay giữ hành vi mặc định.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Tắt trình phát nhỏ nổi";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Khôi phục trình phát nhỏ cổ điển bằng cách tắt cờ A/B enableIosFloatingMiniplayer. Cần khởi động lại ứng dụng.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Viền toàn màn hình ảo";
+"VIRTUAL_BEZEL_DESC" = "Thêm các vùng chạm an toàn vô hình trên các thanh đen để ngăn chặn các lần chạm và bỏ qua không mong muốn. Dành cho iPhone không có nút trang chủ.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "Ẩn Tóm tắt AI";
+"HIDE_AI_SUMMARIES_DESC" = "Ẩn các nút tóm tắt do AI tạo xuất hiện bên dưới video trong nguồn cấp dữ liệu.";
+
+// Fix Casting
+"FIX_CASTING" = "Sửa truyền";
+"FIX_CASTING_DESC" = "Cố gắng sửa truyền bằng cách thay đổi một số cờ A/B. Chỉ hoạt động trên v20.10.4 trở xuống";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Quản lý tùy chọn";
+"IMPORT_PREFERENCES" = "Nhập tùy chọn";
+"EXPORT_PREFERENCES" = "Xuất tùy chọn";
+"RESTORE_DEFAULTS" = "Khôi phục cài đặt mặc định";
+"IMPORT_CONFIRM" = "Thao tác này sẽ thay thế các tùy chọn hiện tại. Tiếp tục?";
+"RESTORE_CONFIRM" = "Thao tác này sẽ đặt lại tất cả cài đặt về giá trị mặc định. Tiếp tục?";
+"IMPORT_SUCCESS" = "Nhập tùy chọn thành công";
+"EXPORT_SUCCESS" = "Xuất tùy chọn thành công";
+"IMPORT_FAILED" = "Nhập tùy chọn thất bại";
+"CANCEL" = "Hủy";
+"YES" = "Có";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Độ sáng giả";
+"FAKE_BRIGHTNESS_DESC" = "Giảm độ sáng hiển thị xuống dưới mức tối thiểu của hệ thống bằng lớp phủ tối. 100% là bình thường; giá trị thấp hơn làm màn hình tối hơn.";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Lên lịch độ sáng giả (Chế độ Ban đêm)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Tự động áp dụng độ sáng giả trong khoảng thời gian đã thiết lập";
+"SCHEDULE_TIME_RANGE" = "Giờ hoạt động";
+"START_TIME_LABEL" = "Từ";
+"END_TIME_LABEL" = "đến";

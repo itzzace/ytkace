@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Προειδοποίηση";
+"APPLY_DESC" = "Αυτή η ενέργεια θα κλείσει το YouTube. Σίγουρα θέλετε να συνεχίσετε;";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Απενεργοποιημένο";
+"FULLSCREEN_LEFT" = "Αριστερά";
+"FULLSCREEN_RIGHT" = "Δεξιά";
+"FULLSCREEN_PORTRAIT" = "Κάθετα";
+"FULLSCREEN_BUTTON_MODE" = "Εξαναγκασμός κατεύθυνσης πλήρους οθόνης (Κουμπί)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Μόνο το κουμπί πλήρους οθόνης μπαίνει στην επιλεγμένη κατεύθυνση. Οι χειρονομίες και η περιστροφή διατηρούν τη default συμπεριφορά.";
+"FULLSCREEN_SWIPE_MODE" = "Εξαναγκασμός κατεύθυνσης πλήρους οθόνης (Χειρονομία)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Μόνο η χειρονομία σάρωσης προς τα πάνω μπαίνει στην επιλεγμένη κατεύθυνση. Το κουμπί πλήρους οθόνης και η περιστροφή διατηρούν τη default συμπεριφορά.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Απενεργοποίηση πλωτού μίνι player";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Επαναφέρει το κλασικό μίνι player απενεργοποιώντας τη σημαία A/B enableIosFloatingMiniplayer. Απαιτείται επανεκκίνηση εφαρμογής.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Εικονικά πλαίσια πλήρους οθόνης";
+"VIRTUAL_BEZEL_DESC" = "Προσθέτει αόρατες ασφαλείς ζώνες αφής στις μαύρες λωρίδες για να αποφευχθούν τυχαία πατήματα. Για iPhone χωρίς κουμπί αρχικής.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "Απόκρυψη AI περιλήψεων";
+"HIDE_AI_SUMMARIES_DESC" = "Αποκρύπτει τα κουμπιά AI περιλήψεων κάτω από βίντεο στη ροή.";
+
+// Fix Casting
+"FIX_CASTING" = "Διόρθωση μετάδοσης";
+"FIX_CASTING_DESC" = "Προσπαθεί να διορθώσει τη μετάδοση αλλάζοντας σημαίες A/B. Λειτουργεί μόνο σε v20.10.4 ή χαμηλότερη";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Διαχείριση προτιμήσεων";
+"IMPORT_PREFERENCES" = "Εισαγωγή προτιμήσεων";
+"EXPORT_PREFERENCES" = "Εξαγωγή προτιμήσεων";
+"RESTORE_DEFAULTS" = "Επαναφορά προεπιλογών";
+"IMPORT_CONFIRM" = "Αυτό θα αντικαταστήσει τις τρέχουσες προτιμήσεις. Συνέχεια;";
+"RESTORE_CONFIRM" = "Αυτό θα επαναφέρει όλες τις ρυθμίσεις. Συνέχεια;";
+"IMPORT_SUCCESS" = "Οι προτιμήσεις εισήχθησαν επιτυχώς";
+"EXPORT_SUCCESS" = "Οι προτιμήσεις εξήχθησαν επιτυχώς";
+"IMPORT_FAILED" = "Αποτυχία εισαγωγής προτιμήσεων";
+"CANCEL" = "Ακύρωση";
+"YES" = "Ναι";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Ψεύτικη φωτεινότητα";
+"FAKE_BRIGHTNESS_DESC" = "Μειώνει την φαινόμενη φωτεινότητα κάτω από το ελάχιστο του συστήματος με σκούρο επικάλυμμα. 100% είναι κανονικό· χαμηλότερες τιμές σκοτεινάζουν την οθόνη.";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Προγραμματισμός ψεύτικης φωτεινότητας (Νυχτερινή λειτουργία)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Εφαρμόζει αυτόματα την ψεύτικη φωτεινότητα κατά τη διάρκεια ενός καθορισμένου χρονικού εύρους";
+"SCHEDULE_TIME_RANGE" = "Ώρες ενεργοποίησης";
+"START_TIME_LABEL" = "Από";
+"END_TIME_LABEL" = "έως";

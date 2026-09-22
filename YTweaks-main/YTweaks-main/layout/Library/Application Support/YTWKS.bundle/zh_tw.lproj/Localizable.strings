@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "警告";
+"APPLY_DESC" = "需要重新啟動 Youtube，是否繼續？";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "關";
+"FULLSCREEN_LEFT" = "左";
+"FULLSCREEN_RIGHT" = "右";
+"FULLSCREEN_PORTRAIT" = "直向";
+"FULLSCREEN_BUTTON_MODE" = "強制全螢幕方向 (按鈕)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "僅全螢幕按鈕會以選擇的方向進入。滑動手勢和旋轉保持預設行為。";
+"FULLSCREEN_SWIPE_MODE" = "強制全螢幕方向 (手勢)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "僅向上滑動手勢會以選擇的方向進入。全螢幕按鈕和旋轉保持預設行為。";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "停用浮動迷你播放器";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "透過停用 A/B 標誌 enableIosFloatingMiniplayer 恢復經典迷你播放器。需要重新啟動應用程式。";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "虛擬全螢幕邊框";
+"VIRTUAL_BEZEL_DESC" = "在黑色條上添加不可見的觸控安全區域，以防止意外點擊和跳過。適用於沒有主畫面按鈕的 iPhone。";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "隱藏 AI 摘要";
+"HIDE_AI_SUMMARIES_DESC" = "隱藏出現在動態消息中影片下方的 AI 生成的摘要。";
+
+// Fix Casting
+"FIX_CASTING" = "修復投放";
+"FIX_CASTING_DESC" = "嘗試透過更改一些 A/B 標誌來修復投放功能。僅適用於 v20.10.4 或更低版本";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "偏好設定管理";
+"IMPORT_PREFERENCES" = "匯入偏好設定";
+"EXPORT_PREFERENCES" = "匯出偏好設定";
+"RESTORE_DEFAULTS" = "還原預設設定";
+"IMPORT_CONFIRM" = "這將取代目前的偏好設定。是否繼續？";
+"RESTORE_CONFIRM" = "這將把所有設定重設為預設值。是否繼續？";
+"IMPORT_SUCCESS" = "成功匯入偏好設定";
+"EXPORT_SUCCESS" = "成功匯出偏好設定";
+"IMPORT_FAILED" = "匯入偏好設定失敗";
+"CANCEL" = "取消";
+"YES" = "是";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "模擬亮度";
+"FAKE_BRIGHTNESS_DESC" = "將表觀亮度降低到系統最低亮度以下";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "排程模擬亮度 (夜間模式)";
+"SCHEDULE_NIGHT_MODE_DESC" = "在設定時間段內自動啟用模擬亮度";
+"SCHEDULE_TIME_RANGE" = "生效時間";
+"START_TIME_LABEL" = "從";
+"END_TIME_LABEL" = "至";

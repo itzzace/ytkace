@@ -1,0 +1,12 @@
+"ENABLED" = "เปิดใช้งาน";
+"TWEAK_DESC" = "YouChooseQuality จะทำการเลือกคุณภาพของวีดีโอที่ตรงหรือใกล้เคียงมากที่สุดในแต่ละสถานการณ์ที่คุณกำหนด";
+"QUALITY_FOR_SCENARIO_0" = "คุณภาพวีดีโอเมื่อเปิดใช้ Wi-Fi";
+"QUALITY_FOR_SCENARIO_0_SHORT" = "Wi-Fi";
+"QUALITY_FOR_SCENARIO_1" = "คุณภาพวีดีโอเมื่อเปิดใช้ Cellular";
+"QUALITY_FOR_SCENARIO_1_SHORT" = "Cellular";
+"QUALITY_FOR_SCENARIO_2" = "คุณภาพวีดีโอเมื่อเปิดใช้ Wi-Fi และต่อ AirPlay อยู่";
+"QUALITY_FOR_SCENARIO_2_SHORT" = "Wi-Fi และ AirPlay";
+"QUALITY_FOR_SCENARIO_3" = "คุณภาพวีดีโอเมื่อเปิดใช้ Cellular และต่อ AirPlay อยู่";
+"QUALITY_FOR_SCENARIO_3_SHORT" = "Cellular และ AirPlay";
+"QUALITY_FOR_SCENARIO_4" = "คุณภาพวีดีโอเมื่อเปิดใช้โหมดประหยัดพลังงาน";
+"QUALITY_FOR_SCENARIO_4_SHORT" = "โหมดประหยัดพลังงาน";

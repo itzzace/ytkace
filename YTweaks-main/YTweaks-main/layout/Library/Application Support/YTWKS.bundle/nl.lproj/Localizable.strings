@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Waarschuwing";
+"APPLY_DESC" = "Deze actie sluit YouTube af. Weet je zeker dat je door wilt gaan?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Uit";
+"FULLSCREEN_LEFT" = "Links";
+"FULLSCREEN_RIGHT" = "Rechts";
+"FULLSCREEN_PORTRAIT" = "Staand";
+"FULLSCREEN_BUTTON_MODE" = "Volledig-schermrichting forceren (Knop)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Alleen de volledig-schermknop gaat naar de gekozen oriëntatie. Veegbewegingen en rotatie behouden standaardgedrag.";
+"FULLSCREEN_SWIPE_MODE" = "Volledig-schermrichting forceren (Gebaar)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Alleen het veeg-gebaar omhoog gaat naar de gekozen oriëntatie. De volledig-schermknop en rotatie behouden standaardgedrag.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Zwevende miniplayer uitschakelen";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Herstelt de klassieke miniplayer door de A/B-optie enableIosFloatingMiniplayer uit te schakelen. Herstart van de app vereist.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Virtuele volledig-schermranden";
+"VIRTUAL_BEZEL_DESC" = "Voegt onzichtbare aanraakveilige zones toe op zwarte balken om per ongeluk tikken en overslaan te voorkomen. Bedoeld voor iPhones zonder startknop.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "AI-samenvattingen verbergen";
+"HIDE_AI_SUMMARIES_DESC" = "Verbergt door AI gegenereerde samenvattingsknoppen onder video's in de feed.";
+
+// Fix Casting
+"FIX_CASTING" = "Casting repareren";
+"FIX_CASTING_DESC" = "Probeert casting te repareren door enkele A/B-opties te wijzigen. Werkt alleen op v20.10.4 of lager";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Voorkeurenbeheer";
+"IMPORT_PREFERENCES" = "Voorkeuren importeren";
+"EXPORT_PREFERENCES" = "Voorkeuren exporteren";
+"RESTORE_DEFAULTS" = "Standaardinstellingen herstellen";
+"IMPORT_CONFIRM" = "Dit vervangt de huidige voorkeuren. Doorgaan?";
+"RESTORE_CONFIRM" = "Dit zet alle instellingen terug. Doorgaan?";
+"IMPORT_SUCCESS" = "Voorkeuren succesvol geïmporteerd";
+"EXPORT_SUCCESS" = "Voorkeuren succesvol geëxporteerd";
+"IMPORT_FAILED" = "Importeren van voorkeuren mislukt";
+"CANCEL" = "Annuleren";
+"YES" = "Ja";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Nep helderheid";
+"FAKE_BRIGHTNESS_DESC" = "Verlaagt de schijnbare helderheid onder het systeemminimum met een donkere overlay. 100% is normaal; lagere waarden maken het scherm donkerder.";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Nep helderheid plannen (Nachtmodus)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Past automatisch nep helderheid toe tijdens een ingesteld tijdsbereik";
+"SCHEDULE_TIME_RANGE" = "Actieve uren";
+"START_TIME_LABEL" = "Van";
+"END_TIME_LABEL" = "tot";

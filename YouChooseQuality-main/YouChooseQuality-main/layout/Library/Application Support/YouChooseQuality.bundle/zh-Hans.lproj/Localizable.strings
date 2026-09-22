@@ -1,0 +1,12 @@
+"ENABLED" = "启用";
+"TWEAK_DESC" = "YouChooseQuality 将针对每种情况选择与您所选视频质量完全相同或最接近的视频质量。";
+"QUALITY_FOR_SCENARIO_0" = "WiFi网络下的视频质量";
+"QUALITY_FOR_SCENARIO_0_SHORT" = "WiFi";
+"QUALITY_FOR_SCENARIO_1" = "蜂窝网络下的视频质量";
+"QUALITY_FOR_SCENARIO_1_SHORT" = "蜂窝";
+"QUALITY_FOR_SCENARIO_2" = "WiFi隔空投送下的的视频质量";
+"QUALITY_FOR_SCENARIO_2_SHORT" = "WiFi隔空投送";
+"QUALITY_FOR_SCENARIO_3" = "蜂窝隔空投送下的的视频质量";
+"QUALITY_FOR_SCENARIO_3_SHORT" = "蜂窝隔空投送";
+"QUALITY_FOR_SCENARIO_4" = "省电模式下的视频质量";
+"QUALITY_FOR_SCENARIO_4_SHORT" = "省电模式";

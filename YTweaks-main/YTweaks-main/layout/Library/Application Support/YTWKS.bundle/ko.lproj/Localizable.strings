@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "경고";
+"APPLY_DESC" = "이 작업은 YouTube를 종료합니다. 계속하시겠습니까?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "끔";
+"FULLSCREEN_LEFT" = "왼쪽";
+"FULLSCREEN_RIGHT" = "오른쪽";
+"FULLSCREEN_PORTRAIT" = "세로";
+"FULLSCREEN_BUTTON_MODE" = "전체 화면 방향 강제 (버튼)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "전체 화면 버튼만 선택한 방향으로 들어갑니다. 스와이프와 회전은 기본 동작을 유지합니다.";
+"FULLSCREEN_SWIPE_MODE" = "전체 화면 방향 강제 (제스처)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "위로 스와이프하는 제스처만 선택한 방향으로 들어갑니다. 전체 화면 버튼과 회전은 기본 동작을 유지합니다.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "플로팅 미니 플레이어 비활성화";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "A/B 플래그 enableIosFloatingMiniplayer을 비활성화하여 클래식 미니 플레이어를 복원합니다. 앱 재시작이 필요합니다.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "가상 전체 화면 베젤";
+"VIRTUAL_BEZEL_DESC" = "검은 막대에 보이지 않는 터치 안전 영역을 추가하여 실수로 탭하거나 건너뛰는 것을 방지합니다. 홈 버튼이 없는 iPhone용입니다.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "AI 요약 숨기기";
+"HIDE_AI_SUMMARIES_DESC" = "피드의 동영상 아래에 나타나는 AI 생성 요약 버튼을 숨깁니다.";
+
+// Fix Casting
+"FIX_CASTING" = "TV로 시청하기 수정";
+"FIX_CASTING_DESC" = "일부 A/B 플래그를 변경하여 TV로 시청하기 문제를 해결하려고 시도합니다. v20.10.4 이하에서만 작동합니다";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "환경 설정 관리";
+"IMPORT_PREFERENCES" = "환경 설정 가져오기";
+"EXPORT_PREFERENCES" = "환경 설정 내보내기";
+"RESTORE_DEFAULTS" = "기본 설정 복원";
+"IMPORT_CONFIRM" = "현재 환경 설정이 대체됩니다. 계속하시겠습니까?";
+"RESTORE_CONFIRM" = "모든 설정이 기본값으로 재설정됩니다. 계속하시겠습니까?";
+"IMPORT_SUCCESS" = "환경 설정을 성공적으로 가져왔습니다";
+"EXPORT_SUCCESS" = "환경 설정을 성공적으로 내보냈습니다";
+"IMPORT_FAILED" = "환경 설정 가져오기 실패";
+"CANCEL" = "취소";
+"YES" = "예";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "가짜 밝기";
+"FAKE_BRIGHTNESS_DESC" = "표시 밝기를 시스템 최소값 이하로 낮춥니다";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "가짜 밝기 예약 (야간 모드)";
+"SCHEDULE_NIGHT_MODE_DESC" = "설정된 시간 동안 가짜 밝기를 자동으로 적용합니다";
+"SCHEDULE_TIME_RANGE" = "활성 시간";
+"START_TIME_LABEL" = "시작";
+"END_TIME_LABEL" = "종료";

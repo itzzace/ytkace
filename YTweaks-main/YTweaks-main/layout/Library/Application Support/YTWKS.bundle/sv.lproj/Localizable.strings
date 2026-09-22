@@ -1,0 +1,53 @@
+// Quit app alert
+"WARNING" = "Varning";
+"APPLY_DESC" = "Denna åtgärd avslutar YouTube. Är du säker på att du vill fortsätta?";
+
+// Fullscreen
+"FULLSCREEN_OFF" = "Av";
+"FULLSCREEN_LEFT" = "Vänster";
+"FULLSCREEN_RIGHT" = "Höger";
+"FULLSCREEN_PORTRAIT" = "Stående";
+"FULLSCREEN_BUTTON_MODE" = "Tvinga helskärmsriktning (Knapp)";
+"FULLSCREEN_BUTTON_MODE_DESC" = "Endast helskärmsknappen går in i vald orientering. Svep och rotation behåller standardbeteendet.";
+"FULLSCREEN_SWIPE_MODE" = "Tvinga helskärmsriktning (Gester)";
+"FULLSCREEN_SWIPE_MODE_DESC" = "Endast svep-upp-gesten går in i vald orientering. Helskärmsknappen och rotation behåller standardbeteendet.";
+
+// A/B Testing Settings
+"ENABLE_IOS_FLOATING_MINIPLAYER" = "Inaktivera flytande minispelare";
+"ENABLE_IOS_FLOATING_MINIPLAYER_DESC" = "Återställer den klassiska minispelaren genom att inaktivera A/B-flaggan enableIosFloatingMiniplayer. Kräver omstart av appen.";
+
+// Virtual Bezel
+"VIRTUAL_BEZEL" = "Virtuella helskärmsramar";
+"VIRTUAL_BEZEL_DESC" = "Lägger till osynliga trygga touchzoner på de svarta fälten för att undvika misstag och hopp. För iPhone utan hemmaknapp.";
+
+// Hide AI Summaries
+"HIDE_AI_SUMMARIES" = "Dölj AI-sammanfattningar";
+"HIDE_AI_SUMMARIES_DESC" = "Döljer AI-genererade sammanfattningsknappar under videor i flödet.";
+
+// Fix Casting
+"FIX_CASTING" = "Åtgärda casting";
+"FIX_CASTING_DESC" = "Försöker åtgärda casting genom att ändra vissa A/B-flaggor. Fungerar endast i v20.10.4 eller lägre";
+
+// Preferences Management
+"PREFERENCES_MANAGEMENT" = "Hantering av preferenser";
+"IMPORT_PREFERENCES" = "Importera preferenser";
+"EXPORT_PREFERENCES" = "Exportera preferenser";
+"RESTORE_DEFAULTS" = "Återställ standardinställningar";
+"IMPORT_CONFIRM" = "Detta ersätter nuvarande preferenser. Fortsätta?";
+"RESTORE_CONFIRM" = "Detta återställer alla inställningar. Fortsätta?";
+"IMPORT_SUCCESS" = "Preferenser importerade";
+"EXPORT_SUCCESS" = "Preferenser exporterade";
+"IMPORT_FAILED" = "Import av preferenser misslyckades";
+"CANCEL" = "Avbryt";
+"YES" = "Ja";
+
+// Fake Brightness
+"FAKE_BRIGHTNESS" = "Falsk ljusstyrka";
+"FAKE_BRIGHTNESS_DESC" = "Sänker den skenbara ljusstyrkan under systemminimum med ett mörkt lager. 100 % är normalt; lägre värden gör skärmen mörkare.";
+
+// Night Mode
+"SCHEDULE_NIGHT_MODE" = "Schemalägg falsk ljusstyrka (Nattläge)";
+"SCHEDULE_NIGHT_MODE_DESC" = "Tillämpar automatiskt falsk ljusstyrka under ett angivet tidsintervall";
+"SCHEDULE_TIME_RANGE" = "Aktiva timmar";
+"START_TIME_LABEL" = "Från";
+"END_TIME_LABEL" = "till";
