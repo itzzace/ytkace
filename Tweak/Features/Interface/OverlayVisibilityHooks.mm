@@ -938,8 +938,12 @@ static BOOL YTKACERemovePreviousPaddle(id receiver, SEL selector) {
 static NSString *const YTKACEFullscreenActionsKey =
     @"YTKACE.Preference.Overlay.FullscreenActionsHidden";
 
+static CGFloat const YTKACEFullscreenActionsReservedHeight = 34.0;
+
 static IMP OriginalFullscreenActionsLayout;
 static IMP OriginalFullscreenEngagementLayout;
+static IMP OriginalFullscreenActionBarHeight;
+static IMP OriginalFullscreenActionsSizeThatFits;
 static void YTKACEApplyHidden(UIView *view, NSString *key) {
     const BOOL hidden = YTKACEFeatureEnabled(key);
     if (view.hidden != hidden) view.hidden = hidden;
@@ -959,6 +963,20 @@ static void YTKACEFullscreenEngagementLayout(UIView *receiver, SEL selector) {
     YTKACEApplyHidden(receiver, YTKACEFullscreenActionsKey);
 }
 
+static CGFloat YTKACEFullscreenActionBarHeight(id receiver, SEL selector) {
+    if (YTKACEFeatureEnabled(YTKACEFullscreenActionsKey)) return 0.0;
+    return ((CGFloat (*)(id, SEL))OriginalFullscreenActionBarHeight)(
+        receiver, selector);
+}
+
+static CGSize YTKACEFullscreenActionsSizeThatFits(id receiver, SEL selector,
+                                                   CGRect size) {
+    CGSize fitted = ((CGSize (*)(id, SEL, CGRect))
+        OriginalFullscreenActionsSizeThatFits)(receiver, selector, size);
+    if (!YTKACEFeatureEnabled(YTKACEFullscreenActionsKey)) return fitted;
+    return CGSizeMake(fitted.width, YTKACEFullscreenActionsReservedHeight);
+}
+
 void YTKACEInstallOverlayVisibilityHooks(void) {
     YTKACEInstallInstanceHook(@"YTFullscreenActionsView", @"layoutSubviews",
                               (IMP)YTKACEFullscreenActionsLayout,
@@ -967,6 +985,14 @@ void YTKACEInstallOverlayVisibilityHooks(void) {
                               @"layoutSubviews",
                               (IMP)YTKACEFullscreenEngagementLayout,
                               &OriginalFullscreenEngagementLayout);
+    YTKACEInstallInstanceHook(@"YTFullscreenEngagementActionBarView",
+                              @"actionBarHeight",
+                              (IMP)YTKACEFullscreenActionBarHeight,
+                              &OriginalFullscreenActionBarHeight);
+    YTKACEInstallInstanceHook(@"YTFullscreenActionsView",
+                              @"sizeThatFits:",
+                              (IMP)YTKACEFullscreenActionsSizeThatFits,
+                              &OriginalFullscreenActionsSizeThatFits);
     YTKACERegisterOverlayConfigurator(@"visibility", ^(UIView *overlay,
                                                         UIStackView *stack) {
         for (UIView *subview in overlay.subviews) {
