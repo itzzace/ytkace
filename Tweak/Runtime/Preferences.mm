@@ -14,6 +14,7 @@ NSString * const YTKACEPiPKey = @"YTKACE.Preference.Player.PiP";
 NSString * const YTKACESpeedKey = @"YTKACE.Preference.Player.SpeedControls";
 NSString * const YTKACELoopKey = @"YTKACE.Preference.Player.Loop";
 NSString * const YTKACESleepTimerKey = @"YTKACE.Preference.Player.SleepTimer";
+NSString * const YTKACECleanCopiedLinksKey = @"YTKACE.Preference.Sharing.CleanCopiedLinks";
 NSString * const YTKACEPreferencesDidChangeNotification =
     @"YTKACEPreferencesDidChangeNotification";
 
@@ -64,6 +65,7 @@ void YTKACERegisterDefaults(void) {
         @"YTKACE.Preference.Playback.CustomDoubleTap": @NO,
         @"YTKACE.Preference.Playback.TapToSeek": @NO,
         @"YTKACE.Preference.Sharing.NativeSheet": @NO,
+        YTKACECleanCopiedLinksKey: @NO,
         @"YTKACE.Preference.Playback.OpenPaused": @NO,
         @"YTKACE.Preference.Playback.Transcript": @NO,
         @"YTKACE.Preference.Downloads.Subtitles": @NO,

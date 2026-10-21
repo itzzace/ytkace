@@ -3,6 +3,7 @@
 #import "Features/Downloads/DownloadLog.h"
 #import "Features/SponsorBlock/DeArrow.h"
 #import "Runtime/Preferences.h"
+#import "Features/Interface/CopyLinkHooks.h"
 
 #import <UIKit/UIKit.h>
 
@@ -59,6 +60,7 @@ static void YTKACEInstallModules(void) {
     YTKACEInstallProfilePictureHooks();
     YTKACEInstallPostImageSaverHooks();
     YTKACEInstallNativeShareHooks();
+    YTKACEInstallCopyLinkHooks();
     YTKACEInstallSettingsEntryHooks();
     YTKACEInstallNativeSettingsHooks();
 }

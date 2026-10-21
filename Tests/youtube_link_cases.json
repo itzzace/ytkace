@@ -1,0 +1,342 @@
+[
+  {
+    "name": "short share with timestamp",
+    "input": "https://youtu.be/video?si=secret&t=31",
+    "expected": "https://youtu.be/video?t=31"
+  },
+  {
+    "name": "watch functional fields",
+    "input": "https://www.youtube.com/watch?v=vid&si=x&list=PLone&index=3&t=5&start=2&end=9&lc=comment",
+    "expected": "https://www.youtube.com/watch?v=vid&list=PLone&index=3&t=5&start=2&end=9&lc=comment"
+  },
+  {
+    "name": "all reviewed names",
+    "input": "https://youtube.com/watch?feature=share&v=vid&gclid=a&kw=b&pp=c&si=d",
+    "expected": "https://youtube.com/watch?v=vid"
+  },
+  {
+    "name": "UTM fields",
+    "input": "https://youtube.com/watch?v=vid&utm_source=app&utm_medium=social&utm_campaign=one&utm_content=a&utm_term=b&utm_id=c",
+    "expected": "https://youtube.com/watch?v=vid"
+  },
+  {
+    "name": "unknown UTM spelling preserved",
+    "input": "https://youtube.com/watch?v=vid&utm_version2=keep&si=x",
+    "expected": "https://youtube.com/watch?v=vid&utm_version2=keep"
+  },
+  {
+    "name": "is share ID https://youtu.be/video",
+    "input": "https://youtu.be/video?is=token&t=1#part",
+    "expected": "https://youtu.be/video?t=1#part"
+  },
+  {
+    "name": "is share ID https://youtu.be/video/",
+    "input": "https://youtu.be/video/?is=token&t=1#part",
+    "expected": "https://youtu.be/video/?t=1#part"
+  },
+  {
+    "name": "is share ID https://www.youtube.com/shorts/video",
+    "input": "https://www.youtube.com/shorts/video?is=token&t=1#part",
+    "expected": "https://www.youtube.com/shorts/video?t=1#part"
+  },
+  {
+    "name": "is share ID https://m.youtube.com/shorts/video/",
+    "input": "https://m.youtube.com/shorts/video/?is=token&t=1#part",
+    "expected": "https://m.youtube.com/shorts/video/?t=1#part"
+  },
+  {
+    "name": "is share ID https://youtube.com/live/video",
+    "input": "https://youtube.com/live/video?is=token&t=1#part",
+    "expected": "https://youtube.com/live/video?t=1#part"
+  },
+  {
+    "name": "is share ID https://music.youtube.com/live/video/",
+    "input": "https://music.youtube.com/live/video/?is=token&t=1#part",
+    "expected": "https://music.youtube.com/live/video/?t=1#part"
+  },
+  {
+    "name": "is not general tracking https://youtube.com/watch?v=vid",
+    "input": "https://youtube.com/watch?v=vid&is=keep&si=x",
+    "expected": "https://youtube.com/watch?v=vid&is=keep"
+  },
+  {
+    "name": "is not general tracking https://youtube.com/playlist?list=PL1",
+    "input": "https://youtube.com/playlist?list=PL1&is=keep&si=x",
+    "expected": "https://youtube.com/playlist?list=PL1&is=keep"
+  },
+  {
+    "name": "is not general tracking https://youtube.com/shorts/",
+    "input": "https://youtube.com/shorts/?is=keep&si=x",
+    "expected": "https://youtube.com/shorts/?is=keep"
+  },
+  {
+    "name": "is not general tracking https://youtu.be/",
+    "input": "https://youtu.be/?is=keep&si=x",
+    "expected": "https://youtu.be/?is=keep"
+  },
+  {
+    "name": "is not general tracking https://youtu.be/one/two",
+    "input": "https://youtu.be/one/two?is=keep&si=x",
+    "expected": "https://youtu.be/one/two?is=keep"
+  },
+  {
+    "name": "is not general tracking https://youtube.com/live/id/extra",
+    "input": "https://youtube.com/live/id/extra?is=keep&si=x",
+    "expected": "https://youtube.com/live/id/extra?is=keep"
+  },
+  {
+    "name": "radio preserved",
+    "input": "https://youtube.com/watch?v=vid&list=RDvid&start_radio=1&index=4&si=x",
+    "expected": "https://youtube.com/watch?v=vid&list=RDvid&start_radio=1&index=4"
+  },
+  {
+    "name": "favorites preserved",
+    "input": "https://youtube.com/watch?v=vid&list=FLone&index=4&si=x",
+    "expected": "https://youtube.com/watch?v=vid&list=FLone&index=4"
+  },
+  {
+    "name": "format https://youtube.com/embed/id",
+    "input": "https://youtube.com/embed/id?si=x",
+    "expected": "https://youtube.com/embed/id"
+  },
+  {
+    "name": "format https://youtube.com/clip/id",
+    "input": "https://youtube.com/clip/id?si=x",
+    "expected": "https://youtube.com/clip/id"
+  },
+  {
+    "name": "format https://youtube.com/post/id",
+    "input": "https://youtube.com/post/id?si=x",
+    "expected": "https://youtube.com/post/id"
+  },
+  {
+    "name": "format https://youtube.com/channel/UCid",
+    "input": "https://youtube.com/channel/UCid?si=x",
+    "expected": "https://youtube.com/channel/UCid"
+  },
+  {
+    "name": "format https://youtube.com/@handle",
+    "input": "https://youtube.com/@handle?si=x",
+    "expected": "https://youtube.com/@handle"
+  },
+  {
+    "name": "format https://music.youtube.com/watch?v=vid",
+    "input": "https://music.youtube.com/watch?v=vid&si=x",
+    "expected": "https://music.youtube.com/watch?v=vid"
+  },
+  {
+    "name": "format http://m.youtube.com/watch?v=vid",
+    "input": "http://m.youtube.com/watch?v=vid&si=x",
+    "expected": "http://m.youtube.com/watch?v=vid"
+  },
+  {
+    "name": "format https://www.youtu.be/id",
+    "input": "https://www.youtu.be/id?si=x",
+    "expected": "https://www.youtu.be/id"
+  },
+  {
+    "name": "encoded names decode once",
+    "input": "https://youtube.com/watch?%76=vid&%73%69=x&%2573i=keep&SI=y",
+    "expected": "https://youtube.com/watch?%76=vid&%2573i=keep"
+  },
+  {
+    "name": "raw fidelity",
+    "input": "HTTPS://WWW.YouTube.COM:443/watch?v=vid&si=x&x=%2f%2F+%20%2526&title=café&flag&&x=two&empty=#t=5",
+    "expected": "HTTPS://WWW.YouTube.COM:443/watch?v=vid&x=%2f%2F+%20%2526&title=café&flag&&x=two&empty=#t=5"
+  },
+  {
+    "name": "combining mark delimiters",
+    "input": "https://youtube.com/watch?v=v&́=keep&si=x#́frag?si=keep",
+    "expected": "https://youtube.com/watch?v=v&́=keep#́frag?si=keep"
+  },
+  {
+    "name": "duplicate trackers and values",
+    "input": "https://youtu.be/id?si=a&si=b&t=1&t=2&flag&si#fragment",
+    "expected": "https://youtu.be/id?t=1&t=2&flag#fragment"
+  },
+  {
+    "name": "fragment only",
+    "input": "https://youtu.be/id#?si=keep&feature=keep",
+    "expected": "https://youtu.be/id#?si=keep&feature=keep"
+  },
+  {
+    "name": "remove only query leave fragment",
+    "input": "https://youtu.be/id?si=x#?si=keep",
+    "expected": "https://youtu.be/id#?si=keep"
+  },
+  {
+    "name": "empty pair",
+    "input": "https://youtu.be/id?&si=x&",
+    "expected": "https://youtu.be/id?&"
+  },
+  {
+    "name": "unknown fields",
+    "input": "https://youtu.be/id?auth=keep&token=keep&search_query=keep&si=x",
+    "expected": "https://youtu.be/id?auth=keep&token=keep&search_query=keep"
+  },
+  {
+    "name": "unchanged https://youtube.com/signin?si=keep&feature=keep",
+    "input": "https://youtube.com/signin?si=keep&feature=keep",
+    "expected": "https://youtube.com/signin?si=keep&feature=keep"
+  },
+  {
+    "name": "unchanged https://youtube.com/watch?v=vid",
+    "input": "https://youtube.com/watch?v=vid",
+    "expected": "https://youtube.com/watch?v=vid"
+  },
+  {
+    "name": "unchanged https://youtu.be/id?",
+    "input": "https://youtu.be/id?",
+    "expected": "https://youtu.be/id?"
+  },
+  {
+    "name": "unchanged https://youtu.be/id",
+    "input": "https://youtu.be/id",
+    "expected": "https://youtu.be/id"
+  },
+  {
+    "name": "unchanged https://example.com/?si=x&utm_source=y",
+    "input": "https://example.com/?si=x&utm_source=y",
+    "expected": "https://example.com/?si=x&utm_source=y"
+  },
+  {
+    "name": "unchanged https://notyoutube.com/watch?si=x",
+    "input": "https://notyoutube.com/watch?si=x",
+    "expected": "https://notyoutube.com/watch?si=x"
+  },
+  {
+    "name": "unchanged https://youtube.com.example.org/watch?si=x",
+    "input": "https://youtube.com.example.org/watch?si=x",
+    "expected": "https://youtube.com.example.org/watch?si=x"
+  },
+  {
+    "name": "unchanged https://youtube.com@evil.org/watch?si=x",
+    "input": "https://youtube.com@evil.org/watch?si=x",
+    "expected": "https://youtube.com@evil.org/watch?si=x"
+  },
+  {
+    "name": "unchanged https://evil@youtube.com/watch?si=x",
+    "input": "https://evil@youtube.com/watch?si=x",
+    "expected": "https://evil@youtube.com/watch?si=x"
+  },
+  {
+    "name": "unchanged https://evil:password@youtube.com/watch?si=x",
+    "input": "https://evil:password@youtube.com/watch?si=x",
+    "expected": "https://evil:password@youtube.com/watch?si=x"
+  },
+  {
+    "name": "unchanged ftp://youtube.com/watch?si=x",
+    "input": "ftp://youtube.com/watch?si=x",
+    "expected": "ftp://youtube.com/watch?si=x"
+  },
+  {
+    "name": "unchanged youtube.com/watch?si=x",
+    "input": "youtube.com/watch?si=x",
+    "expected": "youtube.com/watch?si=x"
+  },
+  {
+    "name": "unchanged //youtube.com/watch?si=x",
+    "input": "//youtube.com/watch?si=x",
+    "expected": "//youtube.com/watch?si=x"
+  },
+  {
+    "name": "unchanged See https://youtu.be/id?si=x",
+    "input": "See https://youtu.be/id?si=x",
+    "expected": "See https://youtu.be/id?si=x"
+  },
+  {
+    "name": "unchanged https://youtu.be/id?si=x\nhttps://youtu.be/id?si=y",
+    "input": "https://youtu.be/id?si=x\nhttps://youtu.be/id?si=y",
+    "expected": "https://youtu.be/id?si=x\nhttps://youtu.be/id?si=y"
+  },
+  {
+    "name": "unchanged  https://youtu.be/id?si=x",
+    "input": " https://youtu.be/id?si=x",
+    "expected": " https://youtu.be/id?si=x"
+  },
+  {
+    "name": "unchanged https://youtu.be/id?si=x ",
+    "input": "https://youtu.be/id?si=x ",
+    "expected": "https://youtu.be/id?si=x "
+  },
+  {
+    "name": "unchanged https://youtu.be/id?si=x\n",
+    "input": "https://youtu.be/id?si=x\n",
+    "expected": "https://youtu.be/id?si=x\n"
+  },
+  {
+    "name": "unchanged https://youtu.be/id?si=x\u0000",
+    "input": "https://youtu.be/id?si=x\u0000",
+    "expected": "https://youtu.be/id?si=x\u0000"
+  },
+  {
+    "name": "unchanged https://youtube.com\\@evil.org/watch?si=x",
+    "input": "https://youtube.com\\@evil.org/watch?si=x",
+    "expected": "https://youtube.com\\@evil.org/watch?si=x"
+  },
+  {
+    "name": "unchanged https://youtu.be/id?si=x&bad=%ZZ",
+    "input": "https://youtu.be/id?si=x&bad=%ZZ",
+    "expected": "https://youtu.be/id?si=x&bad=%ZZ"
+  },
+  {
+    "name": "unchanged https://youtu.be/id?si=x&bad=%",
+    "input": "https://youtu.be/id?si=x&bad=%",
+    "expected": "https://youtu.be/id?si=x&bad=%"
+  },
+  {
+    "name": "unchanged https://youtu.be/id?si=x&bad=%FF",
+    "input": "https://youtu.be/id?si=x&bad=%FF",
+    "expected": "https://youtu.be/id?si=x&bad=%FF"
+  },
+  {
+    "name": "unchanged ",
+    "input": "",
+    "expected": ""
+  },
+  {
+    "name": "unchanged plain text",
+    "input": "plain text",
+    "expected": "plain text"
+  },
+  {
+    "name": "literal question before combining mark",
+    "input": "https://youtube.com/watch?́=keep&si=x",
+    "expected": "https://youtube.com/watch?́=keep"
+  },
+  {
+    "name": "literal ampersand before combining mark",
+    "input": "https://youtube.com/watch?si=x&́=keep",
+    "expected": "https://youtube.com/watch?́=keep"
+  },
+  {
+    "name": "literal equals before combining mark",
+    "input": "https://youtube.com/watch?si=́token&v=video",
+    "expected": "https://youtube.com/watch?v=video"
+  },
+  {
+    "name": "nested values retained",
+    "input": "https://youtube.com/watch?v=video&next=https%3A%2F%2Fexample.org%2F%3Fsi%3Dkeep&si=x",
+    "expected": "https://youtube.com/watch?v=video&next=https%3A%2F%2Fexample.org%2F%3Fsi%3Dkeep"
+  },
+  {
+    "name": "encoded delimiters retained",
+    "input": "https://youtube.com/watch?v=video&data=a%26si%3Dkeep%23x&si=x",
+    "expected": "https://youtube.com/watch?v=video&data=a%26si%3Dkeep%23x"
+  },
+  {
+    "name": "encoded time retained",
+    "input": "https://youtube.com/watch?v=video&%74=5%30s&si=x",
+    "expected": "https://youtube.com/watch?v=video&%74=5%30s"
+  },
+  {
+    "name": "host only",
+    "input": "https://youtube.com?si=x",
+    "expected": "https://youtube.com"
+  },
+  {
+    "name": "short host only retains is",
+    "input": "https://youtu.be?si=x&is=keep",
+    "expected": "https://youtu.be?is=keep"
+  }
+]
