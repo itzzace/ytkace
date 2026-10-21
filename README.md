@@ -55,6 +55,22 @@ To build both IPAs in one run, fill in the second URL field as well: the workflo
 Open the YTKACE tab and tap the gear, or open YouTube Settings and choose YTKACE.
 Both pages carry the same options, and the YouTube Settings section has a search bar.
 
+**General → Sharing & Extras → Clean Copied YouTube Links** is off by default.
+When enabled, Copy Link in YouTube and Copy in YTKACE's iOS share sheet remove
+`si`, `feature`, `gclid`, `kw`, `pp`, and `utm_*` tracking fields from YouTube
+and youtu.be URLs. The `is` share ID is removed only on short, Shorts, and live
+video links. Playlists (including radio/favorites), indexes, timestamps,
+fragments, and unknown parameters keep their original spelling. Comments,
+transcripts, other sites, and other share-sheet activities are unchanged.
+Cleaning is offline and only applies at these copy actions; it never reads or
+monitors the clipboard. Unsupported YouTube copy paths pass through unchanged.
+
+The regression suite runs with `python3 -m unittest discover -s Tests -v`
+(Python 3.10+). On macOS it compiles the production Objective-C++ cleaner and
+hooks against Foundation, using an in-memory pasteboard test double; the iOS
+build uses UIKit. The copy-link tests require macOS and run in their own CI job.
+
+
 ## Screenshots
 
 <p align="center">

@@ -1,0 +1,31 @@
+name: Copy link cleaning
+
+on:
+  pull_request:
+    paths:
+      - 'Tweak/Features/Interface/**'
+      - 'Tweak/Runtime/**'
+      - 'Tests/**'
+      - '.github/workflows/test-link-cleaning.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Tweak/Features/Interface/**'
+      - 'Tweak/Runtime/**'
+      - 'Tests/**'
+      - '.github/workflows/test-link-cleaning.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Test production cleaner and isolated copy hooks
+        run: python3 -m unittest discover -s Tests -v

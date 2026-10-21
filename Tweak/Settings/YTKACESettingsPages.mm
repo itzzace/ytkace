@@ -1802,6 +1802,9 @@ static NSDictionary *YTKACEGeneralDefinition(void) {
         @[
             YTKACEToggleDetail(@"Use iOS Share Sheet", @"Use the iOS share sheet instead of YouTube's.",
                                @"YTKACE.Preference.Sharing.NativeSheet"),
+            YTKACEToggleDetail(@"Clean Copied YouTube Links",
+                               @"Remove tracking from copied links. Keep playlists and timestamps.",
+                               YTKACECleanCopiedLinksKey),
             YTKACEToggleDetail(@"Share at Current Time",
                                @"Links shared from the iOS share sheet start where you are in the video.",
                                @"YTKACE.Preference.Sharing.Timestamp"),

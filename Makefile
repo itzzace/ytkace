@@ -81,6 +81,8 @@ YTKACE_FILES = \
 	Tweak/Features/Interface/ProfilePictureViewer.mm \
 	Tweak/Features/Interface/PostImageSaver.mm \
 	Tweak/Features/Interface/NativeShareHooks.mm \
+	Tweak/Features/Interface/YouTubeLinkCleaner.mm \
+	Tweak/Features/Interface/CopyLinkHooks.mm \
 	Tweak/Features/Interface/NavigationVisibility.mm \
 	Tweak/Settings/SettingsEntry.mm \
 	Tweak/Settings/NativeSettingsEntry.mm \

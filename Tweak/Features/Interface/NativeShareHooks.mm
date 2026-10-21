@@ -1,6 +1,7 @@
 #import "../../YTKACE.h"
 #import "../../Runtime/Hooking.h"
 #import "../../Runtime/Preferences.h"
+#import "CopyLinkHooks.h"
 
 #import <UIKit/UIKit.h>
 #import <objc/message.h>
@@ -214,7 +215,7 @@ static void YTKACEPresentNativeShare(NSURL *URL, UIView *source) {
         UIViewController *presenter = YTKACESharePresenter();
         if (presenter == nil) return;
         UIActivityViewController *sheet =
-            [[UIActivityViewController alloc] initWithActivityItems:@[URL]
+            [[UIActivityViewController alloc] initWithActivityItems:@[YTKACECopyLinkActivityItem(URL)]
                                               applicationActivities:nil];
         sheet.excludedActivityTypes = @[
             UIActivityTypeAssignToContact,
