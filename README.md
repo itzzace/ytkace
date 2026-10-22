@@ -14,6 +14,7 @@ An open-source YouTube enhancement for iOS.
 | Liquid Glass | Glass tab bar, top bar buttons, menus, sheets, player buttons and YTKACE popups on iOS 26, with shrink on scroll and a selected tab color |
 | Tabs | Hide, reorder and add YouTube destinations |
 | Library | Downloaded video, Shorts and audio players with resume support |
+| Translation | Voice-over translation (VOT) powered by [r3tok](https://t.me/r3tok) |
 | Settings | Searchable settings, 15 languages and a native YouTube settings section |
 
 ## Compatibility

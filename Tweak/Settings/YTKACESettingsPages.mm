@@ -1972,7 +1972,8 @@ NSArray<NSDictionary *> *YTKACESettingsMenu(void) {
             @{@"id": @"quality", @"title": @"Video Quality", @"detail": @"Default quality on Wi-Fi and mobile data", @"symbol": @"sparkles.tv"},
             @{@"id": @"captions", @"title": @"Captions", @"detail": @"Captions on or off, language, and transcript", @"symbol": @"captions.bubble"},
             @{@"id": @"gestures", @"title": @"Gestures", @"detail": @"Brightness, volume, double tap, and seeking", @"symbol": @"hand.draw"},
-            @{@"id": @"sponsorblock", @"title": @"SponsorBlock", @"detail": @"Skip or mark sponsored segments", @"symbol": @"sponsor"}
+            @{@"id": @"sponsorblock", @"title": @"SponsorBlock", @"detail": @"Skip or mark sponsored segments", @"symbol": @"sponsor"},
+            @{@"id": @"vot", @"title": @"Voice-Over Translation", @"detail": @"Yandex voice-over translation for videos", @"symbol": @"globe"}
         ]},
         @{@"header": @"LOOK & LAYOUT", @"rows": look},
         @{@"header": @"APP", @"rows": @[
@@ -1983,6 +1984,7 @@ NSArray<NSDictionary *> *YTKACESettingsMenu(void) {
 }
 
 static NSDictionary *YTKACEDefinitionForPage(NSString *pageID) {
+    if ([pageID isEqualToString:@"vot"]) return YTKACEVOTDefinition();
     if ([pageID isEqualToString:@"sponsorblock"]) return YTKACESponsorBlockDefinition();
     if ([pageID isEqualToString:@"player"]) return YTKACEPlayerDefinition();
     if ([pageID isEqualToString:@"quality"]) return YTKACEQualityDefinition();
@@ -2004,6 +2006,22 @@ UIViewController *YTKACEMakeSettingsPage(NSString *pageID) {
     return definition != nil ? YTKACEPageFromDefinition(definition) : nil;
 }
 
+NSDictionary *YTKACEVOTDefinition(void) {
+    NSArray *items = @[
+        YTKACEToggleDetail(@"Translation Button in Player",
+                           @"Show the globe translation button in the video player overlay.",
+                           @"r3yt.vot.enabled"),
+        YTKACEToggleDetail(@"Auto-Translate Videos",
+                           @"Automatically request and enable voice-over translation when video starts.",
+                           @"r3yt.vot.auto"),
+        YTKACEToggleDetail(@"Allow Cellular Data",
+                           @"Allow uploading and downloading audio streams over mobile data (up to 256 MB).",
+                           @"r3yt.vot.cellular")
+    ];
+    return YTKACEPageDefinition(@"vot", @"Voice-Over Translation", @[items], @[YTKACELocalized(@"GENERAL")]);
+}
+
+UIViewController *YTKACEMakeVOTController(void) { return YTKACEMakeSettingsPage(@"vot"); }
 UIViewController *YTKACEMakeSponsorBlockController(void) { return YTKACEMakeSettingsPage(@"sponsorblock"); }
 UIViewController *YTKACEMakePlayerControlsController(void) { return YTKACEMakeSettingsPage(@"player"); }
 UIViewController *YTKACEMakeOverlayOptionsController(void) { return YTKACEMakeSettingsPage(@"watch"); }

@@ -44,6 +44,10 @@ The Liquid Glass tab bar and top bar in `Tweak/Features/Navigation/TabBarHooks.m
 
 The tab bar selection lens uses UIKit's private `_UILiquidLensView`. How to create and drive it was learned from [Livsy90/LiquidLens](https://github.com/Livsy90/LiquidLens), a research demo released under the MIT licence. No code from that project is included.
 
+## Voice-Over Translation (VOT / r3yt)
+
+Voice-Over Translation (VOT) integrates real-time neural voiceover dubbing for foreign-language videos. The implementation and binaries (`Vendor/r3yt`) are entirely developed by **r3tok** ([t.me/r3tok](https://t.me/r3tok)). Integration into YTKACE packaging and sideload repack pipelines was contributed by the community. All original functionality and implementation rights belong to r3tok.
+
 ## Apple frameworks
 
 YTKACE uses UIKit, AVFoundation and SF Symbols supplied by iOS. SF Symbols artwork is requested at runtime and is not included as a redistributed asset pack.

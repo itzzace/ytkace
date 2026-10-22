@@ -1013,3 +1013,13 @@ Licensed under CC BY-NC-SA 4.0.";
 "Debug logs on" = "Debug logs on";
 "Debug logs off" = "Debug logs off";
 "Default leaves YouTube's own tab bar as is." = "Default leaves YouTube's own tab bar as is.";
+/* Voice-Over Translation (VOT) */
+"Voice-Over Translation" = "Voice-Over Translation";
+"Yandex voice-over translation for videos" = "Yandex voice-over translation for videos";
+"Translation Button in Player" = "Translation Button in Player";
+"Show the globe translation button in the video player overlay." = "Show the globe translation button in the video player overlay.";
+"Auto-Translate Videos" = "Auto-Translate Videos";
+"Automatically request and enable voice-over translation when video starts." = "Automatically request and enable voice-over translation when video starts.";
+"Allow Cellular Data" = "Allow Cellular Data";
+"Allow uploading and downloading audio streams over mobile data (up to 256 MB)." = "Allow uploading and downloading audio streams over mobile data (up to 256 MB).";
+

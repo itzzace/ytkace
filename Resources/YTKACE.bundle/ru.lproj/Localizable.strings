@@ -992,3 +992,13 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE использует данные Spo
 "Debug logs on" = "Журнал отладки включён";
 "Debug logs off" = "Журнал отладки выключен";
 "Default leaves YouTube's own tab bar as is." = "По умолчанию панель вкладок YouTube остаётся без изменений.";
+/* Voice-Over Translation (VOT) */
+"Voice-Over Translation" = "Перевод видео (VOT)";
+"Yandex voice-over translation for videos" = "Закадровый перевод видео от Яндекса";
+"Translation Button in Player" = "Кнопка перевода в плеере";
+"Show the globe translation button in the video player overlay." = "Отображать кнопку перевода с иконкой глобуса в плеере видео.";
+"Auto-Translate Videos" = "Переводить автоматически";
+"Automatically request and enable voice-over translation when video starts." = "Автоматически запрашивать и включать перевод при открытии видео.";
+"Allow Cellular Data" = "Разрешить мобильный интернет";
+"Allow uploading and downloading audio streams over mobile data (up to 256 MB)." = "Разрешить скачивание и отправку аудио через сотовую сеть (до 256 МБ).";
+

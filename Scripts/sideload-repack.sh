@@ -48,9 +48,20 @@ python3 "$ROOT/Tools/sanitize_plist.py" "$APP/Info.plist"
 python3 "$ROOT/Tools/macho_inject.py" "$MAIN" \
   --add-load '@rpath/YTKACE.dylib'
 
+if [[ -f "$ROOT/Vendor/r3yt/r3yt.dylib" ]]; then
+  python3 "$ROOT/Tools/macho_inject.py" "$MAIN" --add-load '@rpath/r3yt.dylib'
+fi
+
 mkdir -p "$APP/Frameworks"
 cp "$DYLIB" "$APP/Frameworks/YTKACE.dylib"
 cp -R "$ROOT/Resources/YTKACE.bundle" "$APP/YTKACE.bundle"
+
+if [[ -f "$ROOT/Vendor/r3yt/r3yt.dylib" ]]; then
+  cp "$ROOT/Vendor/r3yt/r3yt.dylib" "$APP/Frameworks/r3yt.dylib"
+fi
+if [[ -d "$ROOT/Vendor/r3yt/r3yt.bundle" ]]; then
+  cp -R "$ROOT/Vendor/r3yt/r3yt.bundle" "$APP/r3yt.bundle"
+fi
 
 bash "$ROOT/Scripts/sign-bundle.sh" "$APP"
 

@@ -4,6 +4,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 FOUNDATION_EXPORT UIViewController *YTKACEMakeSettingsPage(NSString *pageID);
 FOUNDATION_EXPORT NSArray<NSDictionary *> *YTKACESettingsMenu(void);
+FOUNDATION_EXPORT UIViewController *YTKACEMakeVOTController(void);
+FOUNDATION_EXPORT NSDictionary *YTKACEVOTDefinition(void);
 FOUNDATION_EXPORT UIViewController *YTKACEMakePlayerControlsController(void);
 FOUNDATION_EXPORT UIViewController *YTKACEMakeSponsorBlockController(void);
 FOUNDATION_EXPORT UIViewController *YTKACEMakeTabBarOptionsController(void);
