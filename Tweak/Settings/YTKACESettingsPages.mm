@@ -13,6 +13,9 @@
 #import "../Features/Downloads/YTKACEMediaImporter.h"
 #import "../Features/SponsorBlock/SponsorPreferences.h"
 #import "../Features/SponsorBlock/DeArrow.h"
+#import "../Features/Translation/YTKACEVOTLog.h"
+#import "../Features/Translation/YTKACEVOTClient.h"
+#import "../Features/Translation/YTKACEYandexAuthViewController.h"
 
 #import <objc/runtime.h>
 #import <objc/message.h>
@@ -801,6 +804,10 @@ willDisplayHeaderView:(UIView *)view
         cell.selectionStyle = UITableViewCellSelectionStyleNone;
     } else if ([type isEqualToString:@"slider"] && [item[@"stacked"] boolValue]) {
         double stored = [YTKACEPreferenceObject(item[@"key"]) doubleValue];
+        if ([item[@"unit"] isEqualToString:@"percent"] && stored > 0.0 && stored <= 1.0) {
+            stored = stored * 100.0;
+            YTKACESetPreferenceObject(item[@"key"], @(stored));
+        }
         double value = stored > 0.0 ? stored : [item[@"fallback"] doubleValue];
 
         UILabel *caption = [UILabel new];
@@ -1972,7 +1979,8 @@ NSArray<NSDictionary *> *YTKACESettingsMenu(void) {
             @{@"id": @"quality", @"title": @"Video Quality", @"detail": @"Default quality on Wi-Fi and mobile data", @"symbol": @"sparkles.tv"},
             @{@"id": @"captions", @"title": @"Captions", @"detail": @"Captions on or off, language, and transcript", @"symbol": @"captions.bubble"},
             @{@"id": @"gestures", @"title": @"Gestures", @"detail": @"Brightness, volume, double tap, and seeking", @"symbol": @"hand.draw"},
-            @{@"id": @"sponsorblock", @"title": @"SponsorBlock", @"detail": @"Skip or mark sponsored segments", @"symbol": @"sponsor"}
+            @{@"id": @"sponsorblock", @"title": @"SponsorBlock", @"detail": @"Skip or mark sponsored segments", @"symbol": @"sponsor"},
+            @{@"id": @"vot", @"title": @"Voice-Over Translation", @"detail": @"Yandex voice-over translation for videos", @"symbol": @"globe"}
         ]},
         @{@"header": @"LOOK & LAYOUT", @"rows": look},
         @{@"header": @"APP", @"rows": @[
@@ -1983,6 +1991,7 @@ NSArray<NSDictionary *> *YTKACESettingsMenu(void) {
 }
 
 static NSDictionary *YTKACEDefinitionForPage(NSString *pageID) {
+    if ([pageID isEqualToString:@"vot"]) return YTKACEVOTDefinition();
     if ([pageID isEqualToString:@"sponsorblock"]) return YTKACESponsorBlockDefinition();
     if ([pageID isEqualToString:@"player"]) return YTKACEPlayerDefinition();
     if ([pageID isEqualToString:@"quality"]) return YTKACEQualityDefinition();
@@ -2004,6 +2013,173 @@ UIViewController *YTKACEMakeSettingsPage(NSString *pageID) {
     return definition != nil ? YTKACEPageFromDefinition(definition) : nil;
 }
 
+NSDictionary *YTKACEVOTDefinition(void) {
+    YTKACEAction shareVOTLog = ^(UIViewController *controller) {
+        NSString *contents = YTKACEVOTLogContents();
+        if (contents.length == 0) {
+            YTKACEShowNotice(YTKACELocalized(@"Log file is empty"));
+            return;
+        }
+
+        NSURL *tempURL = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"ytkace-vot.log"]];
+        [contents writeToURL:tempURL atomically:YES encoding:NSUTF8StringEncoding error:nil];
+
+        UIActivityViewController *activity = [[UIActivityViewController alloc] initWithActivityItems:@[tempURL] applicationActivities:nil];
+        if (activity.popoverPresentationController != nil) {
+            activity.popoverPresentationController.sourceView = controller.view;
+            activity.popoverPresentationController.sourceRect = CGRectMake(CGRectGetMidX(controller.view.bounds), CGRectGetMidY(controller.view.bounds), 0, 0);
+            activity.popoverPresentationController.permittedArrowDirections = 0;
+        }
+        [controller presentViewController:activity animated:YES completion:nil];
+    };
+
+    YTKACEAction clearVOTLog = ^(UIViewController *controller) {
+        (void)controller;
+        YTKACEClearVOTLog();
+        YTKACEShowNotice(YTKACELocalized(@"Translation log cleared"));
+    };
+
+    BOOL isAuth = [YTKACEVOTClient isYandexAuthorized];
+    NSString *currentLogin = [YTKACEVOTClient currentYandexLogin] ?: @"";
+
+    NSMutableArray *accountRows = [NSMutableArray array];
+    if (isAuth) {
+        NSString *accountTitle = [NSString stringWithFormat:YTKACELocalized(@"Logged in as %@"), currentLogin];
+        [accountRows addObject:YTKACEActionDetail(@"Yandex Account Status", accountTitle, ^(UIViewController *c) {
+            (void)c;
+        })];
+        [accountRows addObject:YTKACEActionDetail(@"Log Out",
+                                                  @"Disconnect Yandex account and remove token.",
+                                                  ^(UIViewController *c) {
+            [YTKACEVOTClient logoutYandex];
+            YTKACEShowNotice(YTKACELocalized(@"Logged out from Yandex"));
+            if ([c isKindOfClass:[YTKACEOptionsController class]]) {
+                NSDictionary *def = YTKACEVOTDefinition();
+                [(YTKACEOptionsController *)c replaceSections:def[@"sections"] sectionTitles:def[@"headers"]];
+            }
+        })];
+    } else {
+        [accountRows addObject:YTKACEActionDetail(@"Log in via Safari",
+                                                  @"Open Yandex OAuth authorization page in Safari.",
+                                                  ^(UIViewController *c) {
+            (void)c;
+            [YTKACEYandexAuthViewController openSafariAuth];
+        })];
+        [accountRows addObject:YTKACEActionDetail(@"Paste Token from Clipboard",
+                                                  @"Paste OAuth token or verification URL copied from browser.",
+                                                  ^(UIViewController *c) {
+            NSString *clip = [UIPasteboard.generalPasteboard.string stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            NSString *token = [YTKACEVOTClient cleanOAuthToken:clip];
+            if (token.length > 0) {
+                [YTKACEVOTClient validateAndSaveToken:token completion:^(BOOL success, NSString *login, NSString *errorMessage) {
+                    if (success) {
+                        YTKACEShowNotice([NSString stringWithFormat:YTKACELocalized(@"Logged in as %@"), login]);
+                        if ([c isKindOfClass:[YTKACEOptionsController class]]) {
+                            NSDictionary *def = YTKACEVOTDefinition();
+                            [(YTKACEOptionsController *)c replaceSections:def[@"sections"] sectionTitles:def[@"headers"]];
+                        }
+                    } else {
+                        YTKACEShowNotice(errorMessage ?: YTKACELocalized(@"Invalid Yandex token"));
+                    }
+                }];
+            } else {
+                UIAlertController *alert = [UIAlertController alertControllerWithTitle:YTKACELocalized(@"Enter Yandex Token")
+                                                                               message:YTKACELocalized(@"Paste your OAuth token or verification URL from Yandex.")
+                                                                        preferredStyle:UIAlertControllerStyleAlert];
+                [alert addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+                    textField.placeholder = @"y0_AgAAAA...";
+                    if (clip.length > 0) {
+                        textField.text = clip;
+                    }
+                }];
+                [alert addAction:[UIAlertAction actionWithTitle:YTKACELocalized(@"Cancel") style:UIAlertActionStyleCancel handler:nil]];
+                [alert addAction:[UIAlertAction actionWithTitle:YTKACELocalized(@"Save") style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                    (void)action;
+                    NSString *entered = alert.textFields.firstObject.text;
+                    NSString *extracted = [YTKACEVOTClient cleanOAuthToken:entered];
+                    if (extracted.length == 0) {
+                        YTKACEShowNotice(YTKACELocalized(@"Empty token"));
+                        return;
+                    }
+                    [YTKACEVOTClient validateAndSaveToken:extracted completion:^(BOOL success, NSString *login, NSString *errorMessage) {
+                        if (success) {
+                            YTKACEShowNotice([NSString stringWithFormat:YTKACELocalized(@"Logged in as %@"), login]);
+                            if ([c isKindOfClass:[YTKACEOptionsController class]]) {
+                                NSDictionary *def = YTKACEVOTDefinition();
+                                [(YTKACEOptionsController *)c replaceSections:def[@"sections"] sectionTitles:def[@"headers"]];
+                            }
+                        } else {
+                            YTKACEShowNotice(errorMessage ?: YTKACELocalized(@"Invalid Yandex token"));
+                        }
+                    }];
+                }]];
+                [c presentViewController:alert animated:YES completion:nil];
+            }
+        })];
+    }
+
+    return YTKACEPageDefinition(@"vot", @"Voice-Over Translation", @[
+        @[
+            YTKACEToggleDetail(@"Voice-Over Translation",
+                               @"Translate foreign videos with Russian neural voice-over.",
+                               @"YTKACE.Preference.VOT.Enabled"),
+            YTKACEToggleDetail(@"Auto-translate",
+                               @"Automatically start translation for foreign videos.",
+                               @"YTKACE.Preference.VOT.AutoTranslate")
+        ],
+        accountRows,
+        @[
+            YTKACESegmentedStacked(@"Voice Type",
+                                   @"YTKACE.Preference.VOT.VoiceType",
+                                   @[@"Standard Voices", @"Live Voices"],
+                                   @[@"standard", @"live"],
+                                   0)
+        ],
+        @[
+            YTKACESegmentedStacked(@"Target Language",
+                                   @"YTKACE.Preference.VOT.TargetLanguage",
+                                   @[@"Russian", @"English", @"Kazakh"],
+                                   @[@"ru", @"en", @"kk"],
+                                   0)
+        ],
+        @[
+            YTKACESegmentedStacked(@"Button Placement",
+                                   @"YTKACE.Preference.VOT.Placement",
+                                   @[@"Player Overlay", @"Settings Menu", @"Both"],
+                                   @[@0, @1, @2],
+                                   0)
+        ],
+        @[
+            YTKACEToggleDetail(@"Smart Adaptive Volume",
+                               @"Automatically restore video volume when translation voice is silent.",
+                               @"YTKACE.Preference.VOT.AdaptiveVolume"),
+            YTKACEPercentSlider(@"Original Video Volume",
+                                @"YTKACE.Preference.VOT.BackgroundVolume",
+                                0.0, 100.0, 5.0, 20.0),
+            YTKACEPercentSlider(@"Translation Volume",
+                                @"YTKACE.Preference.VOT.TranslationVolume",
+                                0.0, 100.0, 5.0, 100.0)
+        ],
+        @[
+            YTKACEActionDetail(@"Export Translation Log",
+                               @"Save or share the diagnostic log of translation and player events.",
+                               shareVOTLog),
+            YTKACEActionDetail(@"Clear Translation Log",
+                               @"Delete all recorded translation logs.",
+                               clearVOTLog)
+        ]
+    ], @[
+        YTKACELocalized(@"GENERAL"),
+        YTKACELocalized(@"YANDEX ACCOUNT"),
+        YTKACELocalized(@"VOICE TYPE"),
+        YTKACELocalized(@"TARGET LANGUAGE"),
+        YTKACELocalized(@"BUTTON PLACEMENT"),
+        YTKACELocalized(@"VOLUME SETTINGS"),
+        YTKACELocalized(@"DIAGNOSTICS")
+    ]);
+}
+
+UIViewController *YTKACEMakeVOTController(void) { return YTKACEMakeSettingsPage(@"vot"); }
 UIViewController *YTKACEMakeSponsorBlockController(void) { return YTKACEMakeSettingsPage(@"sponsorblock"); }
 UIViewController *YTKACEMakePlayerControlsController(void) { return YTKACEMakeSettingsPage(@"player"); }
 UIViewController *YTKACEMakeOverlayOptionsController(void) { return YTKACEMakeSettingsPage(@"watch"); }

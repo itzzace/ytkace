@@ -1,6 +1,7 @@
 ARCHS = arm64
 TARGET = iphone:clang:latest:15.0
 THEOS_PACKAGE_SCHEME ?= rootless
+ADDITIONAL_CFLAGS += -Wno-error -Wno-unused-parameter
 
 include $(THEOS)/makefiles/common.mk
 
@@ -53,6 +54,12 @@ YTKACE_FILES = \
 	Tweak/Features/Playback/DoubleTapHooks.mm \
 	Tweak/Features/Playback/VideoZoom.mm \
 	Tweak/Features/Playback/ProgressBarStyle.mm \
+	Tweak/Features/Translation/YTKACEVOTLog.mm \
+	Tweak/Features/Translation/YTKACEVOTClient.mm \
+	Tweak/Features/Translation/YTKACEVOTAudioPlayer.mm \
+	Tweak/Features/Translation/YTKACEVOTCoordinator.mm \
+	Tweak/Features/Translation/YTKACEVOTHooks.mm \
+	Tweak/Features/Translation/YTKACEYandexAuthViewController.mm \
 	Tweak/Features/Streaming/StreamingHooks.mm \
 	Tweak/Features/Streaming/TVClient.mm \
 	Tweak/Features/Streaming/HLSPlayback.mm \
@@ -96,7 +103,7 @@ YTKACE_CFLAGS += -DYTKACE_VERSION_STRING=\"$(shell awk '/^Version:/ {print $$2}'
 YTKACE_CFLAGS += -Wno-module-import-in-extern-c
 YTKACE_CFLAGS += -I$(THEOS_PROJECT_DIR)/Vendor/FFmpeg/include
 YTKACE_CCFLAGS = -std=c++17
-YTKACE_FRAMEWORKS = Foundation UIKit JavaScriptCore AVFoundation AVKit AudioToolbox Photos QuartzCore MediaPlayer Security SystemConfiguration UniformTypeIdentifiers VideoToolbox CoreMedia
+YTKACE_FRAMEWORKS = Foundation UIKit JavaScriptCore AVFoundation AVKit AudioToolbox MediaToolbox Photos QuartzCore MediaPlayer Security SystemConfiguration UniformTypeIdentifiers VideoToolbox CoreMedia WebKit
 YTKACE_LIBRARIES = z
 YTKACE_LDFLAGS = -Wl,-install_name,@rpath/YTKACE.dylib
 YTKACE_LDFLAGS += $(THEOS_PROJECT_DIR)/Vendor/FFmpeg/lib/libavformat.a

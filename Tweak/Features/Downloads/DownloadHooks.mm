@@ -2,6 +2,7 @@
 #import "DownloadLog.h"
 #import "SABRDownloader.h"
 #import "StreamResolver.h"
+#import "../Translation/YTKACEVOTHooks.h"
 #import "../../YTKACE.h"
 #import "../../Runtime/Hooking.h"
 #import "../../Runtime/Preferences.h"
@@ -948,6 +949,7 @@ static id YTKACEActionsForRenderersLog(id receiver, SEL selector, id renderers,
     id actions = ((id (*)(id, SEL, id, id, id, BOOL, id))OriginalActionsForRenderersLog)(
         receiver, selector, renderers, view, entry, log, responder);
     YTKACERouteSpeedMenuItem(renderers, actions, view, responder);
+    YTKACERouteVOTMenuItem(actions);
     return actions;
 }
 

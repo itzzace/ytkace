@@ -1,5 +1,6 @@
 #import "SponsorClient.h"
 #import "SponsorPreferences.h"
+#import "../Translation/YTKACEVOTHooks.h"
 #import "../../YTKACE.h"
 #import "../../Runtime/Hooking.h"
 #import "../../Runtime/Preferences.h"
@@ -490,6 +491,7 @@ static void YTKACEDidActivateVideo(id receiver,
 
     YTKACEOpenPausedVideoActivated(receiver);
     YTKACELastPlayerController = receiver;
+    YTKACEVOTNotifyDidActivateVideo(receiver, playbackController, video, playbackData);
 
     if (!YTKACESponsorBlockEnabled()) {
         objc_setAssociatedObject(receiver,
@@ -556,6 +558,7 @@ static void YTKACESingleVideoTimeChanged(id receiver,
         YTKACEEvaluateSponsorTime(receiver, resolved);
     }
     YTKACEPublishPlaybackTime(receiver, resolved);
+    YTKACEVOTNotifyTimeDidChange(receiver, resolved);
 }
 
 static void YTKACEMutatedVideoTimeChanged(id receiver,
@@ -573,6 +576,7 @@ static void YTKACEMutatedVideoTimeChanged(id receiver,
         YTKACEEvaluateSponsorTime(receiver, resolved);
     }
     YTKACEPublishPlaybackTime(receiver, resolved);
+    YTKACEVOTNotifyTimeDidChange(receiver, resolved);
 }
 
 static BOOL YTKACETrackGeometry(UIView *target, CGFloat *thickness,

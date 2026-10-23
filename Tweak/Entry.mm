@@ -2,6 +2,7 @@
 #import "Features/Downloads/SABRDownloader.h"
 #import "Features/Downloads/DownloadLog.h"
 #import "Features/SponsorBlock/DeArrow.h"
+#import "Features/Translation/YTKACEVOTHooks.h"
 #import "Runtime/Preferences.h"
 
 #import <UIKit/UIKit.h>
@@ -61,6 +62,7 @@ static void YTKACEInstallModules(void) {
     YTKACEInstallNativeShareHooks();
     YTKACEInstallSettingsEntryHooks();
     YTKACEInstallNativeSettingsHooks();
+    YTKACEInstallTranslationHooks();
 }
 
 __attribute__((constructor))

@@ -9,6 +9,7 @@
 #import "DirectDownloader.h"
 #import <VideoToolbox/VideoToolbox.h>
 #import "StreamResolver.h"
+#import "../Translation/YTKACEVOTClient.h"
 #import "../../Runtime/Preferences.h"
 #import "../../Runtime/Localization.h"
 #import "../../Settings/YTKACEDownloadsController.h"
@@ -748,7 +749,7 @@ void YTKACESaveVideoToPhotosFile(NSURL *url,
 
     __weak YTKACEDownloadCoordinator *weakSelf = self;
     UIImage *chevron = [self menuIcon:@"chevron.right"];
-    NSArray *actions = @[
+    NSMutableArray *actions = [NSMutableArray arrayWithArray:@[
         [self sheetAction:YTKACELocalized(@"Download Video") icon:@"play"
             secondary:chevron handler:^{
                 [weakSelf resolveSaveDestinationFromView:anchor then:^{
@@ -760,7 +761,20 @@ void YTKACESaveVideoToPhotosFile(NSURL *url,
                 [weakSelf resolveAudioDestinationFromView:anchor then:^{
                     [weakSelf startAudioDownload];
                 }];
-            }],
+            }]
+    ]];
+
+    BOOL votEnabled = [NSUserDefaults.standardUserDefaults objectForKey:@"YTKACE.Preference.VOT.Enabled"]
+        ? [NSUserDefaults.standardUserDefaults boolForKey:@"YTKACE.Preference.VOT.Enabled"]
+        : YES;
+    if (votEnabled) {
+        [actions addObject:[self sheetAction:YTKACELocalized(@"Download Voice-Over") icon:@"waveform.badge.magnifyingglass"
+            secondary:nil handler:^{
+                [weakSelf downloadVoiceOverAudioFromView:anchor];
+            }]];
+    }
+
+    [actions addObjectsFromArray:@[
         [self sheetAction:YTKACELocalized(@"Play in External Player") icon:@"play.circle"
             secondary:chevron handler:^{ [weakSelf showExternalPlayerMenuFromView:anchor]; }],
         [self sheetAction:YTKACELocalized(@"Save Image") icon:@"photo"
@@ -772,11 +786,85 @@ void YTKACESaveVideoToPhotosFile(NSURL *url,
                         [weakSelf showCopyInformationMenuFromView:anchor];
                     });
             }]
-    ];
+    ]];
     [self presentNativeSheetWithTitle:
         [YTKACEStreamResolver authorFromPlayerResponse:self.playerResponse]
         subtitle:[YTKACEStreamResolver titleFromPlayerResponse:self.playerResponse]
         sourceView:anchor actions:actions];
+}
+
+
+- (void)downloadVoiceOverAudioFromView:(nullable UIView *)sourceView {
+    NSString *videoID = [YTKACEStreamResolver videoIDFromPlayerResponse:self.playerResponse] ?: YTKACELastVideoID();
+    if (videoID.length == 0) {
+        [self showAlertWithTitle:@"YTKACE" message:YTKACELocalized(@"No active video was found.")];
+        return;
+    }
+
+    NSString *title = [YTKACEStreamResolver titleFromPlayerResponse:self.playerResponse] ?: videoID;
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    NSString *targetLang = [defaults stringForKey:@"YTKACE.Preference.VOT.TargetLanguage"] ?: @"ru";
+
+    [self showCompactNotice:YTKACELocalized(@"Requesting translation...")];
+
+    __weak __typeof__(self) weakSelf = self;
+    [YTKACEVOTClient.sharedClient requestTranslationForVideoID:videoID
+                                                      duration:0
+                                                    sourceLang:nil
+                                                    targetLang:targetLang
+                                                    completion:^(YTKACEVOTResponse * _Nullable response, NSError * _Nullable error) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (error != nil || response == nil) {
+                [weakSelf showCompactNotice:YTKACELocalized(@"Translation failed")];
+                return;
+            }
+
+            if ((response.status == YTKACEVOTStatusFinished || response.status == YTKACEVOTStatusPartContent) && response.audioURL.length > 0) {
+                [weakSelf showCompactNotice:YTKACELocalized(@"Downloading voice-over...")];
+                NSURL *remoteURL = [NSURL URLWithString:response.audioURL];
+                if (remoteURL == nil) {
+                    [weakSelf showCompactNotice:YTKACELocalized(@"Translation failed")];
+                    return;
+                }
+
+                NSURLSessionDownloadTask *task = [NSURLSession.sharedSession downloadTaskWithURL:remoteURL completionHandler:^(NSURL * _Nullable location, NSURLResponse * _Nullable resp, NSError * _Nullable dlError) {
+                    if (dlError != nil || location == nil) {
+                        dispatch_async(dispatch_get_main_queue(), ^{
+                            [weakSelf showCompactNotice:YTKACELocalized(@"Voice-over download failed")];
+                        });
+                        return;
+                    }
+
+                    NSMutableCharacterSet *illegal = [[NSCharacterSet alphanumericCharacterSet] invertedSet].mutableCopy;
+                    [illegal removeCharactersInString:@" -_()[]"];
+                    NSString *safeTitle = [[title componentsSeparatedByCharactersInSet:illegal] componentsJoinedByString:@" "];
+                    if (safeTitle.length == 0) safeTitle = videoID;
+                    NSString *filename = [NSString stringWithFormat:@"%@ (%@ - VOT).mp3", safeTitle, targetLang.uppercaseString];
+                    NSURL *destURL = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:filename]];
+                    [NSFileManager.defaultManager removeItemAtURL:destURL error:nil];
+                    [NSFileManager.defaultManager moveItemAtURL:location toURL:destURL error:nil];
+
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        UIActivityViewController *activity = [[UIActivityViewController alloc] initWithActivityItems:@[destURL] applicationActivities:nil];
+                        UIViewController *presenter = [weakSelf topViewController];
+                        if (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad && sourceView != nil) {
+                            activity.popoverPresentationController.sourceView = sourceView;
+                            activity.popoverPresentationController.sourceRect = sourceView.bounds;
+                        }
+                        [presenter presentViewController:activity animated:YES completion:nil];
+                        [weakSelf showCompactNotice:YTKACELocalized(@"Voice-over saved successfully")];
+                    });
+                }];
+                [task resume];
+            } else if (response.status == YTKACEVOTStatusWaiting || response.status == YTKACEVOTStatusLongWaiting) {
+                NSInteger sec = response.remainingTime > 0 ? response.remainingTime : 10;
+                NSString *msg = [NSString stringWithFormat:YTKACELocalized(@"Wait %ld sec..."), (long)sec];
+                [weakSelf showCompactNotice:msg];
+            } else {
+                [weakSelf showCompactNotice:YTKACELocalized(@"Translation failed")];
+            }
+        });
+    }];
 }
 
 - (void)showCompactNotice:(NSString *)message {

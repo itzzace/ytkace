@@ -48,9 +48,11 @@ python3 "$ROOT/Tools/sanitize_plist.py" "$APP/Info.plist"
 python3 "$ROOT/Tools/macho_inject.py" "$MAIN" \
   --add-load '@rpath/YTKACE.dylib'
 
+
 mkdir -p "$APP/Frameworks"
 cp "$DYLIB" "$APP/Frameworks/YTKACE.dylib"
 cp -R "$ROOT/Resources/YTKACE.bundle" "$APP/YTKACE.bundle"
+
 
 bash "$ROOT/Scripts/sign-bundle.sh" "$APP"
 
