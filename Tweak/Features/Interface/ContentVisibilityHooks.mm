@@ -1134,7 +1134,6 @@ static void YTKACEFeedRefreshFlags(void) {
         YTKACEFeatureEnabled(@"YTKACE.Preference.Ads.PremiumPromosHidden") ||
         YTKACEFeatureEnabled(@"YTKACE.Preference.App.UpdatePromptHidden") ||
         YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.SuggestedVideosHidden") ||
-        YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.RelatedVideosHidden") ||
         YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ContinueWatchingDisabled") ||
         YTKACEFeatureEnabled(@"YTKACE.Preference.Shorts.PauseCardHidden") ||
         YTKACEFeatureEnabled(@"YTKACE.Preference.Shorts.StickerAdsHidden"));
@@ -2160,12 +2159,6 @@ static BOOL YTKACEContentShouldHide(UIView *view, BOOL *hideSuperview) {
     }
     if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.SuggestedVideosHidden") &&
         YTKACEContentContains(token, @[@"suggested_video", @"related_video"])) {
-        return YES;
-    }
-    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.RelatedVideosHidden") &&
-        YTKACEContentContains(token, @[
-            @"related_video", @"relatedvideo", @"more_videos", @"watch_next"
-        ])) {
         return YES;
     }
     if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ContinueWatchingDisabled") &&

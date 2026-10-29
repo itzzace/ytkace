@@ -13,7 +13,7 @@
 | Streaming | Legacy quality mode, autoplay blocking, cellular HD preference, and custom double-tap duration |
 | Tab bar | Hide and reorder tabs, Create-tab conversion, YTKACE downloads tab, Music/Live/Gaming/News/Sports tabs, startup selection, label hiding, and custom names |
 | Gestures | Volume, brightness, and hold-to-seek |
-| Overlay | Double-tap blocking, continue-watching and quick-action hiding, persistent controls, dark-overlay removal, captions/progress controls, previous/next modes, related-video hiding, disabling the fullscreen More videos swipe overlay, and creator-product hiding across the feed, player, and Shorts |
+| Overlay | Double-tap blocking, continue-watching and quick-action hiding, persistent controls, dark-overlay removal, captions/progress controls, previous/next modes, disabling the fullscreen More videos swipe overlay, and creator-product hiding across the feed, player, and Shorts |
 | Shorts | Bottom progress bar, automatic advance, feed hiding, and pause-card blocking |
 | Navigation | Cast confirmation, status-bar behavior, logo, account, search, cast, and notification hiding |
 | Miscellaneous | Copy Comment, iPadOS mode, drag-and-drop blocking, universal mini-player flags, HUD suppression, forced LTR, age-gate flags, caption control, and cache-only startup cleanup |

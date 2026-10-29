@@ -184,12 +184,6 @@ static BOOL YTKACEOverlayShouldHide(UIView *view) {
         ])) {
         return YES;
     }
-    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.RelatedVideosHidden") &&
-        YTKACEOverlayTokenMatches(token, @[
-            @"relatedvideo", @"related_video", @"morevideos", @"more_videos"
-        ])) {
-        return YES;
-    }
     if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.AutoplayHidden") &&
         YTKACEOverlayTokenMatches(token, @[@"autoplay", @"autonav"])) {
         return YES;
