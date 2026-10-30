@@ -1553,7 +1553,7 @@ static NSDictionary *YTKACEPlayerDefinition(void) {
             YTKACEToggleDetail(@"Keep Controls Visible", @"Player controls never fade out.",
                                @"YTKACE.Preference.Overlay.AlwaysShowControls"),
             YTKACEToggle(@"Keep Play Button Visible", @"YTKACE.Preference.Overlay.AlwaysShowPlayPause", @"", @""),
-            YTKACEToggle(@"Keep Timeline Visible", @"YTKACE.Preference.Overlay.ProgressAlwaysVisible", @"", @""),
+            YTKACEToggle(@"Keep Progress Bar Visible", @"YTKACE.Preference.Overlay.ProgressAlwaysVisible", @"", @""),
             YTKACEToggleDetail(@"Remove Player Dimming",
                                @"Stop the video from darkening when the controls show.",
                                @"YTKACE.Preference.Overlay.DimmingRemoved"),

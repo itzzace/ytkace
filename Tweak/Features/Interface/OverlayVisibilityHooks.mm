@@ -34,6 +34,7 @@ static IMP OriginalTimelyShelfFrame;
 static IMP OriginalTimelyShelfHeightVC;
 static IMP OriginalTimelyShelfHeightBar;
 static IMP OriginalTimelyShelfHeightInput;
+static IMP OriginalPlayerBarShouldShow;
 
 static NSUInteger YTKACEProductHiddenCount = 0;
 
@@ -571,14 +572,10 @@ static void YTKACEApplyOverlayBehavior(UIView *view) {
     BOOL playPause = YTKACEOverlayTokenMatches(token, @[
         @"playpause", @"play_pause", @"playbackbutton"
     ]);
-    BOOL progress = YTKACEOverlayTokenMatches(token, @[
-        @"progress", @"scrubber", @"playerbar", @"player_bar"
-    ]);
     BOOL control = [view isKindOfClass:UIControl.class] ||
         YTKACEOverlayTokenMatches(token, @[@"control", @"button"]);
     BOOL force = (YTKACEOverlayPreference(@"YTKACE.Preference.Overlay.AlwaysShowPlayPause") && playPause) ||
-        (YTKACEOverlayPreference(@"YTKACE.Preference.Overlay.AlwaysShowControls") && control) ||
-        (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProgressAlwaysVisible") && progress);
+        (YTKACEOverlayPreference(@"YTKACE.Preference.Overlay.AlwaysShowControls") && control);
     YTKACESetOverlayForcedVisible(view, force);
 
     BOOL previousNext = YTKACEOverlayTokenMatches(
@@ -919,6 +916,13 @@ static void YTKACESetNextButtonEnabled(id receiver, SEL selector, BOOL enabled) 
         YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.PreviousNextHidden"));
 }
 
+static BOOL YTKACEPlayerBarShouldShow(id receiver, SEL selector) {
+    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProgressAlwaysVisible")) {
+        return YES;
+    }
+    return ((BOOL (*)(id, SEL))OriginalPlayerBarShouldShow)(receiver, selector);
+}
+
 static NSString *const YTKACEFullscreenActionsKey =
     @"YTKACE.Preference.Overlay.FullscreenActionsHidden";
 
@@ -1066,4 +1070,8 @@ void YTKACEInstallOverlayVisibilityHooks(void) {
                               @"setNextButtonEnabled:",
                               (IMP)YTKACESetNextButtonEnabled,
                               &OriginalSetNextButtonEnabled);
+    YTKACEInstallInstanceHook(@"YTMainAppVideoPlayerOverlayViewController",
+                              @"playerBarControllerShouldShowPlayerBarView:",
+                              (IMP)YTKACEPlayerBarShouldShow,
+                              &OriginalPlayerBarShouldShow);
 }
