@@ -36,6 +36,7 @@ double YTKACEStartPlaybackRate(void);
 void YTKACEInstallLoopHooks(void);
 void YTKACEInstallSponsorMenu(void);
 void YTKACEInstallLinkCleaningHooks(void);
+void YTKACEInstallHapticHooks(void);
 void YTKACEInstallAutoplayHooks(void);
 void YTKACEOpenPausedVideoActivated(id player);
 void YTKACEInstallCaptionHooks(void);
