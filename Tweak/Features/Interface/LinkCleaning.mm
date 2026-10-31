@@ -7,6 +7,7 @@
 #import <objc/runtime.h>
 
 static NSString * const YTKACECleanLinksKey = @"YTKACE.Preference.Sharing.CleanLinks";
+static NSString * const YTKACEDirectLinksKey = @"YTKACE.Preference.Sharing.DirectLinks";
 static const NSUInteger YTKACECopyTextField = 90198251;
 
 static IMP OriginalCopyShareObject;
@@ -19,6 +20,7 @@ static IMP OriginalSystemItem;
 static IMP OriginalSystemPlaceholder;
 static IMP OriginalMessageSetBody;
 static IMP OriginalMailSetBody;
+static IMP OriginalOpenURL;
 
 static BOOL YTKACECleanLinksEnabled(void) {
     return YTKACEFeatureEnabled(YTKACECleanLinksKey);
@@ -53,6 +55,27 @@ NSString *YTKACECleanYouTubeLink(NSString *link) {
     if (kept.count == items.count) return link;
     components.queryItems = kept.count != 0 ? kept : nil;
     return components.string ?: link;
+}
+
+static BOOL YTKACEIsWebScheme(NSString *scheme) {
+    scheme = scheme.lowercaseString;
+    return [scheme isEqualToString:@"https"] || [scheme isEqualToString:@"http"];
+}
+
+NSURL *YTKACEDirectLinkURL(NSURL *URL) {
+    if (![URL isKindOfClass:NSURL.class] || !YTKACEIsWebScheme(URL.scheme)) return URL;
+    NSString *host = URL.host.lowercaseString;
+    NSURLComponents *components = [NSURLComponents componentsWithURL:URL resolvingAgainstBaseURL:NO];
+    if (!([host isEqualToString:@"youtube.com"] || [host hasSuffix:@".youtube.com"]) ||
+        ![components.path isEqualToString:@"/redirect"]) {
+        return URL;
+    }
+    for (NSURLQueryItem *item in components.queryItems) {
+        if (![item.name isEqualToString:@"q"]) continue;
+        NSURL *target = item.value.length != 0 ? [NSURL URLWithString:item.value] : nil;
+        return target.host.length != 0 && YTKACEIsWebScheme(target.scheme) ? target : URL;
+    }
+    return URL;
 }
 
 static NSString *YTKACECleanLinksInText(NSString *text) {
@@ -153,6 +176,15 @@ static void YTKACEMailSetBody(id receiver, SEL selector, id body, BOOL html) {
     ((void (*)(id, SEL, id, BOOL))OriginalMailSetBody)(receiver, selector, YTKACECleanLinkObject(body), html);
 }
 
+static void YTKACEOpenURL(id receiver, SEL selector, id URL, id options, id completion) {
+    id target = URL;
+    if (YTKACEFeatureEnabled(YTKACEDirectLinksKey)) {
+        target = YTKACEDirectLinkURL(URL);
+        if (target != URL) YTKACEDebugLog(@"links", @"open %@ -> %@", URL, target);
+    }
+    ((void (*)(id, SEL, id, id, id))OriginalOpenURL)(receiver, selector, target, options, completion);
+}
+
 static BOOL YTKACELinkMethodTypes(NSString *className, NSString *selector, const char *prefix) {
     Method method = class_getInstanceMethod(NSClassFromString(className), NSSelectorFromString(selector));
     const char *types = method != NULL ? method_getTypeEncoding(method) : NULL;
@@ -191,7 +223,9 @@ void YTKACEInstallLinkCleaningHooks(void) {
                                              (IMP)YTKACEMessageSetBody, &OriginalMessageSetBody);
     BOOL mailBody = YTKACEInstallLinkHook(@"MFMailComposeViewController", @"setMessageBody:isHTML:", "v28@0:8@16B24",
                                           (IMP)YTKACEMailSetBody, &OriginalMailSetBody);
-    YTKACEDownloadLog(@"links", @"hooks copy=%d/%d text=%d mail=%d system=%d/%d/%d/%d compose=%d/%d",
+    BOOL openURL = YTKACEInstallLinkHook(@"UIApplication", @"openURL:options:completionHandler:", "v40@0:8@16@24",
+                                         (IMP)YTKACEOpenURL, &OriginalOpenURL);
+    YTKACEDownloadLog(@"links", @"hooks copy=%d/%d text=%d mail=%d system=%d/%d/%d/%d compose=%d/%d open=%d",
                       copyObject, copyPlain, textObject, mailObject, systemObject, systemText, systemItem,
-                      systemPlaceholder, messageBody, mailBody);
+                      systemPlaceholder, messageBody, mailBody, openURL);
 }
