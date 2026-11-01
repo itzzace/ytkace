@@ -1,5 +1,6 @@
 #import "../../YTKACE.h"
 #import "../../Runtime/Hooking.h"
+#import "../../Runtime/Localization.h"
 #import "../../Runtime/Preferences.h"
 #import "../../Settings/YTKACEDownloadsController.h"
 #import "../../UI/Assets.h"
@@ -32,6 +33,7 @@ static const void *YTKACEDownloadsAssociation = &YTKACEDownloadsAssociation;
 static const void *YTKACETabAssociation = &YTKACETabAssociation;
 static const void *YTKACETabSelectedAssociation = &YTKACETabSelectedAssociation;
 static const void *YTKACETabDragOutAssociation = &YTKACETabDragOutAssociation;
+static const void *YTKACEBuiltTabAssociation = &YTKACEBuiltTabAssociation;
 static BOOL YTKACEStencilRendering;
 static NSString * const YTKACEPivotIdentifier = @"FEYTKACE";
 static NSInteger const YTKACEExtraIconTag = 0x59414349;
@@ -628,7 +630,10 @@ static void YTKACESetPivotRenderer(id receiver, SEL selector, id renderer) {
                 @{@"token": @"watchlater", @"id": @"VLWL",
                   @"title": @"WLater", @"key": @"YTKACE.Preference.Tabs.Hidden.WatchLater", @"icon": @1011},
                 @{@"token": @"posts", @"id": @"FEpost_home",
-                  @"title": @"Posts", @"key": @"YTKACE.Preference.Tabs.Hidden.Posts", @"icon": @1012}
+                  @"title": @"Posts", @"key": @"YTKACE.Preference.Tabs.Hidden.Posts", @"icon": @1012},
+                @{@"token": @"subscriptions", @"id": @"FEsubscriptions",
+                  @"title": YTKACELocalized(@"Subscriptions"),
+                  @"key": @"YTKACE.Preference.Tabs.Hidden.Subscriptions", @"icon": @1013}
             ];
             NSMutableSet<NSString *> *present = [NSMutableSet set];
             for (id item in filtered) {
@@ -647,6 +652,11 @@ static void YTKACESetPivotRenderer(id receiver, SEL selector, id renderer) {
                                                      title,
                                                      [entry[@"icon"] integerValue]);
                 if (item != nil) {
+                    id itemRenderer = YTKACEValue(item, @"pivotBarItemRenderer");
+                    if (itemRenderer != nil) {
+                        objc_setAssociatedObject(itemRenderer, YTKACEBuiltTabAssociation, @YES,
+                                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                    }
                     YTKACENoteStartupIdentifier(token, item);
                     [filtered addObject:item];
                     [present addObject:token];
@@ -1080,7 +1090,9 @@ static NSDictionary *YTKACEExtraTabIcon(NSString *token) {
                               @"clock", @"clock.fill"],
             @"posts": @[@"", @"",
                          @"bubble.left.and.bubble.right",
-                         @"bubble.left.and.bubble.right.fill"]
+                         @"bubble.left.and.bubble.right.fill"],
+            @"subscriptions": @[@"", @"",
+                                 @"rectangle.stack", @"rectangle.stack.fill"]
         };
     });
     NSArray *values = icons[token];
@@ -1107,8 +1119,27 @@ static BOOL YTKACEPivotItemSelected(UIView *view) {
         ((view.accessibilityTraits & UIAccessibilityTraitSelected) != 0);
 }
 
+static id YTKACEItemRenderer(UIView *view) {
+    id renderer = nil;
+    @try {
+        renderer = [view valueForKey:@"renderer"];
+    } @catch (__unused NSException *exception) {
+    }
+    return renderer;
+}
+
+static BOOL YTKACEIsBuiltTab(id renderer) {
+    if (renderer == nil) return NO;
+    id nested = YTKACEValue(renderer, @"pivotBarItemRenderer");
+    return objc_getAssociatedObject(renderer, YTKACEBuiltTabAssociation) != nil ||
+        (nested != nil && objc_getAssociatedObject(nested, YTKACEBuiltTabAssociation) != nil);
+}
+
 static void YTKACEApplyExtraTabIcon(UIView *view) {
     NSString *token = YTKACECanonicalTabToken(YTKACETabToken(view));
+    id renderer = token.length == 0 || [token isEqualToString:@"subscriptions"]
+        ? YTKACEItemRenderer(view) : nil;
+    if (token.length == 0) token = YTKACECanonicalTabToken(YTKACETabToken(renderer));
     NSDictionary *config = YTKACEExtraTabIcon(token);
     if (config == nil) {
         UILabel *nativeLabel = YTKACEFindNativeLabel(view);
@@ -1139,6 +1170,9 @@ static void YTKACEApplyExtraTabIcon(UIView *view) {
             }
             if (config != nil) break;
         }
+    }
+    if ([token isEqualToString:@"subscriptions"] && !YTKACEIsBuiltTab(renderer)) {
+        config = nil;
     }
     if (config == nil) {
         [[view viewWithTag:YTKACEExtraIconTag] removeFromSuperview];
