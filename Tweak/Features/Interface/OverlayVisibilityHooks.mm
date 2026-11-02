@@ -910,11 +910,11 @@ static void YTKACESetNextButtonEnabled(id receiver, SEL selector, BOOL enabled) 
         YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.PreviousNextHidden"));
 }
 
-static BOOL YTKACEPlayerBarShouldShow(id receiver, SEL selector) {
+static BOOL YTKACEPlayerBarShouldShow(id receiver, SEL selector, id controller) {
     if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProgressAlwaysVisible")) {
         return YES;
     }
-    return ((BOOL (*)(id, SEL))OriginalPlayerBarShouldShow)(receiver, selector);
+    return ((BOOL (*)(id, SEL, id))OriginalPlayerBarShouldShow)(receiver, selector, controller);
 }
 
 static NSString *const YTKACEFullscreenActionsKey =
