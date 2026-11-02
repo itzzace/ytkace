@@ -977,6 +977,8 @@ Licensed under CC BY-NC-SA 4.0.";
 "Extra Dim" = "Extra Dim";
 "Keep a left-to-right layout in right-to-left languages." = "Keep a left-to-right layout in right-to-left languages.";
 "Stop thumbnails and text from being dragged." = "Stop thumbnails and text from being dragged.";
+"Turn Off Haptics" = "Turn Off Haptics";
+"Stops vibration feedback in YouTube, including YTKACE's own." = "Stops vibration feedback in YouTube, including YTKACE's own.";
 "Use the iOS share sheet instead of YouTube's." = "Use the iOS share sheet instead of YouTube's.";
 "Share at Current Time" = "Share at Current Time";
 "Links shared from the iOS share sheet start where you are in the video." = "Links shared from the iOS share sheet start where you are in the video.";

@@ -1869,7 +1869,9 @@ static NSDictionary *YTKACEGeneralDefinition(void) {
             YTKACEToggleDetail(@"Force Left-to-Right Layout", @"Keep a left-to-right layout in right-to-left languages.",
                                @"YTKACE.Preference.App.RTLDisabled"),
             YTKACEToggleDetail(@"Block Drag and Drop", @"Stop thumbnails and text from being dragged.",
-                               @"YTKACE.Preference.App.DragDropDisabled")
+                               @"YTKACE.Preference.App.DragDropDisabled"),
+            YTKACEToggleDetail(@"Turn Off Haptics", @"Stops vibration feedback in YouTube, including YTKACE's own.",
+                               @"YTKACE.Preference.App.HapticsDisabled")
         ],
         @[
             YTKACEToggleDetail(@"Use iOS Share Sheet", @"Use the iOS share sheet instead of YouTube's.",
