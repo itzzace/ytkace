@@ -1054,6 +1054,8 @@ Licensed under CC BY-NC-SA 4.0.";
 "Mark a start and end first" = "Mark a start and end first";
 "Clean Copied Links" = "Clean Copied Links";
 "Removes tracking like si= from links you copy or share." = "Removes tracking like si= from links you copy or share.";
+"Open Links Directly" = "Open Links Directly";
+"Skips YouTube's redirect page when you open a link from a description or comment." = "Skips YouTube's redirect page when you open a link from a description or comment.";
 "Remove Play on Different Device" = "Remove Play on Different Device";
 "Remove Play Next in Queue" = "Remove Play Next in Queue";
 "Remove Play Last in Queue" = "Remove Play Last in Queue";
