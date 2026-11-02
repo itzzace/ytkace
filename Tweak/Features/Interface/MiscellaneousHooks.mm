@@ -15,7 +15,6 @@
 static IMP OriginalAddInteraction;
 static IMP OriginalSemanticContent;
 static IMP OriginalSetSemanticContent;
-static IMP OriginalCaptionTracks;
 static IMP OriginalCaptionControllerAlloc;
 static NSMutableDictionary<NSString *, NSValue *> *YTKACEMiscOriginals;
 static const void *YTKACECaptionTracksAssociation =
@@ -239,7 +238,7 @@ static BOOL YTKACEAgeValue(id receiver, SEL selector) {
     return original != NULL ? ((BOOL (*)(id, SEL))original)(receiver, selector) : NO;
 }
 
-static NSInteger YTKACECaptionsMode(void) {
+NSInteger YTKACECaptionsMode(void) {
     if (!YTKACEMasterEnabled()) return 0;
     id stored = [NSUserDefaults.standardUserDefaults objectForKey:@"YTKACE.Preference.Playback.CaptionsMode"];
     if ([stored respondsToSelector:@selector(integerValue)]) return MAX(0, MIN(2, [stored integerValue]));
@@ -252,7 +251,7 @@ static BOOL YTKACECaptionValue(id receiver, SEL selector) {
     NSString *name = NSStringFromSelector(selector).lowercaseString;
     BOOL negative = [name containsString:@"disabled"] ||
         [name containsString:@"hidden"];
-    if ((YTKACECaptionsMode() == 2)) {
+    if ((YTKACECaptionsMode() == 2) && YTKACECaptionRequestReceiver(receiver, selector)) {
         return negative;
     }
     if ((YTKACECaptionsMode() == 1)) {
@@ -280,7 +279,7 @@ static void YTKACECaptionSetter(id receiver, SEL selector, BOOL enabled) {
     BOOL negative = [name containsString:@"disabled"] ||
         [name containsString:@"hidden"];
     BOOL value = enabled;
-    if ((YTKACECaptionsMode() == 2)) {
+    if ((YTKACECaptionsMode() == 2) && YTKACECaptionRequestReceiver(receiver, selector)) {
         value = negative;
     } else if ((YTKACECaptionsMode() == 1) &&
                YTKACECaptionRequestReceiver(receiver, selector)) {
@@ -447,16 +446,6 @@ static void YTKACECaptionSelectedTrackSetter(id receiver,
                                                       track,
                                                       reason);
     }
-}
-
-static id YTKACECaptionTracks(id receiver, SEL selector) {
-    if ((YTKACECaptionsMode() == 2)) {
-        return @[];
-    }
-    id tracks = OriginalCaptionTracks != NULL
-        ? ((id (*)(id, SEL))OriginalCaptionTracks)(receiver, selector)
-        : nil;
-    return tracks;
 }
 
 static void YTKACEHUDMessage(id receiver, SEL selector, id message) {
@@ -839,10 +828,6 @@ void YTKACEInstallMiscellaneousHooks(void) {
         }
     }
 
-    YTKACEInstallInstanceHook(@"YTIPlayerResponse",
-                              @"captionTracksArray",
-                              (IMP)YTKACECaptionTracks,
-                              &OriginalCaptionTracks);
     NSString *controllerClass = @"MLInnerTubeCaptionController";
     YTKACEInstallClassHook(controllerClass, @"allocWithZone:",
                           (IMP)YTKACECaptionControllerAlloc,

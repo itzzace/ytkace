@@ -189,6 +189,7 @@ static NSString *YTKACETrackLanguage(id track) {
 }
 
 void YTKACEApplyPreferredCaptionLanguage(id player) {
+    if (YTKACECaptionsMode() == 2) return;
     NSString *preferred = [NSUserDefaults.standardUserDefaults
         stringForKey:YTKACEPreferredLanguageKey];
     if (preferred.length == 0) return;
