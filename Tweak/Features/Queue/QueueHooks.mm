@@ -651,14 +651,9 @@ static NSUInteger YTKACEQueueEnsureCurrent(void) {
     NSString *current = YTKACEQueueCurrentVideoID();
     if (current.length == 0) return NSNotFound;
     if (YTKACEQueue().count == 0) return NSNotFound;
-    NSUInteger index = YTKACEQueueIndexOfVideo(current);
-    if (index != NSNotFound) return index;
-    NSMutableDictionary *entry = [NSMutableDictionary dictionary];
-    entry[@"videoId"] = current;
-    [YTKACEQueue() insertObject:entry atIndex:0];
-    YTKACEQueueSave();
-    YTKACEQueueFetchTitle(current);
-    return 0;
+    // Refreshing the panel must not turn unrelated playback into queue entries.
+    // The current video is seeded only by the first explicit QueueAdd action.
+    return YTKACEQueueIndexOfVideo(current);
 }
 
 static id YTKACEQueuePanelRenderer(void) {
