@@ -1662,7 +1662,6 @@ static NSDictionary *YTKACEWatchPageDefinition(void) {
     return YTKACEPageDefinition(@"watch", @"Watch Page", @[
         @[
             YTKACEToggle(@"Remove Suggested Videos", @"YTKACE.Preference.Overlay.SuggestedVideosHidden", @"", @""),
-            YTKACEToggle(@"Remove Related Videos", @"YTKACE.Preference.Overlay.RelatedVideosHidden", @"", @""),
             YTKACEToggleDetail(@"Remove Comments", @"Hide the comments box under the video.",
                                @"YTKACE.Preference.Overlay.CommentsHidden"),
             YTKACEToggle(@"Remove Comment Preview", @"YTKACE.Preference.Overlay.CommentPreviewsHidden", @"", @""),
