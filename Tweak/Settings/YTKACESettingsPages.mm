@@ -1734,7 +1734,8 @@ static NSDictionary *YTKACEFeedDefinition(void) {
             YTKACEToggle(@"Remove Share", @"YTKACE.Preference.Menu.ShareHidden", @"", @""),
             YTKACEToggle(@"Remove Not Interested", @"YTKACE.Preference.Menu.NotInterestedHidden", @"", @""),
             YTKACEToggle(@"Remove Don't Recommend Channel", @"YTKACE.Preference.Menu.DontRecommendHidden", @"", @""),
-            YTKACEToggle(@"Remove Report", @"YTKACE.Preference.Menu.ReportHidden", @"", @"")
+            YTKACEToggle(@"Remove Report", @"YTKACE.Preference.Menu.ReportHidden", @"", @""),
+            YTKACEToggle(@"Remove Listen with YouTube Music", @"YTKACE.Preference.Menu.YouTubeMusicHidden", @"", @"")
         ],
         @[
             YTKACEToggleDetail(@"Hide AI Channels",

@@ -972,7 +972,8 @@ static id YTKACEFilteredMenuRenderers(id renderers) {
         @"OFFLINE_ADD": @"YTKACE.Preference.Menu.DownloadHidden",
         @"SHARE_ARROW": @"YTKACE.Preference.Menu.ShareHidden",
         @"HIDE": @"YTKACE.Preference.Menu.NotInterestedHidden",
-        @"PERSON_CIRCLE_SLASH": @"YTKACE.Preference.Menu.DontRecommendHidden"
+        @"PERSON_CIRCLE_SLASH": @"YTKACE.Preference.Menu.DontRecommendHidden",
+        @"OUTLINE_YOUTUBE_MUSIC": @"YTKACE.Preference.Menu.YouTubeMusicHidden"
     };
     BOOL any = NO;
     for (NSString *key in [NSSet setWithArray:hidden.allValues]) {
