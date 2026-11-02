@@ -1040,3 +1040,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE داتای SponsorBlock بەکارد�
 "Remove Not Interested" = "لابردنی «بەلامەوە گرنگ نییە»";
 "Remove Don't Recommend Channel" = "لابردنی «کەناڵ پێشنیار مەکە»";
 "Also removes YTKACE's download from this menu." = "هەروەها داگرتنی YTKACE لەم لیستە لادەبات.";
+"Open Links Directly" = "کردنەوەی بەستەرەکان ڕاستەوخۆ";
+"Skips YouTube's redirect page when you open a link from a description or comment." = "پەڕەی ئاڕاستەکردنەوەی یوتیوب تێدەپەڕێنێت کاتێک بەستەرێک لە وەسف یان لێدوانێکەوە دەکەیتەوە.";

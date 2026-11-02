@@ -1040,3 +1040,5 @@ CC BY-NC-SA 4.0 라이선스가 적용됩니다.";
 "Remove Not Interested" = "관심 없음 삭제";
 "Remove Don't Recommend Channel" = "채널 추천 안함 삭제";
 "Also removes YTKACE's download from this menu." = "이 메뉴에서 YTKACE 다운로드도 삭제됩니다.";
+"Open Links Directly" = "링크 바로 열기";
+"Skips YouTube's redirect page when you open a link from a description or comment." = "설명이나 댓글의 링크를 열 때 YouTube 리디렉션 페이지를 건너뜁니다.";

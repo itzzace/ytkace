@@ -1040,3 +1040,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE использует данные Spo
 "Remove Not Interested" = "Убрать «Не интересует»";
 "Remove Don't Recommend Channel" = "Убрать «Не рекомендовать канал»";
 "Also removes YTKACE's download from this menu." = "Также убирает загрузку YTKACE из этого меню.";
+"Open Links Directly" = "Открывать ссылки напрямую";
+"Skips YouTube's redirect page when you open a link from a description or comment." = "Пропускает страницу перенаправления YouTube при открытии ссылки из описания или комментария.";

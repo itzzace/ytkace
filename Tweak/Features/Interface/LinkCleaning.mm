@@ -62,7 +62,7 @@ static BOOL YTKACEIsWebScheme(NSString *scheme) {
     return [scheme isEqualToString:@"https"] || [scheme isEqualToString:@"http"];
 }
 
-NSURL *YTKACEDirectLinkURL(NSURL *URL) {
+static NSURL *YTKACEDirectLinkURL(NSURL *URL) {
     if (![URL isKindOfClass:NSURL.class] || !YTKACEIsWebScheme(URL.scheme)) return URL;
     NSString *host = URL.host.lowercaseString;
     NSURLComponents *components = [NSURLComponents componentsWithURL:URL resolvingAgainstBaseURL:NO];
@@ -180,7 +180,7 @@ static void YTKACEOpenURL(id receiver, SEL selector, id URL, id options, id comp
     id target = URL;
     if (YTKACEFeatureEnabled(YTKACEDirectLinksKey)) {
         target = YTKACEDirectLinkURL(URL);
-        if (target != URL) YTKACEDebugLog(@"links", @"open %@ -> %@", URL, target);
+        if (target != URL) YTKACEDebugLog(@"links", @"open redirect %@ -> %@", URL.host ?: @"-", target.host ?: @"-");
     }
     ((void (*)(id, SEL, id, id, id))OriginalOpenURL)(receiver, selector, target, options, completion);
 }

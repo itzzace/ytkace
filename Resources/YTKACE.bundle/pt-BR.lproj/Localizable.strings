@@ -995,3 +995,5 @@
 "Remove Not Interested" = "Remover Não tenho interesse";
 "Remove Don't Recommend Channel" = "Remover Não recomendar o canal";
 "Also removes YTKACE's download from this menu." = "Também remove o download do YTKACE deste menu.";
+"Open Links Directly" = "Abrir links diretamente";
+"Skips YouTube's redirect page when you open a link from a description or comment." = "Pula a página de redirecionamento do YouTube ao abrir um link de uma descrição ou comentário.";

@@ -1022,3 +1022,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE korzysta z danych SponsorBlock.\nLice
 "Remove Not Interested" = "Usuń Nie interesuje mnie";
 "Remove Don't Recommend Channel" = "Usuń Nie polecaj kanału";
 "Also removes YTKACE's download from this menu." = "Usuwa też pobieranie YTKACE z tego menu.";
+"Open Links Directly" = "Otwieraj linki bezpośrednio";
+"Skips YouTube's redirect page when you open a link from a description or comment." = "Pomija stronę przekierowania YouTube przy otwieraniu linku z opisu lub komentarza.";

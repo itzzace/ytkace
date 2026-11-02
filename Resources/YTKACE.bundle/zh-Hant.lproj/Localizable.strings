@@ -1040,3 +1040,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE 使用 SponsorBlock 資料。
 "Remove Not Interested" = "移除「不感興趣」";
 "Remove Don't Recommend Channel" = "移除「不推薦此頻道」";
 "Also removes YTKACE's download from this menu." = "也會從此選單移除 YTKACE 的下載。";
+"Open Links Directly" = "直接開啟連結";
+"Skips YouTube's redirect page when you open a link from a description or comment." = "開啟說明或留言中的連結時略過 YouTube 的跳轉頁面。";

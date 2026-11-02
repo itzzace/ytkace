@@ -1040,3 +1040,5 @@ Concesso in licenza CC BY-NC-SA 4.0.";
 "Remove Not Interested" = "Rimuovi Non mi interessa";
 "Remove Don't Recommend Channel" = "Rimuovi Non consigliare il canale";
 "Also removes YTKACE's download from this menu." = "Rimuove anche il download di YTKACE da questo menu.";
+"Open Links Directly" = "Apri i link direttamente";
+"Skips YouTube's redirect page when you open a link from a description or comment." = "Salta la pagina di reindirizzamento di YouTube quando apri un link da una descrizione o da un commento.";

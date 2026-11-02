@@ -1040,3 +1040,5 @@ Cấp phép theo CC BY-NC-SA 4.0.";
 "Remove Not Interested" = "Xóa Không quan tâm";
 "Remove Don't Recommend Channel" = "Xóa Không đề xuất kênh";
 "Also removes YTKACE's download from this menu." = "Cũng xóa mục tải xuống của YTKACE khỏi menu này.";
+"Open Links Directly" = "Mở liên kết trực tiếp";
+"Skips YouTube's redirect page when you open a link from a description or comment." = "Bỏ qua trang chuyển hướng của YouTube khi bạn mở liên kết từ mô tả hoặc bình luận.";

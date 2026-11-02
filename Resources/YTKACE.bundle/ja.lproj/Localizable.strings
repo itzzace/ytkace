@@ -1040,3 +1040,5 @@ CC BY-NC-SA 4.0 でライセンスされています。";
 "Remove Not Interested" = "「興味なし」を削除";
 "Remove Don't Recommend Channel" = "「チャンネルをおすすめに表示しない」を削除";
 "Also removes YTKACE's download from this menu." = "このメニューからYTKACEのダウンロードも削除します。";
+"Open Links Directly" = "リンクを直接開く";
+"Skips YouTube's redirect page when you open a link from a description or comment." = "説明やコメントのリンクを開くときにYouTubeのリダイレクトページをスキップします。";

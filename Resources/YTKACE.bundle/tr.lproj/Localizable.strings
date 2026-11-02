@@ -1040,3 +1040,5 @@ CC BY-NC-SA 4.0 ile lisanslanmıştır.";
 "Remove Not Interested" = "İlgilenmiyorum'u kaldır";
 "Remove Don't Recommend Channel" = "Kanalı önerme'yi kaldır";
 "Also removes YTKACE's download from this menu." = "YTKACE indirmesini de bu menüden kaldırır.";
+"Open Links Directly" = "Bağlantıları doğrudan aç";
+"Skips YouTube's redirect page when you open a link from a description or comment." = "Açıklama veya yorumdaki bir bağlantıyı açarken YouTube'un yönlendirme sayfasını atlar.";

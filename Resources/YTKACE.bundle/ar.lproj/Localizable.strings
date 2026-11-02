@@ -1040,3 +1040,5 @@ Licensed under CC BY-NC-SA 4.0." = "يستخدم YTKACE بيانات SponsorBloc
 "Remove Not Interested" = "إزالة «غير مهتم»";
 "Remove Don't Recommend Channel" = "إزالة «عدم اقتراح القناة»";
 "Also removes YTKACE's download from this menu." = "يزيل أيضًا تنزيل YTKACE من هذه القائمة.";
+"Open Links Directly" = "فتح الروابط مباشرة";
+"Skips YouTube's redirect page when you open a link from a description or comment." = "يتخطى صفحة إعادة التوجيه في يوتيوب عند فتح رابط من الوصف أو تعليق.";
