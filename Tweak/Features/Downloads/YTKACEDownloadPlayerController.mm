@@ -1229,6 +1229,8 @@ static UIImage *YTKACEScrubberThumb(CGFloat diameter, UIColor *color) {
 @property(nonatomic, strong) UIButton *repeatButton;
 @property(nonatomic, strong) UIButton *pipButton;
 @property(nonatomic, strong) UIButton *aspectButton;
+@property(nonatomic, strong) UIButton *rotateButton;
+@property(nonatomic, assign) UIInterfaceOrientationMask orientationLock;
 @property(nonatomic, strong) UILabel *titleLabel;
 @property(nonatomic, strong) UILabel *channelLabel;
 @property(nonatomic, strong) UILabel *timeLabel;
@@ -1266,6 +1268,12 @@ static UIImage *YTKACEScrubberThumb(CGFloat diameter, UIColor *color) {
 @property(nonatomic, assign) BOOL minimizing;
 @end
 
+static BOOL YTKACECanForceOrientation(void) {
+    if (UIDevice.currentDevice.userInterfaceIdiom != UIUserInterfaceIdiomPhone) return NO;
+    if (@available(iOS 16.0, *)) return YES;
+    return NO;
+}
+
 @implementation YTKACEDownloadPlayerController
 
 - (instancetype)initWithSession:(YTKACEDownloadPlaybackSession *)session {
@@ -1302,6 +1310,13 @@ static UIImage *YTKACEScrubberThumb(CGFloat diameter, UIColor *color) {
     [super viewDidAppear:animated];
     [[YTKACELibraryPiP sharedPiP] useLayer:self.playerSurface.playerLayer
                                      owner:self.playerSurface];
+    [self refreshRotateButtonForSize:self.view.bounds.size];
+}
+
+- (void)viewWillTransitionToSize:(CGSize)size
+       withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
+    [self refreshRotateButtonForSize:size];
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
@@ -1322,7 +1337,8 @@ static UIImage *YTKACEScrubberThumb(CGFloat diameter, UIColor *color) {
 - (BOOL)prefersStatusBarHidden { return YES; }
 - (BOOL)prefersHomeIndicatorAutoHidden { return YES; }
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
-    return UIInterfaceOrientationMaskAllButUpsideDown;
+    return self.orientationLock != 0 ? self.orientationLock
+                                     : UIInterfaceOrientationMaskAllButUpsideDown;
 }
 - (BOOL)shouldAutorotate { return YES; }
 
@@ -1512,13 +1528,16 @@ static UIImage *YTKACEScrubberThumb(CGFloat diameter, UIColor *color) {
                                         action:@selector(toggleRepeat)];
     self.aspectButton = [self buttonWithSymbol:@"arrow.up.left.and.arrow.down.right"
                                           size:18.0 action:@selector(toggleAspect)];
+    self.rotateButton = [self buttonWithSymbol:@"rectangle.landscape.rotate"
+                                          size:18.0 action:@selector(toggleOrientation)];
+    self.rotateButton.hidden = !YTKACECanForceOrientation();
     UIStackView *bottomButtons = [[UIStackView alloc] initWithArrangedSubviews:@[
-        self.repeatButton, self.aspectButton
+        self.repeatButton, self.aspectButton, self.rotateButton
     ]];
     bottomButtons.axis = UILayoutConstraintAxisHorizontal;
     bottomButtons.spacing = 4.0;
     bottomButtons.translatesAutoresizingMaskIntoConstraints = NO;
-    for (UIButton *button in @[self.repeatButton, self.aspectButton]) {
+    for (UIButton *button in @[self.repeatButton, self.aspectButton, self.rotateButton]) {
         [button.widthAnchor constraintEqualToConstant:40.0].active = YES;
         [button.heightAnchor constraintEqualToConstant:40.0].active = YES;
     }
@@ -1940,6 +1959,31 @@ static UIImage *YTKACEScrubberThumb(CGFloat diameter, UIColor *color) {
                                     : @"arrow.up.left.and.arrow.down.right"
                size:18.0 forButton:self.aspectButton];
     [self scheduleControlsHide];
+}
+
+- (void)toggleOrientation {
+    if (@available(iOS 16.0, *)) {
+        UIWindowScene *scene = self.view.window.windowScene;
+        if (scene == nil) return;
+        BOOL landscape = CGRectGetWidth(self.view.bounds) > CGRectGetHeight(self.view.bounds);
+        self.orientationLock = landscape ? UIInterfaceOrientationMaskPortrait
+                                         : UIInterfaceOrientationMaskLandscape;
+        [self setNeedsUpdateOfSupportedInterfaceOrientations];
+        UIWindowSceneGeometryPreferencesIOS *preferences =
+            [[UIWindowSceneGeometryPreferencesIOS alloc]
+                initWithInterfaceOrientations:self.orientationLock];
+        [scene requestGeometryUpdateWithPreferences:preferences
+                                       errorHandler:^(NSError *error) {
+            YTKACEDownloadLog(@"library", @"rotate failed %@", error.localizedDescription);
+        }];
+    }
+    [self scheduleControlsHide];
+}
+
+- (void)refreshRotateButtonForSize:(CGSize)size {
+    [self setSymbol:size.width > size.height ? @"rectangle.portrait.rotate"
+                                             : @"rectangle.landscape.rotate"
+               size:18.0 forButton:self.rotateButton];
 }
 
 - (void)toggleAutoPictureInPicture {
