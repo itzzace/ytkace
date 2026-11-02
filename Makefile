@@ -9,6 +9,7 @@ LIBRARY_NAME = YTKACE
 YTKACE_FILES = \
 	Tweak/Entry.mm \
 	Tweak/Runtime/Hooking.mm \
+	Tweak/Runtime/Availability.mm \
 	Tweak/Runtime/Preferences.mm \
 	Tweak/Runtime/Localization.mm \
 	Tweak/UI/Assets.mm \
