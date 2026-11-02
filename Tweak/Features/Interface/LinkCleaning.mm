@@ -180,7 +180,7 @@ static void YTKACEOpenURL(id receiver, SEL selector, id URL, id options, id comp
     id target = URL;
     if (YTKACEFeatureEnabled(YTKACEDirectLinksKey)) {
         target = YTKACEDirectLinkURL(URL);
-        if (target != URL) YTKACEDebugLog(@"links", @"open redirect %@ -> %@", URL.host ?: @"-", target.host ?: @"-");
+        if (target != URL) YTKACEDebugLog(@"links", @"open redirect %@ -> %@", ((NSURL *)URL).host ?: @"-", ((NSURL *)target).host ?: @"-");
     }
     ((void (*)(id, SEL, id, id, id))OriginalOpenURL)(receiver, selector, target, options, completion);
 }
