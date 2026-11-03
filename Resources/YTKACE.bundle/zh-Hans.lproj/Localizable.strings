@@ -181,6 +181,8 @@
 "Remove Dislike" = "移除踩";
 "Remove Download" = "移除下载";
 "Remove End Screen" = "移除片尾画面";
+"Remove Autoplay Prompt" = "移除自动播放提示";
+"Hides the Suggested video and Suggested music prompts at the end of a video." = "隐藏视频结束时的“推荐视频”和“推荐音乐”提示。";
 "Remove Frosted Tab Bar" = "移除毛玻璃标签栏";
 "Remove Fullscreen Actions" = "移除全屏操作按钮";
 "Remove Horizontal Shelves" = "隐藏横向板块";

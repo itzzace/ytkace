@@ -173,6 +173,8 @@
 "Remove Dislike" = "싫어요 숨기기";
 "Remove Download" = "오프라인 저장 숨기기";
 "Remove End Screen" = "최종 화면 숨기기";
+"Remove Autoplay Prompt" = "자동재생 안내 숨기기";
+"Hides the Suggested video and Suggested music prompts at the end of a video." = "동영상이 끝날 때 표시되는 추천 동영상 및 추천 음악 안내를 숨깁니다.";
 "Remove Fullscreen Actions" = "전체 화면 작업 숨기기";
 "Remove Horizontal Shelves" = "가로 섹션 숨기기";
 "Remove Hype" = "하이프 숨기기";

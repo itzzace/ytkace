@@ -173,6 +173,8 @@
 "Remove Dislike" = "Beğenme Düğmesini Gizle";
 "Remove Download" = "İndir Düğmesini Gizle";
 "Remove End Screen" = "Bitiş Ekranını Gizle";
+"Remove Autoplay Prompt" = "Otomatik Oynatma İstemini Gizle";
+"Hides the Suggested video and Suggested music prompts at the end of a video." = "Video sonunda çıkan Önerilen video ve Önerilen müzik istemlerini gizler.";
 "Remove Fullscreen Actions" = "Tam Ekran İşlemlerini Gizle";
 "Remove Horizontal Shelves" = "Yatay Rafları Gizle";
 "Remove Hype" = "Hype Düğmesini Gizle";

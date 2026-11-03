@@ -173,6 +173,8 @@
 "Remove Dislike" = "إخفاء \"لم يعجبني\"";
 "Remove Download" = "إخفاء \"تنزيل\"";
 "Remove End Screen" = "إخفاء الشاشة النهائية";
+"Remove Autoplay Prompt" = "إخفاء نافذة التشغيل التلقائي";
+"Hides the Suggested video and Suggested music prompts at the end of a video." = "يخفي نافذتي \"فيديو مقترح\" و\"موسيقى مقترحة\" في نهاية الفيديو.";
 "Remove Fullscreen Actions" = "إخفاء أزرار ملء الشاشة";
 "Remove Horizontal Shelves" = "إخفاء الرفوف الأفقية";
 "Remove Hype" = "إخفاء \"تشجيع\"";
