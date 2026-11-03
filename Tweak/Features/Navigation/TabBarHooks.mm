@@ -1894,6 +1894,21 @@ static void YTKACELayoutItemsInGlass(UIView *bar, CGRect glassFrame) {
     }
 }
 
+// Icon-only tabs keep their renderer under iconOnlyItemRenderer.
+static id YTKACEPivotItemAnyRenderer(UIView *item) {
+    id renderer = nil;
+    @try {
+        renderer = [item valueForKey:@"renderer"];
+    } @catch (__unused NSException *exception) {
+    }
+    if (renderer != nil) return renderer;
+    @try {
+        renderer = [item valueForKey:@"iconOnlyItemRenderer"];
+    } @catch (__unused NSException *exception) {
+    }
+    return renderer;
+}
+
 static void YTKACESelectPivotItem(UIView *item) {
     id controller = nil;
     id renderer = nil;
@@ -1904,7 +1919,7 @@ static void YTKACESelectPivotItem(UIView *item) {
     }
     NSString *identifier = nil;
     @try {
-        identifier = [renderer valueForKey:@"pivotIdentifier"];
+        identifier = [YTKACEPivotItemAnyRenderer(item) valueForKey:@"pivotIdentifier"];
     } @catch (__unused NSException *exception) {
     }
     SEL tap = NSSelectorFromString(@"didTapItemWithRenderer:");
@@ -2441,11 +2456,7 @@ static void YTKACEUpdateGlassPill(UIView *bar, UIVisualEffectView *glass) {
 @end
 
 static NSString *YTKACEPivotItemIdentifier(UIView *item) {
-    id renderer = nil;
-    @try {
-        renderer = [item valueForKey:@"renderer"];
-    } @catch (__unused NSException *exception) {
-    }
+    id renderer = YTKACEPivotItemAnyRenderer(item);
     id identifier = nil;
     @try {
         identifier = [renderer valueForKey:@"pivotIdentifier"];
