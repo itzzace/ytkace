@@ -2,6 +2,7 @@
 #import "../../Runtime/Hooking.h"
 #import "../../Runtime/Preferences.h"
 #import "../Downloads/DownloadLog.h"
+#import "../Downloads/SABRDownloader.h"
 
 #import <Foundation/Foundation.h>
 #import <VideoToolbox/VideoToolbox.h>
@@ -219,19 +220,48 @@ static void YTKACEHLSKeepOriginal(NSString *videoID, id data) {
 static void YTKACEHLSSwap(id data) {
     if (!YTKACEHLSEnabled() || data == nil) return;
     NSString *videoID = YTKACEHLSGet(YTKACEHLSGet(data, @"videoDetails"), @"videoId");
-    if (![videoID isKindOfClass:NSString.class] || videoID.length == 0) return;
+    if (![videoID isKindOfClass:NSString.class] || videoID.length == 0) {
+        YTKACEDebugLog(@"hls", @"skip no video id class=%@", NSStringFromClass([data class]));
+        return;
+    }
     id streaming = YTKACEHLSGet(data, @"streamingData");
-    if (streaming == nil || YTKACEHLSBool(streaming, @"isLivePlayback")) return;
+    if (streaming == nil) {
+        YTKACEDebugLog(@"hls", @"skip video=%@ no streaming data", videoID);
+        return;
+    }
+    if (YTKACEHLSBool(streaming, @"isLivePlayback")) {
+        YTKACEDebugLog(@"hls", @"skip video=%@ live", videoID);
+        return;
+    }
     SEL setHLS = NSSelectorFromString(@"setHlsManifestURL:");
     SEL setSABR = NSSelectorFromString(@"setHasServerAbrStreamingURL:");
     SEL setOnesie = NSSelectorFromString(@"setHasOnesieStreamingURL:");
     if (![streaming respondsToSelector:setHLS] || ![streaming respondsToSelector:setSABR] ||
-        ![streaming respondsToSelector:setOnesie]) return;
+        ![streaming respondsToSelector:setOnesie]) {
+        YTKACEDebugLog(@"hls", @"skip video=%@ setters missing class=%@", videoID,
+                       NSStringFromClass([streaming class]));
+        return;
+    }
     NSString *ios = YTKACEHLSGet(streaming, @"hlsManifestURL");
-    NSString *vision = YTKACEHLSCachedURL(videoID);
-    NSString *chosen = vision.length != 0 ? vision : ([ios isKindOfClass:NSString.class] ? ios : nil);
+    if (![ios isKindOfClass:NSString.class]) ios = nil;
+    const NSUInteger token = YTKACESABRPoTokenLength();
+    const BOOL untrusted = token > 0 && token < 100;
     YTKACEHLSFetchVision(videoID);
-    if (chosen.length == 0) return;
+    NSString *vision = YTKACEHLSCachedURL(videoID);
+    if (vision.length == 0 && (untrusted || ios.length == 0)) {
+        const CFAbsoluteTime deadline = CFAbsoluteTimeGetCurrent() + 1.5;
+        while (vision.length == 0 && CFAbsoluteTimeGetCurrent() < deadline) {
+            usleep(20000);
+            vision = YTKACEHLSCachedURL(videoID);
+        }
+    }
+    YTKACEDebugLog(@"hls", @"check video=%@ token=%lu ios=%d vision=%d", videoID, (unsigned long)token,
+                   ios.length != 0, vision.length != 0);
+    NSString *chosen = vision.length != 0 ? vision : ios;
+    if (chosen.length == 0) {
+        YTKACEDownloadLog(@"hls", @"skip video=%@ no manifest", videoID);
+        return;
+    }
     YTKACEHLSKeepOriginal(videoID, data);
     ((void (*)(id, SEL, id))objc_msgSend)(streaming, setHLS, chosen);
     ((void (*)(id, SEL, BOOL))objc_msgSend)(streaming, setSABR, NO);
@@ -356,6 +386,7 @@ static void YTKACEHLSPause(id self, SEL _cmd, int reason) {
 
 void YTKACEInstallHLSPlaybackHooks(void) {
     if (!YTKACEHLSEnabled()) return;
+    YTKACEDownloadLog(@"hls", @"enabled");
     YTKACEHLSCache = [NSMutableDictionary dictionary];
     YTKACEHLSPending = [NSMutableSet set];
     YTKACEHLSOriginals = [NSMutableDictionary dictionary];
