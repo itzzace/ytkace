@@ -1579,6 +1579,9 @@ static NSDictionary *YTKACEPlayerDefinition(void) {
             YTKACEToggle(@"Remove Info Cards", @"YTKACE.Preference.Overlay.InfoCardsHidden", @"", @""),
             YTKACEToggle(@"Remove Channel Watermark", @"YTKACE.Preference.Overlay.WatermarkHidden", @"", @""),
             YTKACEToggle(@"Remove End Screen", @"YTKACE.Preference.Overlay.EndScreenHidden", @"", @""),
+            YTKACEToggleDetail(@"Remove Autoplay Prompt",
+                               @"Hides the Suggested video and Suggested music prompts at the end of a video.",
+                               @"YTKACE.Preference.Overlay.AutoplayPromptHidden"),
             YTKACEToggleDetail(@"Remove More Videos",
                                @"Disable the edge swipe up in fullscreen that "
                                 "reveals the More videos row.",

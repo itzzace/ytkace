@@ -173,6 +173,8 @@
 "Remove Dislike" = "低評価を非表示";
 "Remove Download" = "「ダウンロード」を非表示";
 "Remove End Screen" = "終了画面を非表示";
+"Remove Autoplay Prompt" = "自動再生の案内を非表示";
+"Hides the Suggested video and Suggested music prompts at the end of a video." = "動画の最後に表示される「おすすめの動画」と「おすすめの音楽」の案内を非表示にします。";
 "Remove Fullscreen Actions" = "全画面表示のボタンを非表示";
 "Remove Horizontal Shelves" = "横並びのセクションを非表示";
 "Remove Hype" = "「Hype」を非表示";

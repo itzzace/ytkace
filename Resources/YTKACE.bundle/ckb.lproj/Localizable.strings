@@ -173,6 +173,8 @@
 "Remove Dislike" = "لابردنی ناپەسەند";
 "Remove Download" = "لابردنی داگرتن";
 "Remove End Screen" = "لابردنی شاشەی کۆتایی";
+"Remove Autoplay Prompt" = "لابردنی پەیامی پەخشی خۆکار";
+"Hides the Suggested video and Suggested music prompts at the end of a video." = "پەیامەکانی ڤیدیۆی پێشنیارکراو و مۆسیقای پێشنیارکراو لە کۆتایی ڤیدیۆدا دەشارێتەوە.";
 "Remove Fullscreen Actions" = "لابردنی دوگمەکانی پڕ بە شاشە";
 "Remove Horizontal Shelves" = "لابردنی ڕەفە ئاسۆییەکان";
 "Remove Hype" = "لابردنی Hype";

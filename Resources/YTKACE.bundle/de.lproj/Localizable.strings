@@ -173,6 +173,8 @@
 "Remove Dislike" = "„Mag ich nicht“ ausblenden";
 "Remove Download" = "„Download“ ausblenden";
 "Remove End Screen" = "Endbildschirm ausblenden";
+"Remove Autoplay Prompt" = "Autoplay-Hinweis ausblenden";
+"Hides the Suggested video and Suggested music prompts at the end of a video." = "Blendet die Hinweise „Vorgeschlagenes Video“ und „Vorgeschlagene Musik“ am Ende eines Videos aus.";
 "Remove Fullscreen Actions" = "Vollbild-Aktionen ausblenden";
 "Remove Horizontal Shelves" = "Horizontale Bereiche ausblenden";
 "Remove Hype" = "„Hype“ ausblenden";

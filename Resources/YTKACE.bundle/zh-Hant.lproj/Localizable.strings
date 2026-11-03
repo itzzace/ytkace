@@ -173,6 +173,8 @@
 "Remove Dislike" = "隱藏「不喜歡」";
 "Remove Download" = "隱藏「下載」";
 "Remove End Screen" = "隱藏結束畫面";
+"Remove Autoplay Prompt" = "隱藏自動播放提示";
+"Hides the Suggested video and Suggested music prompts at the end of a video." = "隱藏影片結束時的「推薦影片」和「推薦音樂」提示。";
 "Remove Fullscreen Actions" = "隱藏全螢幕操作按鈕";
 "Remove Horizontal Shelves" = "隱藏橫向區塊";
 "Remove Hype" = "隱藏「Hype」";

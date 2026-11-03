@@ -173,6 +173,8 @@
 "Remove Dislike" = "Ẩn Không thích";
 "Remove Download" = "Ẩn Tải xuống";
 "Remove End Screen" = "Ẩn màn hình kết thúc";
+"Remove Autoplay Prompt" = "Ẩn lời nhắc tự động phát";
+"Hides the Suggested video and Suggested music prompts at the end of a video." = "Ẩn lời nhắc Video đề xuất và Nhạc đề xuất ở cuối video.";
 "Remove Fullscreen Actions" = "Ẩn thao tác toàn màn hình";
 "Remove Horizontal Shelves" = "Ẩn các hàng cuộn ngang";
 "Remove Hype" = "Ẩn Hype";

@@ -173,6 +173,8 @@
 "Remove Dislike" = "Nascondi Non mi piace";
 "Remove Download" = "Nascondi Scarica";
 "Remove End Screen" = "Nascondi schermata finale";
+"Remove Autoplay Prompt" = "Nascondi avviso di riproduzione automatica";
+"Hides the Suggested video and Suggested music prompts at the end of a video." = "Nasconde gli avvisi Video suggerito e Musica suggerita alla fine di un video.";
 "Remove Fullscreen Actions" = "Nascondi azioni a schermo intero";
 "Remove Horizontal Shelves" = "Nascondi sezioni orizzontali";
 "Remove Hype" = "Nascondi Hype";

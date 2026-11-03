@@ -173,6 +173,8 @@
 "Remove Dislike" = "Скрыть «Не нравится»";
 "Remove Download" = "Скрыть «Скачать»";
 "Remove End Screen" = "Скрыть конечные заставки";
+"Remove Autoplay Prompt" = "Скрыть подсказку автовоспроизведения";
+"Hides the Suggested video and Suggested music prompts at the end of a video." = "Скрывает подсказки «Рекомендуемое видео» и «Рекомендуемая музыка» в конце видео.";
 "Remove Fullscreen Actions" = "Скрыть кнопки в полноэкранном режиме";
 "Remove Horizontal Shelves" = "Скрыть горизонтальные подборки";
 "Remove Hype" = "Скрыть Hype";

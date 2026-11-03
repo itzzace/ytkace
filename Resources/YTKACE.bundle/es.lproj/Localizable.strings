@@ -173,6 +173,8 @@
 "Remove Dislike" = "Ocultar No me gusta";
 "Remove Download" = "Ocultar Descargar";
 "Remove End Screen" = "Ocultar pantalla final";
+"Remove Autoplay Prompt" = "Ocultar aviso de reproducción automática";
+"Hides the Suggested video and Suggested music prompts at the end of a video." = "Oculta los avisos de vídeo sugerido y música sugerida al final de un vídeo.";
 "Remove Fullscreen Actions" = "Ocultar acciones en pantalla completa";
 "Remove Horizontal Shelves" = "Ocultar secciones horizontales";
 "Remove Hype" = "Ocultar Hype";

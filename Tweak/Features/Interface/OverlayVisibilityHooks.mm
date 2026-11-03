@@ -35,6 +35,7 @@ static IMP OriginalTimelyShelfHeightVC;
 static IMP OriginalTimelyShelfHeightBar;
 static IMP OriginalTimelyShelfHeightInput;
 static IMP OriginalPlayerBarShouldShow;
+static IMP OriginalAutonavShowEndscreen;
 
 static NSUInteger YTKACEProductHiddenCount = 0;
 
@@ -680,6 +681,7 @@ static void YTKACEApplyOverlaySelectors(id overlay) {
         @"infoCardButton": @"YTKACE.Preference.Overlay.InfoCardsHidden",
         @"watermarkView": @"YTKACE.Preference.Overlay.WatermarkHidden",
         @"endscreenView": @"YTKACE.Preference.Overlay.EndScreenHidden",
+        @"creatorEndscreenView": @"YTKACE.Preference.Overlay.EndScreenHidden",
         @"playPauseButton": @"YTKACE.Preference.Overlay.PlayPauseHidden",
         @"overflowButton": @"YTKACE.Preference.Overlay.MoreButtonHidden",
         @"settingsButton": @"YTKACE.Preference.Overlay.MoreButtonHidden"
@@ -917,6 +919,30 @@ static BOOL YTKACEPlayerBarShouldShow(id receiver, SEL selector, id controller) 
     return ((BOOL (*)(id, SEL, id))OriginalPlayerBarShouldShow)(receiver, selector, controller);
 }
 
+static BOOL YTKACEAutonavFlag(id object, NSString *name) {
+    SEL selector = NSSelectorFromString(name);
+    return [object respondsToSelector:selector] && ((BOOL (*)(id, SEL))objc_msgSend)(object, selector);
+}
+
+static void YTKACEAutonavShowEndscreen(id receiver, SEL selector) {
+    if (!YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.AutoplayPromptHidden")) {
+        if (OriginalAutonavShowEndscreen != NULL) {
+            ((void (*)(id, SEL))OriginalAutonavShowEndscreen)(receiver, selector);
+        }
+        return;
+    }
+    SEL delegateGetter = NSSelectorFromString(@"endscreenDelegate");
+    id delegate = [receiver respondsToSelector:delegateGetter] ?
+        ((id (*)(id, SEL))objc_msgSend)(receiver, delegateGetter) : nil;
+    SEL play = NSSelectorFromString(@"playAutonav");
+    if ((YTKACEAutonavFlag(receiver, @"shouldAutonavInBackground") ||
+         YTKACEAutonavFlag(receiver, @"shouldStartCountdown")) &&
+        !YTKACEAutonavFlag(delegate, @"isVideoInSingleLoop") &&
+        [receiver respondsToSelector:play]) {
+        ((void (*)(id, SEL))objc_msgSend)(receiver, play);
+    }
+}
+
 static NSString *const YTKACEFullscreenActionsKey =
     @"YTKACE.Preference.Overlay.FullscreenActionsHidden";
 
@@ -1068,4 +1094,8 @@ void YTKACEInstallOverlayVisibilityHooks(void) {
                               @"playerBarControllerShouldShowPlayerBarView:",
                               (IMP)YTKACEPlayerBarShouldShow,
                               &OriginalPlayerBarShouldShow);
+    YTKACEInstallInstanceHook(@"YTAutonavEndscreenController",
+                              @"showEndscreen",
+                              (IMP)YTKACEAutonavShowEndscreen,
+                              &OriginalAutonavShowEndscreen);
 }
