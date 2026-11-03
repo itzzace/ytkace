@@ -34,6 +34,33 @@ static const void *YTKACETabAssociation = &YTKACETabAssociation;
 static const void *YTKACETabSelectedAssociation = &YTKACETabSelectedAssociation;
 static const void *YTKACETabDragOutAssociation = &YTKACETabDragOutAssociation;
 static const void *YTKACEBuiltTabAssociation = &YTKACEBuiltTabAssociation;
+
+static id YTKACEValue(id receiver, NSString *selectorName);
+
+// YouTube's own icon type for Subscriptions, so it draws the tab like its others.
+static NSInteger YTKACESubscriptionsIconType(void) {
+    static NSInteger value = -1;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        Class iconClass = NSClassFromString(@"YTIIcon");
+        id descriptor = [iconClass respondsToSelector:@selector(descriptor)]
+            ? ((id (*)(id, SEL))objc_msgSend)(iconClass, @selector(descriptor)) : nil;
+        SEL fieldSelector = NSSelectorFromString(@"fieldWithName:");
+        id field = [descriptor respondsToSelector:fieldSelector]
+            ? ((id (*)(id, SEL, id))objc_msgSend)(descriptor, fieldSelector, @"iconType") : nil;
+        id enumDescriptor = YTKACEValue(field, @"enumDescriptor");
+        SEL lookup = NSSelectorFromString(@"getValue:forEnumTextFormatName:");
+        if (![enumDescriptor respondsToSelector:lookup]) return;
+        for (NSString *name in @[@"TAB_SUBSCRIPTIONS_CAIRO", @"TAB_SUBSCRIPTIONS"]) {
+            int32_t found = 0;
+            if (((BOOL (*)(id, SEL, int32_t *, id))objc_msgSend)(enumDescriptor, lookup, &found, name)) {
+                value = found;
+                break;
+            }
+        }
+    });
+    return value;
+}
 static BOOL YTKACEStencilRendering;
 static NSString * const YTKACEPivotIdentifier = @"FEYTKACE";
 static NSInteger const YTKACEExtraIconTag = 0x59414349;
@@ -710,7 +737,8 @@ static void YTKACESetPivotRenderer(id receiver, SEL selector, id renderer) {
                   @"title": @"Posts", @"key": @"YTKACE.Preference.Tabs.Hidden.Posts", @"icon": @1012},
                 @{@"token": @"subscriptions", @"id": @"FEsubscriptions",
                   @"title": YTKACELocalized(@"Subscriptions"),
-                  @"key": @"YTKACE.Preference.Tabs.Hidden.Subscriptions", @"icon": @1013}
+                  @"key": @"YTKACE.Preference.Tabs.Hidden.Subscriptions",
+                  @"icon": @(YTKACESubscriptionsIconType() > 0 ? YTKACESubscriptionsIconType() : 1013)}
             ];
             NSMutableSet<NSString *> *present = [NSMutableSet set];
             for (id item in filtered) {
@@ -1242,7 +1270,7 @@ static NSDictionary *YTKACEExtraTabIcon(NSString *token) {
             @"posts": @[@"", @"",
                          @"bubble.left.and.bubble.right",
                          @"bubble.left.and.bubble.right.fill"],
-            @"subscriptions": @[@"", @"",
+            @"subscriptions": @[@"youtube_outline/subscriptions_cairo_24pt", @"youtube_fill/subscriptions_cairo_24pt",
                                  @"rectangle.stack", @"rectangle.stack.fill"]
         };
     });
@@ -1322,7 +1350,8 @@ static void YTKACEApplyExtraTabIcon(UIView *view) {
             if (config != nil) break;
         }
     }
-    if ([token isEqualToString:@"subscriptions"] && !YTKACEIsBuiltTab(renderer)) {
+    if ([token isEqualToString:@"subscriptions"] &&
+        (!YTKACEIsBuiltTab(renderer) || YTKACESubscriptionsIconType() > 0)) {
         config = nil;
     }
     if (config == nil) {
@@ -1345,7 +1374,8 @@ static void YTKACEApplyExtraTabIcon(UIView *view) {
     BOOL selected = YTKACEPivotItemSelected(view);
     NSString *asset = config[selected ? @"selectedAsset" : @"normalAsset"];
     NSString *symbol = config[selected ? @"selectedSymbol" : @"normalSymbol"];
-    UIImage *image = YTKACEAssetImage(asset, symbol);
+    UIImage *image = YTKACEAssetImage(asset, nil) ?:
+        YTKACEYouTubeImage(asset.length != 0 ? @[asset] : @[], symbol);
     if (image == nil) {
         image = [UIImage systemImageNamed:@"circle"];
     }
