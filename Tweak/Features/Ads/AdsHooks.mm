@@ -102,6 +102,14 @@ static void YTKACEAccountAdsDecorateContext(id receiver, SEL selector, id contex
     }
 }
 
+static IMP OriginalAccountAdsDecorateService;
+
+static void YTKACEAccountAdsDecorateService(id receiver, SEL selector, id context, long long type) {
+    if (!YTKACEFeatureEnabled(YTKACENoAdsKey) && OriginalAccountAdsDecorateService != NULL) {
+        ((void (*)(id, SEL, id, long long))OriginalAccountAdsDecorateService)(receiver, selector, context, type);
+    }
+}
+
 static id YTKACEPlayerAdsArray(id receiver, SEL selector) {
     return YTKACEFeatureEnabled(YTKACENoAdsKey)
         ? [NSMutableArray array]
@@ -838,6 +846,15 @@ void YTKACEInstallAdsHooks(void) {
                               @"decorateContext:",
                               (IMP)YTKACEAccountAdsDecorateContext,
                               &OriginalAccountAdsDecorateContext);
+    Method serviceMethod = class_getInstanceMethod(NSClassFromString(@"YTAccountScopedAdsInnerTubeContextDecorator"),
+                                                   NSSelectorFromString(@"decorateContext:serviceType:"));
+    const char *serviceTypes = serviceMethod != NULL ? method_getTypeEncoding(serviceMethod) : NULL;
+    if (serviceTypes != NULL && strncmp(serviceTypes, "v32@0:8@16q24", 13) == 0) {
+        YTKACEInstallInstanceHook(@"YTAccountScopedAdsInnerTubeContextDecorator",
+                                  @"decorateContext:serviceType:",
+                                  (IMP)YTKACEAccountAdsDecorateService,
+                                  &OriginalAccountAdsDecorateService);
+    }
 
     YTKACEInstallObjectHookOrMethod(@"YTIPlayerResponse",
                                     @"playerAdsArray",
