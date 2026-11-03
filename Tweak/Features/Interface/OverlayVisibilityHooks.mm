@@ -36,6 +36,8 @@ static IMP OriginalTimelyShelfHeightBar;
 static IMP OriginalTimelyShelfHeightInput;
 static IMP OriginalPlayerBarShouldShow;
 static IMP OriginalAutonavShowEndscreen;
+static IMP OriginalWatermarkNodeApply;
+static const void *YTKACEWatermarkNodeAssociation = &YTKACEWatermarkNodeAssociation;
 
 static NSUInteger YTKACEProductHiddenCount = 0;
 
@@ -680,6 +682,7 @@ static void YTKACEApplyOverlaySelectors(id overlay) {
         @"closedCaptionsOrSubtitlesButton": @"YTKACE.Preference.Overlay.CaptionsButtonHidden",
         @"infoCardButton": @"YTKACE.Preference.Overlay.InfoCardsHidden",
         @"watermarkView": @"YTKACE.Preference.Overlay.WatermarkHidden",
+        @"featuredChannelWatermarkImageView": @"YTKACE.Preference.Overlay.WatermarkHidden",
         @"endscreenView": @"YTKACE.Preference.Overlay.EndScreenHidden",
         @"creatorEndscreenView": @"YTKACE.Preference.Overlay.EndScreenHidden",
         @"playPauseButton": @"YTKACE.Preference.Overlay.PlayPauseHidden",
@@ -943,6 +946,36 @@ static void YTKACEAutonavShowEndscreen(id receiver, SEL selector) {
     }
 }
 
+static void YTKACEApplyWatermarkNode(id node) {
+    BOOL hide = YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.WatermarkHidden");
+    if (!hide && objc_getAssociatedObject(node, YTKACEWatermarkNodeAssociation) == nil) return;
+    objc_setAssociatedObject(node, YTKACEWatermarkNodeAssociation, hide ? @YES : nil,
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    ((void (*)(id, SEL, BOOL))objc_msgSend)(node, NSSelectorFromString(@"setHidden:"), hide);
+}
+
+static void YTKACEWatermarkNodeApply(id receiver, SEL selector) {
+    if (OriginalWatermarkNodeApply != NULL) {
+        ((void (*)(id, SEL))OriginalWatermarkNodeApply)(receiver, selector);
+    }
+    SEL getter = NSSelectorFromString(@"accessibilityIdentifier");
+    if (![receiver respondsToSelector:getter] ||
+        ![receiver respondsToSelector:NSSelectorFromString(@"setHidden:")]) {
+        return;
+    }
+    id identifier = ((id (*)(id, SEL))objc_msgSend)(receiver, getter);
+    if (![identifier isKindOfClass:NSString.class] || ![identifier isEqualToString:@"watermark_image"]) return;
+    if (NSThread.isMainThread) {
+        YTKACEApplyWatermarkNode(receiver);
+        return;
+    }
+    __weak id weakNode = receiver;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        id node = weakNode;
+        if (node != nil) YTKACEApplyWatermarkNode(node);
+    });
+}
+
 static NSString *const YTKACEFullscreenActionsKey =
     @"YTKACE.Preference.Overlay.FullscreenActionsHidden";
 
@@ -1098,4 +1131,8 @@ void YTKACEInstallOverlayVisibilityHooks(void) {
                               @"showEndscreen",
                               (IMP)YTKACEAutonavShowEndscreen,
                               &OriginalAutonavShowEndscreen);
+    YTKACEInstallInstanceHook(@"ELMImageNode",
+                              @"controllerDidApplyProperties",
+                              (IMP)YTKACEWatermarkNodeApply,
+                              &OriginalWatermarkNodeApply);
 }
