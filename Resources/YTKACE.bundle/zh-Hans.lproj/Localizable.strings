@@ -1056,3 +1056,12 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE 使用 SponsorBlock 数据。
 "Also removes YTKACE's download from this menu." = "同时会从此菜单移除 YTKACE 的下载。";
 "Open Links Directly" = "直接打开链接";
 "Skips YouTube's redirect page when you open a link from a description or comment." = "打开说明或评论中的链接时跳过 YouTube 的跳转页面。";
+
+"Stops vibration feedback in YouTube, including YTKACE's own." = "关闭 YouTube 中的振动反馈，包括 YTKACE 的。";
+"Turn Off Haptics" = "关闭触感反馈";
+"Keep Shorts in Home" = "在首页保留 Shorts";
+"Keep Shorts in Search" = "在搜索中保留 Shorts";
+"Keep Shorts on Channels" = "在频道中保留 Shorts";
+"Still show Shorts on the Home feed when shelves are removed." = "移除书架后仍在首页显示 Shorts。";
+"Still show Shorts in search results when shelves are removed." = "移除书架后仍在搜索结果中显示 Shorts。";
+"Still show Shorts on channel pages when shelves are removed." = "移除书架后仍在频道页面显示 Shorts。";

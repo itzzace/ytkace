@@ -1068,3 +1068,10 @@ Licensed under CC BY-NC-SA 4.0.";
 "Remove Not Interested" = "Remove Not Interested";
 "Remove Don't Recommend Channel" = "Remove Don't Recommend Channel";
 "Also removes YTKACE's download from this menu." = "Also removes YTKACE's download from this menu.";
+
+"Keep Shorts in Home" = "Keep Shorts in Home";
+"Keep Shorts in Search" = "Keep Shorts in Search";
+"Keep Shorts on Channels" = "Keep Shorts on Channels";
+"Still show Shorts on the Home feed when shelves are removed." = "Still show Shorts on the Home feed when shelves are removed.";
+"Still show Shorts in search results when shelves are removed." = "Still show Shorts in search results when shelves are removed.";
+"Still show Shorts on channel pages when shelves are removed." = "Still show Shorts on channel pages when shelves are removed.";

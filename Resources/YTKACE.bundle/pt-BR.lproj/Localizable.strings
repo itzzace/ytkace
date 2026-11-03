@@ -1000,3 +1000,23 @@
 "Also removes YTKACE's download from this menu." = "Também remove o download do YTKACE deste menu.";
 "Open Links Directly" = "Abrir links diretamente";
 "Skips YouTube's redirect page when you open a link from a description or comment." = "Pula a página de redirecionamento do YouTube ao abrir um link de uma descrição ou comentário.";
+
+"Play any video once to refresh downloads, then try again." = "Reproduza um vídeo uma vez para atualizar os downloads e tente de novo.";
+"Remove Frosted Tab Bar" = "Remover barra de abas fosca";
+"Download cancelled" = "Download cancelado";
+"No native Onesie session is available." = "Nenhuma sessão Onesie nativa disponível.";
+"No video identifier." = "Sem identificador de vídeo.";
+"SABR" = "SABR";
+"No matching YouTube player request is available." = "Nenhuma solicitação do player do YouTube correspondente disponível.";
+"Play any video once so YTKACE can prepare downloads, then try again." = "Reproduza um vídeo uma vez para o YTKACE preparar os downloads e tente de novo.";
+"Keep the YTKACE or Library tab so settings stay reachable." = "Mantenha a aba YTKACE ou Biblioteca para os ajustes continuarem acessíveis.";
+"Stops vibration feedback in YouTube, including YTKACE's own." = "Desliga a vibração no YouTube, incluindo a do YTKACE.";
+"Prevent Open in Shorts" = "Impedir abrir no Shorts";
+"Turn Off Haptics" = "Desligar vibração";
+"Scroll the playlist once so YTKACE can read it, then try again." = "Role a playlist uma vez para o YTKACE conseguir lê-la e tente de novo.";
+"Keep Shorts in Home" = "Manter Shorts no Início";
+"Keep Shorts in Search" = "Manter Shorts na Busca";
+"Keep Shorts on Channels" = "Manter Shorts nos canais";
+"Still show Shorts on the Home feed when shelves are removed." = "Continuar mostrando Shorts no Início quando as prateleiras forem removidas.";
+"Still show Shorts in search results when shelves are removed." = "Continuar mostrando Shorts nos resultados de busca quando as prateleiras forem removidas.";
+"Still show Shorts on channel pages when shelves are removed." = "Continuar mostrando Shorts nos canais quando as prateleiras forem removidas.";
