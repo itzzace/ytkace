@@ -22,14 +22,14 @@ An open-source YouTube enhancement for iOS.
 - **Architecture:** arm64
 - **YTKACE:** 1.1.4
 
-YouTube 21.42.4 requires iOS 17, so two IPAs are published:
+YouTube 21.44.4 requires iOS 17, so two IPAs are published:
 
 | IPA | YouTube base | iOS |
 | --- | --- | --- |
 | `YTKACE_1.1.4_YouTube_iOS16_21.33.6.ipa` | 21.33.6 | 16.0 and newer |
-| `YTKACE_1.1.4_YouTube_21.42.4.ipa` | 21.42.4 | 17.0 and newer |
+| `YTKACE_1.1.4_YouTube_21.44.4.ipa` | 21.44.4 | 17.0 and newer |
 
-Pick the 21.42.4 build unless you are on iOS 16. Either one installs with TrollStore or a developer-certificate sideloader.
+Pick the 21.44.4 build unless you are on iOS 16. Either one installs with TrollStore or a developer-certificate sideloader.
 
 ## Install
 
@@ -48,7 +48,7 @@ Rootless and roothide packages are both published. The repository page also has 
 
 Fork the repository, enable Actions, open the **IPA** workflow and provide a direct link to a decrypted YouTube IPA you are legally allowed to use. The completed workflow provides the injected IPA as an artifact. The **Deb** workflow builds the tweak package.
 
-To build both IPAs in one run, fill in the second URL field as well: the workflow takes an iOS 16 base (21.33.6) and an optional iOS 17+ base (21.42.4), and uploads them as separate artifacts. Leaving the second field empty builds a single IPA.
+To build both IPAs in one run, fill in the second URL field as well: the workflow takes an iOS 16 base (21.33.6) and an optional iOS 17+ base (21.44.4), and uploads them as separate artifacts. Leaving the second field empty builds a single IPA.
 
 ## Settings
 
