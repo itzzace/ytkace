@@ -528,6 +528,23 @@ static NSInteger YTKACETabOrderIndex(NSString *token, NSArray *order) {
     return NSIntegerMax;
 }
 
+static void YTKACESetTabTitle(id target, NSString *text) {
+    Class formattedClass = NSClassFromString(@"YTIFormattedString");
+    SEL formattedSelector = NSSelectorFromString(@"formattedStringWithString:");
+    id value = text;
+    if (formattedClass != Nil && [formattedClass respondsToSelector:formattedSelector]) {
+        value = ((id (*)(id, SEL, id))objc_msgSend)(
+            formattedClass,
+            formattedSelector,
+            text
+        );
+    }
+    SEL selector = NSSelectorFromString(@"setTitle:");
+    if ([target respondsToSelector:selector]) {
+        ((void (*)(id, SEL, id))objc_msgSend)(target, selector, value);
+    }
+}
+
 static void YTKACEApplyTabName(id item, NSString *token) {
     NSDictionary *names =
         [NSUserDefaults.standardUserDefaults dictionaryForKey:@"YTKACE.Preference.Tabs.Names"];
@@ -539,20 +556,79 @@ static void YTKACEApplyTabName(id item, NSString *token) {
         @"pivotBarItemRenderer",
         @"pivotBarIconOnlyItemRenderer"
     ]) ?: item;
-    Class formattedClass = NSClassFromString(@"YTIFormattedString");
-    SEL formattedSelector = NSSelectorFromString(@"formattedStringWithString:");
-    id value = replacement;
-    if (formattedClass != Nil && [formattedClass respondsToSelector:formattedSelector]) {
-        value = ((id (*)(id, SEL, id))objc_msgSend)(
-            formattedClass,
-            formattedSelector,
-            replacement
-        );
+    YTKACESetTabTitle(target, replacement);
+}
+
+static BOOL YTKACETabFieldSet(id message, NSString *field) {
+    NSString *suffix = [[field substringToIndex:1].uppercaseString stringByAppendingString:[field substringFromIndex:1]];
+    SEL has = NSSelectorFromString([@"has" stringByAppendingString:suffix]);
+    return ![message respondsToSelector:has] || ((BOOL (*)(id, SEL))objc_msgSend)(message, has);
+}
+
+static NSString *YTKACETabSetter(NSString *field) {
+    return [NSString stringWithFormat:@"set%@%@:", [field substringToIndex:1].uppercaseString,
+                                      [field substringFromIndex:1]];
+}
+
+static int32_t YTKACEOneofCase(id message, NSString *oneof) {
+    SEL selector = NSSelectorFromString([oneof stringByAppendingString:@"OneOfCase"]);
+    return [message respondsToSelector:selector] ? ((int32_t (*)(id, SEL))objc_msgSend)(message, selector) : 0;
+}
+
+static const int32_t YTKACEIconOnlyItemCase = 318370163;
+
+static id YTKACELabeledTab(id item) {
+    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Tabs.LabelsHidden") ||
+        YTKACEOneofCase(item, @"items") != YTKACEIconOnlyItemCase) {
+        return item;
     }
-    SEL selector = NSSelectorFromString(@"setTitle:");
-    if ([target respondsToSelector:selector]) {
-        ((void (*)(id, SEL, id))objc_msgSend)(target, selector, value);
+    id iconOnly = YTKACEValue(item, @"pivotBarIconOnlyItemRenderer");
+    id label = YTKACEValue(YTKACEValue(YTKACEValue(iconOnly, @"accessibility"), @"accessibilityData"), @"label");
+    id renderer = YTKACENew(@"YTIPivotBarItemRenderer");
+    id supported = YTKACENew(@"YTIPivotBarSupportedRenderers");
+    if (![label isKindOfClass:NSString.class] || [label length] == 0 || renderer == nil || supported == nil) {
+        return item;
     }
+    for (NSString *field in @[@"pivotIdentifier", @"targetId", @"navigationEndpoint", @"accessibility",
+                              @"presentationStyle", @"trackingParams", @"progressIndicator",
+                              @"onSelected", @"onDeselected", @"indicator", @"onLongPress"]) {
+        if (YTKACETabFieldSet(iconOnly, field)) {
+            YTKACESetValue(renderer, YTKACETabSetter(field), YTKACEValue(iconOnly, field));
+        }
+    }
+    NSString *image = @{@5: @"icon", @10: @"thumbnail", @16: @"avatar"}[@(YTKACEOneofCase(iconOnly, @"image"))];
+    if (image != nil) {
+        YTKACESetValue(renderer, YTKACETabSetter(image), YTKACEValue(iconOnly, image));
+    }
+    for (NSString *field in @[@"navigationType", @"notificationSelectionBehavior", @"isDisabled"]) {
+        SEL getter = NSSelectorFromString(field);
+        SEL setter = NSSelectorFromString(YTKACETabSetter(field));
+        if (![iconOnly respondsToSelector:getter] || ![renderer respondsToSelector:setter] ||
+            !YTKACETabFieldSet(iconOnly, field)) {
+            continue;
+        }
+        if ([field isEqualToString:@"isDisabled"]) {
+            BOOL value = ((BOOL (*)(id, SEL))objc_msgSend)(iconOnly, getter);
+            ((void (*)(id, SEL, BOOL))objc_msgSend)(renderer, setter, value);
+        } else {
+            int32_t value = ((int32_t (*)(id, SEL))objc_msgSend)(iconOnly, getter);
+            ((void (*)(id, SEL, int32_t))objc_msgSend)(renderer, setter, value);
+        }
+    }
+    YTKACESetTabTitle(renderer, label);
+    YTKACESetValue(supported, @"setPivotBarItemRenderer:", renderer);
+    return supported;
+}
+
+static void YTKACEFillEmptyTabTitle(id item) {
+    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Tabs.LabelsHidden")) return;
+    id renderer = YTKACEValue(item, @"pivotBarItemRenderer");
+    if (renderer == nil) return;
+    id title = YTKACEValue(YTKACEValue(renderer, @"title"), @"stringWithFormattingRemoved");
+    if ([title isKindOfClass:NSString.class] && [title length] != 0) return;
+    id label = YTKACEValue(YTKACEValue(YTKACEValue(renderer, @"accessibility"), @"accessibilityData"), @"label");
+    if (![label isKindOfClass:NSString.class] || [label length] == 0) return;
+    YTKACESetTabTitle(renderer, label);
 }
 
 static BOOL YTKACEIsDownloadTab(id item) {
@@ -601,6 +677,7 @@ static void YTKACESetPivotRenderer(id receiver, SEL selector, id renderer) {
                     continue;
                 }
                 if (YTKACEMasterEnabled()) {
+                    candidate = YTKACELabeledTab(candidate);
                     YTKACEApplyTabName(candidate, token);
                 }
                 [filtered addObject:candidate];
@@ -672,6 +749,14 @@ static void YTKACESetPivotRenderer(id receiver, SEL selector, id renderer) {
                 }
             }
 
+            if (YTKACEMasterEnabled()) {
+                for (id item in filtered) {
+                    if (![YTKACECanonicalTabToken(YTKACETabToken(item)) isEqualToString:@"create"]) {
+                        YTKACEFillEmptyTabTitle(item);
+                    }
+                }
+            }
+
             NSArray *order =
                 [NSUserDefaults.standardUserDefaults arrayForKey:@"YTKACE.Preference.Tabs.Order"];
             if (YTKACEMasterEnabled() && order.count != 0) {
@@ -713,21 +798,59 @@ static void YTKACESetPivotRenderer(id receiver, SEL selector, id renderer) {
     }
 }
 
+static id YTKACEItemRenderer(UIView *view);
+
+static BOOL YTKACEItemFlag(UIView *item, const char *name) {
+    Ivar flag = class_getInstanceVariable(object_getClass(item), name);
+    return flag != NULL && strcmp(ivar_getTypeEncoding(flag), @encode(BOOL)) == 0 &&
+        *(BOOL *)((uint8_t *)(__bridge void *)item + ivar_getOffset(flag));
+}
+
+static IMP OriginalIsIconsOnly;
+
+static BOOL YTKACEIsIconsOnly(id receiver, SEL selector) {
+    if (!YTKACEFeatureEnabled(@"YTKACE.Preference.Tabs.LabelsHidden")) return NO;
+    return OriginalIsIconsOnly != NULL && ((BOOL (*)(id, SEL))OriginalIsIconsOnly)(receiver, selector);
+}
+
+static BOOL YTKACEYouTubeDropsTabTitle(UIView *item) {
+    if (!YTKACEItemFlag(item, "_enableIconOnlyBottomNav") && !YTKACEItemFlag(item, "_enableIconOnlyOfflinePivotBar")) {
+        return NO;
+    }
+    id renderer = YTKACEItemRenderer(item);
+    if (renderer == nil) return NO;
+    id title = YTKACEValue(YTKACEValue(renderer, @"title"), @"stringWithFormattingRemoved");
+    return ![title isKindOfClass:NSString.class] || [title length] == 0;
+}
+
+static BOOL YTKACEYouTubeHidesTabLabels(UIView *item) {
+    if (YTKACEYouTubeDropsTabTitle(item)) return YES;
+    SEL getter = NSSelectorFromString(@"hideLabel");
+    if ([item respondsToSelector:getter] && ((BOOL (*)(id, SEL))objc_msgSend)(item, getter)) return YES;
+    SEL barGetter = NSSelectorFromString(@"hideItemLabels");
+    for (UIView *bar = item.superview; bar != nil; bar = bar.superview) {
+        if ([bar respondsToSelector:barGetter]) return ((BOOL (*)(id, SEL))objc_msgSend)(bar, barGetter);
+    }
+    return NO;
+}
+
 static BOOL YTKACETabLabelsHidden(UIView *item) {
     BOOL hidden = YTKACEFeatureEnabled(@"YTKACE.Preference.Tabs.LabelsHidden");
     static Class floatingClass;
     if (floatingClass == Nil) floatingClass = NSClassFromString(@"YTFloatingPivotBarView");
     SEL getter = NSSelectorFromString(@"hideLabel");
     SEL setter = NSSelectorFromString(@"setHideLabel:");
-    if (floatingClass == Nil || ![item respondsToSelector:getter] || ![item respondsToSelector:setter]) return hidden;
+    if (floatingClass == Nil || ![item respondsToSelector:getter] || ![item respondsToSelector:setter]) {
+        return hidden || YTKACEYouTubeHidesTabLabels(item);
+    }
     UIView *bar = item.superview;
     while (bar != nil && ![bar isKindOfClass:floatingClass]) bar = bar.superview;
-    if (bar == nil) return hidden;
+    if (bar == nil) return hidden || YTKACEYouTubeHidesTabLabels(item);
     if (((BOOL (*)(id, SEL))objc_msgSend)(item, getter) != hidden) {
         ((void (*)(id, SEL, BOOL))objc_msgSend)(item, setter, hidden);
         [item setNeedsLayout];
     }
-    return hidden;
+    return hidden || YTKACEYouTubeDropsTabTitle(item);
 }
 
 static void YTKACESetLabelsHidden(UIView *view, BOOL hidden) {
@@ -946,6 +1069,44 @@ static BOOL YTKACEDownloadsAreVisible(void) {
     return NO;
 }
 
+static BOOL YTKACENativeTabRows(UIView *view, CGRect *iconFrame, CGRect *labelFrame) {
+    for (UIView *sibling in view.superview.subviews) {
+        if (sibling == view || ![NSStringFromClass(sibling.class) containsString:@"PivotBarItemView"]) {
+            continue;
+        }
+        UIButton *button = YTKACEValue(sibling, @"navigationButton");
+        if (![button isKindOfClass:UIButton.class]) continue;
+        UILabel *label = button.titleLabel;
+        UIImageView *image = button.imageView;
+        if (label.hidden || label.alpha < 0.01 || label.text.length == 0 || CGRectIsEmpty(label.frame) ||
+            image == nil || image.hidden || CGRectIsEmpty(image.frame)) {
+            continue;
+        }
+        *iconFrame = [button convertRect:image.frame toView:view];
+        *labelFrame = [button convertRect:label.frame toView:view];
+        return YES;
+    }
+    return NO;
+}
+
+static void YTKACELayoutTabIconAndLabel(UIView *view, UIView *icon, UILabel *label, BOOL hideLabel) {
+    CGFloat width = CGRectGetWidth(view.bounds);
+    CGFloat height = CGRectGetHeight(view.bounds);
+    CGFloat size = 24.0;
+    CGFloat labelHeight = ceil(label.font.lineHeight);
+    CGFloat iconY = hideLabel ? (height - size) * 0.5 : (height - size - 2.0 - labelHeight) * 0.5;
+    CGFloat labelY = iconY + size + 2.0;
+    CGRect nativeIcon = CGRectZero;
+    CGRect nativeLabel = CGRectZero;
+    if (!hideLabel && YTKACENativeTabRows(view, &nativeIcon, &nativeLabel)) {
+        iconY = CGRectGetMidY(nativeIcon) - size * 0.5;
+        labelY = CGRectGetMinY(nativeLabel);
+        labelHeight = CGRectGetHeight(nativeLabel);
+    }
+    icon.frame = CGRectMake((width - size) * 0.5, iconY, size, size);
+    label.frame = CGRectMake(0.0, labelY, width, labelHeight);
+}
+
 static void YTKACERestorePivotItem(UIView *view,
                                    UILabel *nativeLabel,
                                    BOOL hideLabel) {
@@ -1041,17 +1202,7 @@ static void YTKACEApplyDownloadIcon(UIView *view) {
     imageView.image = [image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
     imageView.tintColor = tabColor;
     imageView.hidden = NO;
-    CGFloat size = 24.0;
-    imageView.frame = CGRectMake(
-        (CGRectGetWidth(view.bounds) - size) * 0.5,
-        hideLabel ? (CGRectGetHeight(view.bounds) - size) * 0.5 : 4.0,
-        size,
-        size
-    );
-    label.frame = CGRectMake(0.0,
-                             MAX(0.0, CGRectGetHeight(view.bounds) - 16.0),
-                             CGRectGetWidth(view.bounds),
-                             14.0);
+    YTKACELayoutTabIconAndLabel(view, imageView, label, hideLabel);
 }
 
 static NSDictionary *YTKACEExtraTabIcon(NSString *token) {
@@ -1201,14 +1352,7 @@ static void YTKACEApplyExtraTabIcon(UIView *view) {
     icon.image = [image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
     icon.tintColor = YTKACETabForegroundColor(view);
     icon.hidden = NO;
-    CGFloat size = 24.0;
     BOOL hideLabel = YTKACETabLabelsHidden(view);
-    icon.frame = CGRectMake(
-        (CGRectGetWidth(view.bounds) - size) * 0.5,
-        hideLabel ? (CGRectGetHeight(view.bounds) - size) * 0.5 : 4.0,
-        size,
-        size
-    );
     UILabel *nativeLabel = YTKACEFindNativeLabel(view);
     UILabel *label = (UILabel *)[view viewWithTag:YTKACEExtraLabelTag];
     NSString *title = nativeLabel.text.length != 0
@@ -1231,12 +1375,7 @@ static void YTKACEApplyExtraTabIcon(UIView *view) {
     label.textColor = icon.tintColor;
     label.hidden = hideLabel;
     label.alpha = hideLabel ? 0.0 : 1.0;
-    label.frame = CGRectMake(
-        0.0,
-        MAX(0.0, CGRectGetHeight(view.bounds) - 16.0),
-        CGRectGetWidth(view.bounds),
-        14.0
-    );
+    YTKACELayoutTabIconAndLabel(view, icon, label, hideLabel);
 }
 
 static NSString *const YTKACETintModeKey = @"YTKACE.Preference.Tabs.SelectedTint";
@@ -3861,6 +4000,10 @@ static void YTKACEPivotItemTraitChanged(UIView *receiver,
 
 void YTKACEInstallTabBarHooks(void) {
     YTKACERefreshTabTint();
+    YTKACEInstallClassHook(@"YTFloatingBarExperiment",
+                           @"isIconsOnly",
+                           (IMP)YTKACEIsIconsOnly,
+                           &OriginalIsIconsOnly);
     YTKACEInstallInstanceHook(@"YTPivotBarItemView",
                               @"iconTintColorSelected",
                               (IMP)YTKACEIconTintSelected,
