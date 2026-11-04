@@ -836,17 +836,34 @@ static NSUInteger YTKACEQueueNextIndex(void) {
 }
 
 // Called when a video starts. A queued video moves the cursor. A video
-// opened from elsewhere leaves the queue exactly as it was: it is not added,
-// and the queue is not cleared, so it picks up again when that video ends.
+// opened from elsewhere while the queue is running goes in front of the video
+// that was playing and becomes the current item, like YouTube's own queue.
+// Once the last queued video has played to the end the queue is finished,
+// so the next video starts fresh and the queue is cleared.
 // Returns YES when the queue changed.
 static BOOL YTKACEQueueNoteStarted(NSString *videoID) {
     NSMutableArray *queue = YTKACEQueue();
     if (videoID.length == 0 || queue.count == 0) return NO;
-    if (YTKACEQueueIndexOfVideo(videoID) == NSNotFound) return NO;
-    const BOOL moved = ![videoID isEqualToString:YTKACEQueueCursor()];
+    if (YTKACEQueueIndexOfVideo(videoID) != NSNotFound) {
+        const BOOL moved = ![videoID isEqualToString:YTKACEQueueCursor()];
+        YTKACEQueueSetCursor(videoID);
+        YTKACEQueueSetFinished(NO);
+        return moved;
+    }
+    NSUInteger cursor = YTKACEQueueIndexOfVideo(YTKACEQueueCursor());
+    if (cursor != NSNotFound && cursor + 1 >= queue.count &&
+        YTKACEQueueFinished()) {
+        [queue removeAllObjects];
+        YTKACEQueueSave();
+        return YES;
+    }
+    NSMutableDictionary *entry = [NSMutableDictionary dictionary];
+    entry[@"videoId"] = videoID;
+    [queue insertObject:entry atIndex:cursor == NSNotFound ? 0 : cursor];
     YTKACEQueueSetCursor(videoID);
-    YTKACEQueueSetFinished(NO);
-    return moved;
+    YTKACEQueueSave();
+    YTKACEQueueFetchTitle(videoID);
+    return YES;
 }
 
 static NSString *YTKACEQueuePausePendingID;
