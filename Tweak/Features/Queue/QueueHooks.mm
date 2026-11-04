@@ -9,6 +9,7 @@
 
 #import <UIKit/UIKit.h>
 #import <objc/message.h>
+#import <objc/runtime.h>
 
 static NSString *const YTKACEQueueKey = @"YTKACE.Preference.Playback.LocalQueue";
 
@@ -18,6 +19,8 @@ static NSUInteger YTKACEQueueCurrentIndex(void);
 static NSString *YTKACEQueueOpenVideoID(void);
 static NSUInteger YTKACEQueueUpcomingIndex(NSString *playing);
 static void YTKACEQueueRemoveAt(NSUInteger index);
+static BOOL YTKACEQueueVideoIsOpen(void);
+static NSString *YTKACEQueueDescribeHost(id candidate);
 static void YTKACEQueuePruneController(void);
 static NSString *YTKACEQueueCursor(void);
 static NSUInteger YTKACEQueueNextIndex(void);
@@ -398,6 +401,13 @@ static void YTKACEQueueAdd(NSString *videoID, NSString *title,
                            BOOL playNext) {
     NSMutableArray *queue = YTKACEQueue();
     NSString *playing = YTKACEQueueOpenVideoID();
+    YTKACEDebugLog(@"queue", @"add %@ next=%d playing=%@ current=%@ queue=%lu cursor=%@ "
+          @"watch=[%@] player=[%@] responder=[%@]",
+          videoID, playNext, playing ?: @"nil", YTKACEQueueCurrentVideoID() ?: @"nil",
+          (unsigned long)queue.count, YTKACEQueueCursor() ?: @"nil",
+          YTKACEQueueDescribeHost(YTKACEQueueWatchViewController),
+          YTKACEQueueDescribeHost(YTKACEQueuePlayerViewController),
+          YTKACEQueueDescribeHost(YTKACEQueueResponder));
     if ([playing isEqualToString:videoID] &&
         YTKACEQueueIndexOfVideo(videoID) != NSNotFound) {
         return;
@@ -433,6 +443,7 @@ static void YTKACEQueueAdd(NSString *videoID, NSString *title,
     }
     YTKACEQueueSetFinished(NO);
     YTKACEQueueSave();
+    YTKACEDebugLog(@"queue", @"add done queue=%@", [queue valueForKey:@"videoId"]);
     if (title.length == 0) YTKACEQueueFetchTitle(videoID);
     YTKACEShowNotice(playNext ? YTKACELocalized(@"Playing next")
                               : YTKACELocalized(@"Added to queue"));
@@ -658,7 +669,7 @@ static void YTKACEQueueSafeSet(id object, id value, NSString *key) {
             if ([reported containsObject:name]) return;
             [reported addObject:name];
         }
-        YTKACEDownloadLog(@"queue", @"skipped unsupported field %@", name);
+        YTKACEDebugLog(@"queue", @"skipped unsupported field %@", name);
     }
 }
 
@@ -782,17 +793,29 @@ static NSUInteger YTKACEQueueCurrentIndex(void) {
     return YTKACEQueueIndexOfVideo(YTKACEQueueCurrentVideoID());
 }
 
-static BOOL YTKACEQueueVideoIsOpen(void) {
-    if (OriginalViewUpdateWatchNext == NULL) {
-        return YTKACEQueueCurrentVideoID().length != 0;
+static BOOL YTKACEQueueViewOnScreen(id candidate) {
+    if (![candidate isKindOfClass:UIViewController.class]) return NO;
+    UIViewController *controller = candidate;
+    return controller.isViewLoaded && controller.view.window != nil;
+}
+
+static NSString *YTKACEQueueDescribeHost(id candidate) {
+    if (candidate == nil) return @"nil";
+    if (![candidate isKindOfClass:UIViewController.class]) {
+        return [NSString stringWithFormat:@"%@(not a VC)", [candidate class]];
     }
-    id watch = YTKACEQueueWatchViewController;
-    if (![watch isKindOfClass:UIViewController.class]) return NO;
-    UIViewController *controller = watch;
-    if (!controller.isViewLoaded) return NO;
-    // The miniplayer keeps the watch view in the window while it is hidden or
-    // transparent, so only a view that left the window counts as closed.
-    return controller.view.window != nil;
+    UIViewController *controller = candidate;
+    return [NSString stringWithFormat:@"%@ loaded=%d window=%d",
+        [candidate class], controller.isViewLoaded,
+        controller.isViewLoaded && controller.view.window != nil];
+}
+
+// The miniplayer takes the watch view out of the window but keeps the watch
+// player in it, so a video is open while either is on screen. Only the watch
+// player counts: feed previews run players of their own.
+static BOOL YTKACEQueueVideoIsOpen(void) {
+    return YTKACEQueueViewOnScreen(YTKACEQueueWatchViewController) ||
+        YTKACEQueueViewOnScreen(YTKACEQueuePlayerViewController);
 }
 
 static NSString *YTKACEQueueOpenVideoID(void) {
@@ -853,6 +876,7 @@ static BOOL YTKACEQueueNoteStarted(NSString *videoID) {
     NSUInteger cursor = YTKACEQueueIndexOfVideo(YTKACEQueueCursor());
     if (cursor != NSNotFound && cursor + 1 >= queue.count &&
         YTKACEQueueFinished()) {
+        YTKACEDebugLog(@"queue", @"finished queue cleared on start of %@", videoID);
         [queue removeAllObjects];
         YTKACEQueueSave();
         return YES;
@@ -868,6 +892,27 @@ static BOOL YTKACEQueueNoteStarted(NSString *videoID) {
 
 static NSString *YTKACEQueuePausePendingID;
 static NSTimeInterval YTKACEQueuePauseDeadline;
+
+// The first video of a queue built while idle opens paused. The watch player
+// is paused as soon as it takes the video and again on its first time tick,
+// which is when YouTube may have started it; only the watch player counts.
+static void YTKACEQueuePauseIfPending(id player, id videoID, BOOL final) {
+    if (YTKACEQueuePausePendingID.length == 0 ||
+        ![videoID isEqual:YTKACEQueuePausePendingID] ||
+        player != YTKACEQueuePlayerViewController) {
+        return;
+    }
+    if (final) YTKACEQueuePausePendingID = nil;
+    YTKACEDebugLog(@"queue", @"pausing %@ final=%d player=[%@]", videoID,
+                      final, YTKACEQueueDescribeHost(player));
+    if (NSDate.timeIntervalSinceReferenceDate < YTKACEQueuePauseDeadline &&
+        [player respondsToSelector:@selector(pause)]) {
+        @try {
+            ((void (*)(id, SEL))objc_msgSend)(player, @selector(pause));
+        } @catch (__unused NSException *exception) {
+        }
+    }
+}
 
 static void YTKACEQueueSetMiniplayerMode(id endpoint) {
     id config = YTKACEQueueMessage(@"YTIWatchEndpointMainAppConfig");
@@ -931,10 +976,17 @@ static BOOL YTKACEQueueOpenMinimized(NSString *videoID) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
                                      (int64_t)(4.0 * NSEC_PER_SEC)),
                        dispatch_get_main_queue(), ^{
+            // A player that already has the video, even one still loading,
+            // must not be sent it again: that reopens the watch page and
+            // restarts it.
+            id live = YTKACEQueueValue(YTKACEQueuePlayerViewController,
+                                       @[@"currentVideoID", @"contentVideoID"]);
             if (![YTKACEQueuePausePendingID isEqualToString:videoID] ||
-                YTKACEQueueVideoIsOpen()) {
+                YTKACEQueueVideoIsOpen() || [live isEqual:videoID] ||
+                [YTKACELastVideoID() isEqualToString:videoID]) {
                 return;
             }
+            YTKACEDebugLog(@"queue", @"retrying open of %@", videoID);
             YTKACEQueuePauseDeadline =
                 NSDate.timeIntervalSinceReferenceDate + 20.0;
             if (YTKACEQueueOpenVia(YTKACEQueueWatchCommand(videoID), view,
@@ -1217,6 +1269,9 @@ static void YTKACEQueueInjectPanel(id response) {
 
 static void YTKACEQueueSetWatchNext(id receiver, SEL selector, id response) {
     YTKACEQueuePlayerViewController = receiver;
+    YTKACEDebugLog(@"queue", @"setWatchNext player=[%@] video=%@",
+          YTKACEQueueDescribeHost(receiver),
+          YTKACEQueueValue(receiver, @[@"currentVideoID", @"contentVideoID"]));
     id fresh = YTKACEQueueValue(receiver, @[@"currentVideoID", @"contentVideoID"]);
     YTKACEQueueCurrentOverride =
         [fresh isKindOfClass:NSString.class] ? fresh : nil;
@@ -1224,6 +1279,7 @@ static void YTKACEQueueSetWatchNext(id receiver, SEL selector, id response) {
         YTKACEQueueActiveVideo = YTKACEQueueCurrentOverride;
         YTKACEQueueActiveVideoTime = 0;
     }
+    YTKACEQueuePauseIfPending(receiver, YTKACEQueueCurrentOverride, NO);
     YTKACEQueueInjectPanel(response);
     YTKACEQueueCurrentOverride = nil;
     if (OriginalSetWatchNext == NULL) return;
@@ -1244,6 +1300,8 @@ static void YTKACEQueuePrepareWatchNext(id receiver, SEL selector, id response) 
 static void YTKACEQueueViewUpdateWatchNext(id receiver, SEL selector,
                                            id response) {
     YTKACEQueueWatchViewController = receiver;
+    YTKACEDebugLog(@"queue", @"viewUpdateWatchNext watch=[%@]",
+          YTKACEQueueDescribeHost(receiver));
     YTKACEQueuePanelInjected = NO;
     YTKACEQueueInjectPanel(response);
     if (OriginalViewUpdateWatchNext != NULL) {
@@ -1750,6 +1808,77 @@ static void YTKACEQueueConfirmClear(void) {
     });
 }
 
+// Closing the miniplayer ends the queue, as it ends YouTube's own.
+// Originals of hooks installed on every class implementing a selector,
+// keyed "selector|class"; a receiver finds its own through its class chain.
+static NSMutableDictionary<NSString *, NSValue *> *YTKACEQueueFoundOriginals;
+
+static IMP YTKACEQueueFoundOriginal(id receiver, SEL selector) {
+    for (Class cls = object_getClass(receiver); cls != Nil;
+         cls = class_getSuperclass(cls)) {
+        NSValue *value = YTKACEQueueFoundOriginals[[NSString
+            stringWithFormat:@"%s|%@", sel_getName(selector),
+            NSStringFromClass(cls)]];
+        if (value != nil) return (IMP)value.pointerValue;
+    }
+    return NULL;
+}
+
+// Hooks each selector on every app class whose own method list has it; the
+// miniplayer comes in more than one flavour. Only the method lists are read:
+// asking the runtime to look a method up would run +initialize on classes
+// that are not ready for it this early.
+static void YTKACEQueueInstallFoundHooks(NSDictionary<NSString *, NSValue *> *hooks) {
+    if (YTKACEQueueFoundOriginals == nil) {
+        YTKACEQueueFoundOriginals = [NSMutableDictionary dictionary];
+    }
+    NSMutableSet<NSString *> *missing = [NSMutableSet setWithArray:hooks.allKeys];
+    for (NSString *name in YTKACEAppClassNames()) {
+        Class cls = NSClassFromString(name);
+        if (cls == Nil) continue;
+        unsigned int count = 0;
+        Method *methods = class_copyMethodList(cls, &count);
+        for (unsigned int index = 0; index < count; index++) {
+            NSString *selectorName = NSStringFromSelector(
+                method_getName(methods[index]));
+            NSValue *replacement = hooks[selectorName];
+            if (replacement == nil) continue;
+            IMP original = NULL;
+            if (!YTKACEInstallInstanceHook(name, selectorName,
+                                           (IMP)replacement.pointerValue,
+                                           &original)) {
+                continue;
+            }
+            YTKACEQueueFoundOriginals[[NSString stringWithFormat:@"%@|%@",
+                selectorName, name]] =
+                [NSValue valueWithPointer:(void *)original];
+            [missing removeObject:selectorName];
+            YTKACEDebugLog(@"queue", @"hook %@ on %@", selectorName, name);
+        }
+        free(methods);
+    }
+    for (NSString *selectorName in missing) {
+        YTKACEDebugLog(@"queue", @"hook %@: no class", selectorName);
+    }
+}
+
+// Drops the queue without touching the watch page, for when it is closing.
+static void YTKACEQueueDropAll(void) {
+    if (!YTKACEFeatureEnabled(YTKACEQueueKey) || YTKACEQueue().count == 0) return;
+    [YTKACEQueue() removeAllObjects];
+    YTKACEQueueSetCursor(nil);
+    YTKACEQueueSave();
+}
+
+static void YTKACEQueueDidDismissMiniBar(id receiver, SEL selector) {
+    YTKACEDebugLog(@"queue", @"miniplayer dismissed queue=%lu",
+                      (unsigned long)YTKACEQueue().count);
+    YTKACEQueueDropAll();
+    IMP original = YTKACEQueueFoundOriginal(receiver, selector);
+    if (original == NULL) return;
+    ((void (*)(id, SEL))original)(receiver, selector);
+}
+
 static void YTKACEQueueDidTapAction(id receiver, SEL selector, id button) {
     if (!YTKACEQueueIsActive()) {
         if (OriginalDidTapAction == NULL) return;
@@ -1890,6 +2019,10 @@ static void YTKACEQueueHandlePlaybackTime(NSNotification *notification) {
     if (!YTKACEFeatureEnabled(YTKACEQueueKey)) return;
     id receiver = notification.object;
     if (receiver == nil) return;
+    // Feed previews run their own player; only the watch player drives the
+    // queue and names its current video.
+    id watchPlayer = YTKACEQueuePlayerViewController;
+    if (watchPlayer != nil && receiver != watchPlayer) return;
     YTKACEQueueResponder = receiver;
     id live = YTKACEQueueValue(receiver, @[@"currentVideoID", @"contentVideoID"]);
     if ([live isKindOfClass:NSString.class] && [live length] != 0 &&
@@ -1901,14 +2034,7 @@ static void YTKACEQueueHandlePlaybackTime(NSNotification *notification) {
             YTKACEQueueRefreshPanel();
         }
     }
-    if (YTKACEQueuePausePendingID.length != 0 &&
-        [live isEqual:YTKACEQueuePausePendingID]) {
-        YTKACEQueuePausePendingID = nil;
-        if (NSDate.timeIntervalSinceReferenceDate < YTKACEQueuePauseDeadline &&
-            [receiver respondsToSelector:@selector(pause)]) {
-            ((void (*)(id, SEL))objc_msgSend)(receiver, @selector(pause));
-        }
-    }
+    YTKACEQueuePauseIfPending(receiver, live, YES);
     if (YTKACEQueue().count == 0) return;
     SEL totalSelector = NSSelectorFromString(@"currentVideoTotalMediaTime");
     if (![receiver respondsToSelector:totalSelector]) return;
@@ -2495,6 +2621,10 @@ void YTKACEInstallQueueHooks(void) {
         @"handleCommand:entry:fromView:sender:completionBlock:",
         (IMP)YTKACEQueueScopedRouterHandleCompletion,
         &OriginalScopedRouterHandleCompletion);
+    YTKACEQueueInstallFoundHooks(@{
+        @"didDismissMiniBar":
+            [NSValue valueWithPointer:(void *)YTKACEQueueDidDismissMiniBar],
+    });
     [NSNotificationCenter.defaultCenter
         addObserverForName:@"YTKACEPlaybackTimeDidChange"
                     object:nil
