@@ -3,17 +3,31 @@
 #import "../../Runtime/Localization.h"
 #import "../../Runtime/Preferences.h"
 #import "../../UI/Notice.h"
+#import "../Downloads/DownloadCoordinator.h"
 #import "../Downloads/DownloadLog.h"
 #import "../Downloads/SABRDownloader.h"
 
 #import <UIKit/UIKit.h>
 #import <objc/message.h>
+#import <objc/runtime.h>
 
 static NSString *const YTKACEQueueKey = @"YTKACE.Preference.Playback.LocalQueue";
 
 static NSString *YTKACEQueueClip(id object, NSUInteger limit);
 static NSUInteger YTKACEQueueIndexOfVideo(NSString *videoID);
-static NSUInteger YTKACEQueueEnsureCurrent(void);
+static NSUInteger YTKACEQueueCurrentIndex(void);
+static NSString *YTKACEQueueOpenVideoID(void);
+static NSUInteger YTKACEQueueUpcomingIndex(NSString *playing);
+static void YTKACEQueueRemoveAt(NSUInteger index);
+static BOOL YTKACEQueueVideoIsOpen(void);
+static NSString *YTKACEQueueDescribeHost(id candidate);
+static void YTKACEQueuePruneController(void);
+static NSString *YTKACEQueueCursor(void);
+static NSUInteger YTKACEQueueNextIndex(void);
+static id YTKACEQueueWatchCommand(NSString *videoID);
+static BOOL YTKACEQueueSendCommand(id command, NSString *videoID);
+static BOOL YTKACEQueueOpenMinimized(NSString *videoID);
+static BOOL YTKACEQueueNoteStarted(NSString *videoID);
 static id YTKACEQueueItemMenu(NSString *videoID);
 static BOOL YTKACEQueueIsActive(void);
 static NSString *YTKACEQueueCurrentVideoID(void);
@@ -85,8 +99,40 @@ static IMP OriginalScopedRouterHandleCompletion;
 
 static NSMutableArray<NSDictionary *> *YTKACEQueueItems;
 static __weak id YTKACEQueueResponder;
-static NSString *YTKACEQueueActiveVideoID;
 static NSString *YTKACEQueueAdvancedFromVideoID;
+static BOOL YTKACEQueueSyncSuppressed;
+
+// The cursor is the queue item that most recently played. Items after it are
+// upcoming; nil means the queue was built while idle and has not started yet.
+static NSString *const YTKACEQueueCursorKey = @"YTKACE.Queue.Cursor";
+
+static NSString *YTKACEQueueCursor(void) {
+    id value = [NSUserDefaults.standardUserDefaults
+        objectForKey:YTKACEQueueCursorKey];
+    return [value isKindOfClass:NSString.class] ? value : nil;
+}
+
+// Set once the last queued video has played to the end with no loop.
+static NSString *const YTKACEQueueFinishedKey = @"YTKACE.Queue.Finished";
+
+static BOOL YTKACEQueueFinished(void) {
+    return [NSUserDefaults.standardUserDefaults boolForKey:YTKACEQueueFinishedKey];
+}
+
+static void YTKACEQueueSetFinished(BOOL finished) {
+    if (finished == YTKACEQueueFinished()) return;
+    [NSUserDefaults.standardUserDefaults setBool:finished
+                                          forKey:YTKACEQueueFinishedKey];
+}
+
+static void YTKACEQueueSetCursor(NSString *videoID) {
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    if (videoID.length == 0) {
+        [defaults removeObjectForKey:YTKACEQueueCursorKey];
+    } else if (![videoID isEqualToString:YTKACEQueueCursor()]) {
+        [defaults setObject:videoID forKey:YTKACEQueueCursorKey];
+    }
+}
 
 static NSString *YTKACEQueueStorePath(void) {
     NSString *documents = NSSearchPathForDirectoriesInDomains(
@@ -105,6 +151,8 @@ static void YTKACEQueueSave(void) {
     if (path.length == 0) return;
     if (YTKACEQueueItems.count == 0) {
         [NSFileManager.defaultManager removeItemAtPath:path error:NULL];
+        YTKACEQueueSetCursor(nil);
+        YTKACEQueueSetFinished(NO);
         return;
     }
     [YTKACEQueueItems writeToFile:path atomically:YES];
@@ -122,14 +170,15 @@ static NSMutableArray<NSDictionary *> *YTKACEQueue(void) {
 
 BOOL YTKACEQueueHasItems(void) {
     if (!YTKACEFeatureEnabled(YTKACEQueueKey)) return NO;
-    NSUInteger current = YTKACEQueueIndexOfVideo(YTKACEQueueCurrentVideoID());
-    if (current == NSNotFound) return YTKACEQueue().count != 0;
-    return current + 1 < YTKACEQueue().count;
+    return YTKACEQueueNextIndex() != NSNotFound;
 }
 
+// True when the queue decides what plays after the current video, including
+// a video opened outside the queue while queued videos are still waiting.
 BOOL YTKACEQueueOwnsCurrentVideo(void) {
     if (!YTKACEFeatureEnabled(YTKACEQueueKey)) return NO;
-    return YTKACEQueueIndexOfVideo(YTKACEQueueCurrentVideoID()) != NSNotFound;
+    return YTKACEQueueIndexOfVideo(YTKACEQueueCurrentVideoID()) != NSNotFound ||
+        YTKACEQueueNextIndex() != NSNotFound;
 }
 
 static NSString *YTKACEQueueVideoIDFromParams(NSData *data, int *position) {
@@ -169,6 +218,14 @@ static NSString *YTKACEQueueDiscoveryParams(id command) {
     }
     if (dump.length == 0) return nil;
     if (![dump containsString:@"discovery_params"]) return nil;
+    // A plain video tap carries discovery params too; only treat a command
+    // as a queue add when it is not a bare watch endpoint.
+    const BOOL watch = [dump containsString:@"watch_endpoint"] ||
+        [dump containsString:@"watchEndpoint"];
+    if (watch && [dump rangeOfString:@"queue"
+                             options:NSCaseInsensitiveSearch].location == NSNotFound) {
+        return nil;
+    }
     static NSRegularExpression *expression;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -343,65 +400,138 @@ static void YTKACEQueueFetchTitle(NSString *videoID) {
 static void YTKACEQueueAdd(NSString *videoID, NSString *title,
                            BOOL playNext) {
     NSMutableArray *queue = YTKACEQueue();
+    NSString *playing = YTKACEQueueOpenVideoID();
+    YTKACEDebugLog(@"queue", @"add %@ next=%d playing=%@ current=%@ queue=%lu cursor=%@ "
+          @"watch=[%@] player=[%@] responder=[%@]",
+          videoID, playNext, playing ?: @"nil", YTKACEQueueCurrentVideoID() ?: @"nil",
+          (unsigned long)queue.count, YTKACEQueueCursor() ?: @"nil",
+          YTKACEQueueDescribeHost(YTKACEQueueWatchViewController),
+          YTKACEQueueDescribeHost(YTKACEQueuePlayerViewController),
+          YTKACEQueueDescribeHost(YTKACEQueueResponder));
+    if ([playing isEqualToString:videoID] &&
+        YTKACEQueueIndexOfVideo(videoID) != NSNotFound) {
+        return;
+    }
+    // With nothing open the old queue went away with the player, so this
+    // starts a new one, opened paused in the miniplayer like YouTube's own.
+    if (playing.length == 0) {
+        [queue removeAllObjects];
+        YTKACEQueueSetCursor(nil);
+    }
     NSUInteger existing = YTKACEQueueIndexOfVideo(videoID);
-    if (existing != NSNotFound) [queue removeObjectAtIndex:existing];
-    if (queue.count == 0) {
-        NSString *playing = YTKACEQueueCurrentVideoID();
-        if (playing.length != 0 && ![playing isEqualToString:videoID]) {
+    if (existing != NSNotFound) YTKACEQueueRemoveAt(existing);
+    if (playing.length != 0) {
+        YTKACEQueueNoteStarted(playing);
+        // A new queue starts with the video on screen; an existing one keeps
+        // its order and the new video goes after what is already queued.
+        if (queue.count == 0) {
             NSMutableDictionary *seed = [NSMutableDictionary dictionary];
             seed[@"videoId"] = playing;
             [queue addObject:seed];
+            YTKACEQueueSetCursor(playing);
             YTKACEQueueFetchTitle(playing);
         }
     }
-    NSUInteger currentIndex = YTKACEQueueEnsureCurrent();
     NSMutableDictionary *item = [NSMutableDictionary dictionary];
     item[@"videoId"] = videoID;
     if (title.length != 0) item[@"title"] = title;
-    if (playNext && currentIndex != NSNotFound) {
-        [queue insertObject:item atIndex:currentIndex + 1];
+    if (playNext) {
+        [queue insertObject:item atIndex:MIN(YTKACEQueueUpcomingIndex(playing),
+                                             queue.count)];
     } else {
         [queue addObject:item];
     }
+    YTKACEQueueSetFinished(NO);
     YTKACEQueueSave();
+    YTKACEDebugLog(@"queue", @"add done queue=%@", [queue valueForKey:@"videoId"]);
     if (title.length == 0) YTKACEQueueFetchTitle(videoID);
     YTKACEShowNotice(playNext ? YTKACELocalized(@"Playing next")
                               : YTKACELocalized(@"Added to queue"));
+    if (playing.length == 0) {
+        if (YTKACEQueueOpenMinimized(videoID)) YTKACEQueueSetCursor(videoID);
+        return;
+    }
     YTKACEQueueAppendToController(item, YTKACEQueueIndexOfVideo(videoID));
+    YTKACEQueuePruneController();
     if (!YTKACEQueuePanelInjected || queue.count <= 2) {
         YTKACEQueueRebuildWatchPage();
     }
     YTKACEQueueRefreshPanel();
 }
 
-static BOOL YTKACEQueuePlay(NSString *videoID) {
-    id responder = YTKACEQueueResponder;
-    Class endpointClass = NSClassFromString(@"YTIWatchEndpoint");
-    Class commandClass = NSClassFromString(@"YTICommand");
+static __weak id YTKACEQueueCommandSender;
+static __weak id YTKACEQueueCommandView;
+static __weak id YTKACEQueueRouter;
+static IMP YTKACEQueueRouterOriginal;
+static BOOL YTKACEQueueRouterHasCompletion;
+
+static void YTKACEQueueNoteRouter(id router, IMP original, BOOL completion,
+                                  id view, id sender) {
+    YTKACEQueueCommandSender = sender;
+    YTKACEQueueCommandView = view;
+    if (router == nil || original == NULL) return;
+    YTKACEQueueRouter = router;
+    YTKACEQueueRouterOriginal = original;
+    YTKACEQueueRouterHasCompletion = completion;
+}
+
+static BOOL YTKACEQueueSendViaRouter(id command, id view, id sender) {
+    id router = YTKACEQueueRouter;
+    IMP original = YTKACEQueueRouterOriginal;
+    if (command == nil || router == nil || original == NULL) return NO;
+    @try {
+        if (YTKACEQueueRouterHasCompletion) {
+            return ((BOOL (*)(id, SEL, id, id, id, id, id))original)(router,
+                @selector(handleCommand:entry:fromView:sender:completionBlock:),
+                command, nil, view, sender, nil);
+        }
+        return ((BOOL (*)(id, SEL, id, id, id, id))original)(router,
+            @selector(handleCommand:entry:fromView:sender:), command, nil, view,
+            sender);
+    } @catch (__unused NSException *exception) {
+        return NO;
+    }
+}
+
+static BOOL YTKACEQueueSendViaEvent(id command, id view, id responder) {
     Class eventClass = NSClassFromString(@"YTCommandResponderEvent");
-    if (responder == nil || endpointClass == Nil || commandClass == Nil ||
-        eventClass == Nil) {
+    SEL eventSelector =
+        @selector(eventWithCommand:fromView:displayTitle:firstResponder:);
+    if (command == nil || responder == nil ||
+        ![eventClass respondsToSelector:eventSelector]) {
         return NO;
     }
     @try {
-        id endpoint = ((id (*)(id, SEL))objc_msgSend)(endpointClass,
-            @selector(message));
-        [endpoint setValue:videoID forKey:@"videoId"];
-        id command = ((id (*)(id, SEL))objc_msgSend)(commandClass,
-            @selector(message));
-        [command setValue:endpoint forKey:@"watchEndpoint"];
         id event = ((id (*)(id, SEL, id, id, id, id))objc_msgSend)(
-            eventClass,
-            @selector(eventWithCommand:fromView:displayTitle:firstResponder:),
-            command, nil, nil, responder);
+            eventClass, eventSelector, command, view, nil, responder);
         if (event == nil) return NO;
         ((void (*)(id, SEL))objc_msgSend)(event, @selector(send));
-    } @catch (NSException *exception) {
+    } @catch (__unused NSException *exception) {
         return NO;
     }
+    return YES;
+}
+
+static void YTKACEQueueNoteSent(NSString *videoID) {
     YTKACEQueueActiveVideo = videoID;
     YTKACEQueueActiveVideoTime = NSDate.timeIntervalSinceReferenceDate;
-    return YES;
+}
+
+// Moving through the queue goes through the playing player first; it is the
+// responder that keeps the watch page.
+static BOOL YTKACEQueueSendCommand(id command, NSString *videoID) {
+    id view = YTKACEQueueCommandView;
+    id sender = YTKACEQueueCommandSender;
+    const BOOL sent =
+        YTKACEQueueSendViaEvent(command, nil, YTKACEQueueResponder) ||
+        YTKACEQueueSendViaRouter(command, view, sender) ||
+        YTKACEQueueSendViaEvent(command, view, sender);
+    if (sent) YTKACEQueueNoteSent(videoID);
+    return sent;
+}
+
+static BOOL YTKACEQueuePlay(NSString *videoID) {
+    return YTKACEQueueSendCommand(YTKACEQueueWatchCommand(videoID), videoID);
 }
 
 static BOOL YTKACEQueueReplayCurrent(void) {
@@ -432,16 +562,23 @@ static BOOL YTKACEQueueOverlayLoop(void) {
         [NSUserDefaults.standardUserDefaults boolForKey:@"defaultLoop_enabled"];
 }
 
-static BOOL YTKACEQueueStep(NSInteger offset) {
+// Repeat-one only replays when a video ends on its own; pressing Next or
+// Previous still moves through the queue.
+static BOOL YTKACEQueueStep(NSInteger offset, BOOL manual) {
     if (!YTKACEFeatureEnabled(YTKACEQueueKey)) return NO;
     NSArray *queue = [YTKACEQueue() copy];
     NSUInteger current = YTKACEQueueIndexOfVideo(YTKACEQueueCurrentVideoID());
-    if (current == NSNotFound) return NO;
+    if (current == NSNotFound) {
+        // A video opened outside the queue: carry on with what is queued.
+        NSUInteger next = offset > 0 ? YTKACEQueueNextIndex() : NSNotFound;
+        if (next == NSNotFound) return NO;
+        return YTKACEQueuePlay(queue[next][@"videoId"]);
+    }
     const long long loop = YTKACEQueueSavedLoopMode();
     NSInteger target = (NSInteger)current + offset;
-    if (loop == 2) return YTKACEQueueReplayCurrent();
+    if (loop == 2 && !manual) return YTKACEQueueReplayCurrent();
     if (target < 0 || target >= (NSInteger)queue.count) {
-        if (loop != 1 || queue.count == 0) return NO;
+        if (loop == 0 || queue.count == 0) return NO;
         target = target < 0 ? (NSInteger)queue.count - 1 : 0;
     }
     NSString *videoID = queue[(NSUInteger)target][@"videoId"];
@@ -453,23 +590,28 @@ static long long YTKACEQueueLoopMode(void) {
     return YTKACEQueueSavedLoopMode();
 }
 
-static void YTKACEQueueAdvance(void) {
+static void YTKACEQueueAdvance(NSString *finishing) {
     NSArray *queue = [YTKACEQueue() copy];
-    NSString *currentID = YTKACEQueueCurrentVideoID();
-    NSUInteger current = YTKACEQueueIndexOfVideo(currentID);
-    if (current == NSNotFound) return;
+    NSUInteger current = YTKACEQueueIndexOfVideo(finishing);
+    if (current == NSNotFound) {
+        NSUInteger next = YTKACEQueueNextIndex();
+        if (next != NSNotFound) YTKACEQueuePlay(queue[next][@"videoId"]);
+        return;
+    }
     const long long loop = YTKACEQueueLoopMode();
     if (loop == 2 || YTKACEQueueOverlayLoop()) {
         YTKACEQueueReplayCurrent();
         return;
     }
     if (current + 1 >= queue.count) {
-        if (loop != 1 || queue.count == 0) return;
+        if (loop != 1 || queue.count == 0) {
+            YTKACEQueueSetFinished(YES);
+            return;
+        }
         NSString *first = queue.firstObject[@"videoId"];
         if (first.length != 0) YTKACEQueuePlay(first);
         return;
     }
-    (void)currentID;
     NSString *videoID = queue[current + 1][@"videoId"];
     if (videoID.length == 0) return;
     YTKACEQueuePlay(videoID);
@@ -527,7 +669,7 @@ static void YTKACEQueueSafeSet(id object, id value, NSString *key) {
             if ([reported containsObject:name]) return;
             [reported addObject:name];
         }
-        YTKACEDownloadLog(@"queue", @"skipped unsupported field %@", name);
+        YTKACEDebugLog(@"queue", @"skipped unsupported field %@", name);
     }
 }
 
@@ -647,19 +789,261 @@ static NSString *YTKACEQueueCurrentVideoID(void) {
     return candidates.firstObject;
 }
 
-static NSUInteger YTKACEQueueEnsureCurrent(void) {
-    NSString *current = YTKACEQueueCurrentVideoID();
-    if (current.length == 0) return NSNotFound;
-    if (YTKACEQueue().count == 0) return NSNotFound;
-    // Refreshing the panel must not turn unrelated playback into queue entries.
-    // The current video is seeded only by the first explicit QueueAdd action.
-    return YTKACEQueueIndexOfVideo(current);
+static NSUInteger YTKACEQueueCurrentIndex(void) {
+    return YTKACEQueueIndexOfVideo(YTKACEQueueCurrentVideoID());
+}
+
+static BOOL YTKACEQueueViewOnScreen(id candidate) {
+    if (![candidate isKindOfClass:UIViewController.class]) return NO;
+    UIViewController *controller = candidate;
+    return controller.isViewLoaded && controller.view.window != nil;
+}
+
+static NSString *YTKACEQueueDescribeHost(id candidate) {
+    if (candidate == nil) return @"nil";
+    if (![candidate isKindOfClass:UIViewController.class]) {
+        return [NSString stringWithFormat:@"%@(not a VC)", [candidate class]];
+    }
+    UIViewController *controller = candidate;
+    return [NSString stringWithFormat:@"%@ loaded=%d window=%d",
+        [candidate class], controller.isViewLoaded,
+        controller.isViewLoaded && controller.view.window != nil];
+}
+
+// The miniplayer takes the watch view out of the window but keeps the watch
+// player in it, so a video is open while either is on screen. Only the watch
+// player counts: feed previews run players of their own.
+static BOOL YTKACEQueueVideoIsOpen(void) {
+    return YTKACEQueueViewOnScreen(YTKACEQueueWatchViewController) ||
+        YTKACEQueueViewOnScreen(YTKACEQueuePlayerViewController);
+}
+
+static NSString *YTKACEQueueOpenVideoID(void) {
+    if (!YTKACEQueueVideoIsOpen()) return nil;
+    id live = YTKACEQueueValue(YTKACEQueuePlayerViewController,
+                               @[@"currentVideoID", @"contentVideoID"]);
+    if ([live isKindOfClass:NSString.class] && [live length] != 0) return live;
+    return YTKACEQueueCurrentVideoID();
+}
+
+// Index where "play next" inserts: right after the open video when it is in
+// the queue, otherwise right after the last item that played.
+static NSUInteger YTKACEQueueUpcomingIndex(NSString *playing) {
+    NSUInteger index = YTKACEQueueIndexOfVideo(playing);
+    if (index == NSNotFound) index = YTKACEQueueIndexOfVideo(YTKACEQueueCursor());
+    return index == NSNotFound ? 0 : index + 1;
+}
+
+static void YTKACEQueueRemoveAt(NSUInteger index) {
+    NSMutableArray *queue = YTKACEQueue();
+    if (index >= queue.count) return;
+    if ([queue[index][@"videoId"] isEqualToString:YTKACEQueueCursor()]) {
+        YTKACEQueueSetCursor(index > 0 ? queue[index - 1][@"videoId"] : nil);
+    }
+    [queue removeObjectAtIndex:index];
+}
+
+// Position the queue continues from: the open video when it is queued,
+// otherwise the last queue item that played.
+static NSUInteger YTKACEQueueAnchorIndex(void) {
+    NSUInteger current = YTKACEQueueCurrentIndex();
+    if (current != NSNotFound) return current;
+    return YTKACEQueueIndexOfVideo(YTKACEQueueCursor());
+}
+
+// The queue item that plays after the current video, or NSNotFound.
+static NSUInteger YTKACEQueueNextIndex(void) {
+    NSUInteger anchor = YTKACEQueueAnchorIndex();
+    NSUInteger next = anchor == NSNotFound ? 0 : anchor + 1;
+    return next < YTKACEQueue().count ? next : NSNotFound;
+}
+
+// Called when a video starts. A queued video moves the cursor. A video
+// opened from elsewhere while the queue is running goes in front of the video
+// that was playing and becomes the current item, like YouTube's own queue.
+// Once the last queued video has played to the end the queue is finished,
+// so the next video starts fresh and the queue is cleared.
+// Returns YES when the queue changed.
+static BOOL YTKACEQueueNoteStarted(NSString *videoID) {
+    NSMutableArray *queue = YTKACEQueue();
+    if (videoID.length == 0 || queue.count == 0) return NO;
+    if (YTKACEQueueIndexOfVideo(videoID) != NSNotFound) {
+        const BOOL moved = ![videoID isEqualToString:YTKACEQueueCursor()];
+        YTKACEQueueSetCursor(videoID);
+        YTKACEQueueSetFinished(NO);
+        return moved;
+    }
+    NSUInteger cursor = YTKACEQueueIndexOfVideo(YTKACEQueueCursor());
+    if (cursor != NSNotFound && cursor + 1 >= queue.count &&
+        YTKACEQueueFinished()) {
+        YTKACEDebugLog(@"queue", @"finished queue cleared on start of %@", videoID);
+        [queue removeAllObjects];
+        YTKACEQueueSave();
+        return YES;
+    }
+    NSMutableDictionary *entry = [NSMutableDictionary dictionary];
+    entry[@"videoId"] = videoID;
+    [queue insertObject:entry atIndex:cursor == NSNotFound ? 0 : cursor];
+    YTKACEQueueSetCursor(videoID);
+    YTKACEQueueSave();
+    YTKACEQueueFetchTitle(videoID);
+    return YES;
+}
+
+static NSString *YTKACEQueuePausePendingID;
+static NSTimeInterval YTKACEQueuePauseDeadline;
+
+// The first video of a queue built while idle opens paused. The watch player
+// is paused as soon as it takes the video and again on its first time tick,
+// which is when YouTube may have started it; only the watch player counts.
+static void YTKACEQueuePauseIfPending(id player, id videoID, BOOL final) {
+    if (YTKACEQueuePausePendingID.length == 0 ||
+        ![videoID isEqual:YTKACEQueuePausePendingID] ||
+        player != YTKACEQueuePlayerViewController) {
+        return;
+    }
+    if (final) YTKACEQueuePausePendingID = nil;
+    YTKACEDebugLog(@"queue", @"pausing %@ final=%d player=[%@]", videoID,
+                      final, YTKACEQueueDescribeHost(player));
+    if (NSDate.timeIntervalSinceReferenceDate < YTKACEQueuePauseDeadline &&
+        [player respondsToSelector:@selector(pause)]) {
+        @try {
+            ((void (*)(id, SEL))objc_msgSend)(player, @selector(pause));
+        } @catch (__unused NSException *exception) {
+        }
+    }
+}
+
+static void YTKACEQueueSetMiniplayerMode(id endpoint) {
+    id config = YTKACEQueueMessage(@"YTIWatchEndpointMainAppConfig");
+    if (endpoint == nil || config == nil) return;
+    @try {
+        SEL descriptorSel = NSSelectorFromString(@"descriptor");
+        SEL fieldSel = NSSelectorFromString(@"fieldWithName:");
+        SEL enumSel = NSSelectorFromString(@"enumDescriptor");
+        SEL nameSel = NSSelectorFromString(@"enumNameForValue:");
+        if (![[config class] respondsToSelector:descriptorSel]) return;
+        id descriptor = ((id (*)(id, SEL))objc_msgSend)([config class],
+                                                        descriptorSel);
+        if (![descriptor respondsToSelector:fieldSel]) return;
+        id field = ((id (*)(id, SEL, id))objc_msgSend)(descriptor, fieldSel,
+            @"suggestedInitialPlayerMode");
+        if (![field respondsToSelector:enumSel]) return;
+        id enumDescriptor = ((id (*)(id, SEL))objc_msgSend)(field, enumSel);
+        if (![enumDescriptor respondsToSelector:nameSel]) return;
+        for (int32_t value = 0; value < 16; value++) {
+            NSString *name = ((id (*)(id, SEL, int32_t))objc_msgSend)(
+                enumDescriptor, nameSel, value);
+            if (![name isKindOfClass:NSString.class]) continue;
+            if ([name rangeOfString:@"Miniplayer"
+                            options:NSCaseInsensitiveSearch].location ==
+                NSNotFound) {
+                continue;
+            }
+            [config setValue:@(value) forKey:@"suggestedInitialPlayerMode"];
+            [endpoint setValue:config forKey:@"watchEndpointMainAppConfig"];
+            return;
+        }
+    } @catch (__unused NSException *exception) {
+    }
+}
+
+static BOOL YTKACEQueueOpenVia(id command, id view, id sender) {
+    return YTKACEQueueSendViaRouter(command, view, sender) ||
+        YTKACEQueueSendViaEvent(command, view, sender) ||
+        YTKACEQueueSendViaEvent(command, nil, YTKACEQueueResponder);
+}
+
+// Opens the first video of a new queue in the miniplayer and pauses it as
+// soon as it loads, so the queue is ready without anything playing. It goes
+// through the tap that queued it (the last player may be gone) once the menu
+// has closed, and falls back to the regular player if no miniplayer appears.
+static BOOL YTKACEQueueOpenMinimized(NSString *videoID) {
+    id view = YTKACEQueueCommandView;
+    id sender = YTKACEQueueCommandSender;
+    YTKACEQueuePausePendingID = videoID;
+    YTKACEQueuePauseDeadline = NSDate.timeIntervalSinceReferenceDate + 20.0;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.4 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        id command = YTKACEQueueWatchCommand(videoID);
+        @try {
+            YTKACEQueueSetMiniplayerMode([command valueForKey:@"watchEndpoint"]);
+        } @catch (__unused NSException *exception) {
+        }
+        if (YTKACEQueueOpenVia(command, view, sender)) {
+            YTKACEQueueNoteSent(videoID);
+        }
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                                     (int64_t)(4.0 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{
+            // A player that already has the video, even one still loading,
+            // must not be sent it again: that reopens the watch page and
+            // restarts it.
+            id live = YTKACEQueueValue(YTKACEQueuePlayerViewController,
+                                       @[@"currentVideoID", @"contentVideoID"]);
+            if (![YTKACEQueuePausePendingID isEqualToString:videoID] ||
+                YTKACEQueueVideoIsOpen() || [live isEqual:videoID] ||
+                [YTKACELastVideoID() isEqualToString:videoID]) {
+                return;
+            }
+            YTKACEDebugLog(@"queue", @"retrying open of %@", videoID);
+            YTKACEQueuePauseDeadline =
+                NSDate.timeIntervalSinceReferenceDate + 20.0;
+            if (YTKACEQueueOpenVia(YTKACEQueueWatchCommand(videoID), view,
+                                   sender)) {
+                YTKACEQueueNoteSent(videoID);
+            }
+        });
+    });
+    return YES;
+}
+
+static NSArray<NSString *> *YTKACEQueueControllerIDs(id controller) {
+    NSArray *items = nil;
+    @try {
+        items = [controller valueForKey:@"playbackQueueItems"];
+    } @catch (__unused NSException *exception) {
+        return nil;
+    }
+    if (![items isKindOfClass:NSArray.class]) return nil;
+    NSMutableArray<NSString *> *ids = [NSMutableArray array];
+    for (id item in items) {
+        NSString *videoID = nil;
+        @try {
+            videoID = [[item valueForKey:@"videoRenderer"] valueForKey:@"videoId"];
+        } @catch (__unused NSException *exception) {
+            videoID = nil;
+        }
+        if ([videoID isKindOfClass:NSString.class] && videoID.length != 0) {
+            [ids addObject:videoID];
+        }
+    }
+    return ids;
+}
+
+// Drops anything YouTube's own queue controller picked up that the user did
+// not queue, so the panel mirrors the local queue exactly.
+static void YTKACEQueuePruneController(void) {
+    id controller = YTKACEQueueControllerInstance;
+    if (![controller respondsToSelector:@selector(removeVideoID:)]) return;
+    NSString *playing = YTKACEQueueOpenVideoID();
+    YTKACEQueueSyncSuppressed = YES;
+    for (NSString *videoID in YTKACEQueueControllerIDs(controller)) {
+        if (YTKACEQueueIndexOfVideo(videoID) != NSNotFound) continue;
+        if ([videoID isEqualToString:playing]) continue;
+        @try {
+            ((void (*)(id, SEL, id))objc_msgSend)(controller,
+                @selector(removeVideoID:), videoID);
+        } @catch (__unused NSException *exception) {
+        }
+    }
+    YTKACEQueueSyncSuppressed = NO;
 }
 
 static id YTKACEQueuePanelRenderer(void) {
-    NSUInteger currentIndex = YTKACEQueueEnsureCurrent();
+    NSUInteger currentIndex = YTKACEQueueCurrentIndex();
     NSArray<NSDictionary *> *queue = [YTKACEQueue() copy];
-    if (queue.count < 2) return nil;
+    if (queue.count == 0) return nil;
     id panel = YTKACEQueueMessage(@"YTIPlaylistPanelRenderer");
     if (panel == nil) return nil;
     NSMutableArray *contents = [panel valueForKey:@"contentsArray"];
@@ -830,6 +1214,28 @@ static NSString *YTKACEQueuePanelField(id wrapper) {
     return cached;
 }
 
+// The video a watch-next response belongs to, but only once the player is
+// actually on it, so prefetched responses never touch the queue.
+static NSString *YTKACEQueueStartedVideoID(id response) {
+    id videoID = nil;
+    @try {
+        videoID = [response valueForKeyPath:
+            @"currentVideoEndpoint.watchEndpoint.videoId"];
+    } @catch (__unused NSException *exception) {
+        videoID = nil;
+    }
+    if (![videoID isKindOfClass:NSString.class] || [videoID length] == 0) {
+        return YTKACEQueueCurrentOverride;
+    }
+    id live = YTKACEQueueValue(YTKACEQueuePlayerViewController,
+                               @[@"currentVideoID", @"contentVideoID"]);
+    if ([videoID isEqual:YTKACEQueueCurrentOverride] || [videoID isEqual:live] ||
+        [videoID isEqual:YTKACEQueueActiveVideo]) {
+        return videoID;
+    }
+    return nil;
+}
+
 static void YTKACEQueueInjectPanel(id response) {
     YTKACELastWatchNextResponse = response;
     if (!YTKACEFeatureEnabled(YTKACEQueueKey)) return;
@@ -847,6 +1253,7 @@ static void YTKACEQueueInjectPanel(id response) {
                     return;
             }
         }
+        YTKACEQueueNoteStarted(YTKACEQueueStartedVideoID(response));
         id panel = YTKACEQueuePanelRenderer();
         if (panel == nil) return;
         id wrapper = YTKACEQueueMessage(
@@ -862,6 +1269,9 @@ static void YTKACEQueueInjectPanel(id response) {
 
 static void YTKACEQueueSetWatchNext(id receiver, SEL selector, id response) {
     YTKACEQueuePlayerViewController = receiver;
+    YTKACEDebugLog(@"queue", @"setWatchNext player=[%@] video=%@",
+          YTKACEQueueDescribeHost(receiver),
+          YTKACEQueueValue(receiver, @[@"currentVideoID", @"contentVideoID"]));
     id fresh = YTKACEQueueValue(receiver, @[@"currentVideoID", @"contentVideoID"]);
     YTKACEQueueCurrentOverride =
         [fresh isKindOfClass:NSString.class] ? fresh : nil;
@@ -869,6 +1279,7 @@ static void YTKACEQueueSetWatchNext(id receiver, SEL selector, id response) {
         YTKACEQueueActiveVideo = YTKACEQueueCurrentOverride;
         YTKACEQueueActiveVideoTime = 0;
     }
+    YTKACEQueuePauseIfPending(receiver, YTKACEQueueCurrentOverride, NO);
     YTKACEQueueInjectPanel(response);
     YTKACEQueueCurrentOverride = nil;
     if (OriginalSetWatchNext == NULL) return;
@@ -889,6 +1300,8 @@ static void YTKACEQueuePrepareWatchNext(id receiver, SEL selector, id response) 
 static void YTKACEQueueViewUpdateWatchNext(id receiver, SEL selector,
                                            id response) {
     YTKACEQueueWatchViewController = receiver;
+    YTKACEDebugLog(@"queue", @"viewUpdateWatchNext watch=[%@]",
+          YTKACEQueueDescribeHost(receiver));
     YTKACEQueuePanelInjected = NO;
     YTKACEQueueInjectPanel(response);
     if (OriginalViewUpdateWatchNext != NULL) {
@@ -957,7 +1370,7 @@ static BOOL YTKACEQueueIsActive(void) {
 }
 
 static void YTKACEQueueDidPressNext(id receiver, SEL selector, id sender) {
-    if (YTKACEQueueStep(1)) {
+    if (YTKACEQueueStep(1, YES)) {
         return;
     }
     if (YTKACEQueueIsActive()) {
@@ -968,7 +1381,7 @@ static void YTKACEQueueDidPressNext(id receiver, SEL selector, id sender) {
 }
 
 static void YTKACEQueueDidPressPrevious(id receiver, SEL selector, id sender) {
-    if (YTKACEQueueStep(-1)) {
+    if (YTKACEQueueStep(-1, YES)) {
         return;
     }
     if (YTKACEQueueIsActive()) {
@@ -984,7 +1397,7 @@ static void YTKACEQueueAutonavPlayNext(id receiver, SEL selector) {
     if (active && YTKACEQueueOverlayLoop()) {
         if (YTKACEQueueReplayCurrent()) return;
     }
-    if (YTKACEQueueStep(1)) {
+    if (YTKACEQueueStep(1, NO)) {
         return;
     }
     if (active) {
@@ -995,75 +1408,83 @@ static void YTKACEQueueAutonavPlayNext(id receiver, SEL selector) {
 }
 
 
-static void YTKACEQueueSyncFromController(id controller) {
-    if (!YTKACEFeatureEnabled(YTKACEQueueKey)) return;
-    NSArray *items = nil;
-    @try {
-        items = [controller valueForKey:@"playbackQueueItems"];
-    } @catch (__unused NSException *exception) {
+// Applies a move or removal made in YouTube's queue controller to the local
+// queue. Only videos the controller dropped are removed, and only videos it
+// knows about are reordered; anything else (e.g. queued while idle) stays put.
+static void YTKACEQueueSyncFromController(id controller,
+                                          NSArray<NSString *> *before) {
+    if (!YTKACEFeatureEnabled(YTKACEQueueKey) || YTKACEQueueSyncSuppressed) {
         return;
     }
+    NSArray<NSString *> *after = YTKACEQueueControllerIDs(controller);
+    if (after == nil) return;
+    NSMutableArray *queue = YTKACEQueue();
+    __block BOOL changed = NO;
+    for (NSString *videoID in before) {
+        if ([after containsObject:videoID]) continue;
+        NSUInteger index = YTKACEQueueIndexOfVideo(videoID);
+        if (index == NSNotFound) continue;
+        YTKACEQueueRemoveAt(index);
+        changed = YES;
+    }
+    NSMutableIndexSet *slots = [NSMutableIndexSet indexSet];
+    for (NSUInteger index = 0; index < queue.count; index++) {
+        if ([after containsObject:queue[index][@"videoId"]]) [slots addIndex:index];
+    }
     NSMutableArray *ordered = [NSMutableArray array];
-    for (id item in items) {
-        NSString *videoID = nil;
-        @try {
-            videoID = [[item valueForKey:@"videoRenderer"] valueForKey:@"videoId"];
-        } @catch (__unused NSException *exception) {
-            videoID = nil;
-        }
-        if (videoID.length == 0) continue;
-        NSUInteger existing = YTKACEQueueIndexOfVideo(videoID);
-        if (existing == NSNotFound) continue;
-        [ordered addObject:YTKACEQueue()[existing]];
+    for (NSString *videoID in after) {
+        NSUInteger index = YTKACEQueueIndexOfVideo(videoID);
+        if (index == NSNotFound) continue;
+        if ([ordered indexOfObjectIdenticalTo:queue[index]] != NSNotFound) continue;
+        [ordered addObject:queue[index]];
     }
-    if (ordered.count == 0) return;
-    if (ordered.count == YTKACEQueue().count) {
-        BOOL identical = YES;
-        for (NSUInteger index = 0; index < ordered.count; index++) {
-            if (ordered[index] == YTKACEQueue()[index]) continue;
-            identical = NO;
-            break;
-        }
-        if (identical) return;
+    if (ordered.count == slots.count) {
+        NSArray *snapshot = [queue copy];
+        __block NSUInteger next = 0;
+        [slots enumerateIndexesUsingBlock:^(NSUInteger slot, __unused BOOL *stop) {
+            if (snapshot[slot] != ordered[next]) changed = YES;
+            queue[slot] = ordered[next++];
+        }];
     }
-    [YTKACEQueue() setArray:ordered];
-    YTKACEQueueSave();
+    if (changed) YTKACEQueueSave();
 }
 
 static void YTKACEQueueMoveItem(id receiver, SEL selector, id from, id to,
                                 BOOL triggered) {
+    NSArray *before = YTKACEQueueControllerIDs(receiver);
     if (OriginalMoveItem != NULL) {
         ((void (*)(id, SEL, id, id, BOOL))OriginalMoveItem)(
             receiver, selector, from, to, triggered);
     }
-    YTKACEQueueSyncFromController(receiver);
+    YTKACEQueueSyncFromController(receiver, before);
 }
 
 static void YTKACEQueueRemoveItem(id receiver, SEL selector, id path,
                                   BOOL triggered) {
+    NSArray *before = YTKACEQueueControllerIDs(receiver);
     if (OriginalRemoveItem != NULL) {
         ((void (*)(id, SEL, id, BOOL))OriginalRemoveItem)(
             receiver, selector, path, triggered);
     }
-    YTKACEQueueSyncFromController(receiver);
+    YTKACEQueueSyncFromController(receiver, before);
 }
 
 static void YTKACEQueueRemoveIndex(id receiver, SEL selector,
                                    unsigned long long index) {
+    NSArray *before = YTKACEQueueControllerIDs(receiver);
     if (OriginalRemoveIndex != NULL) {
         ((void (*)(id, SEL, unsigned long long))OriginalRemoveIndex)(
             receiver, selector, index);
     }
-    YTKACEQueueSyncFromController(receiver);
+    YTKACEQueueSyncFromController(receiver, before);
 }
 
 static void YTKACEQueueClearQueue(id receiver, SEL selector) {
+    // YouTube clears its own controller internally (e.g. when the player
+    // closes); the local queue is only cleared by the user's Clear action.
     if (OriginalClearQueue != NULL) {
         ((void (*)(id, SEL))OriginalClearQueue)(receiver, selector);
     }
-    if (!YTKACEFeatureEnabled(YTKACEQueueKey)) return;
-    [YTKACEQueue() removeAllObjects];
-    YTKACEQueueSave();
 }
 
 static BOOL YTKACEQueueCanMoveItem(id receiver, SEL selector, id from, id to) {
@@ -1379,6 +1800,85 @@ static void YTKACEQueueClearAll(void) {
     YTKACEQueueRebuildWatchPage();
 }
 
+static void YTKACEQueueConfirmClear(void) {
+    YTKACEShowYouTubeConfirmation(YTKACELocalized(@"Clear queue"),
+        YTKACELocalized(@"Remove every video from the queue?"),
+        YTKACELocalized(@"Clear"), ^{
+        YTKACEQueueClearAll();
+    });
+}
+
+// Closing the miniplayer ends the queue, as it ends YouTube's own.
+// Originals of hooks installed on every class implementing a selector,
+// keyed "selector|class"; a receiver finds its own through its class chain.
+static NSMutableDictionary<NSString *, NSValue *> *YTKACEQueueFoundOriginals;
+
+static IMP YTKACEQueueFoundOriginal(id receiver, SEL selector) {
+    for (Class cls = object_getClass(receiver); cls != Nil;
+         cls = class_getSuperclass(cls)) {
+        NSValue *value = YTKACEQueueFoundOriginals[[NSString
+            stringWithFormat:@"%s|%@", sel_getName(selector),
+            NSStringFromClass(cls)]];
+        if (value != nil) return (IMP)value.pointerValue;
+    }
+    return NULL;
+}
+
+// Hooks each selector on every app class whose own method list has it; the
+// miniplayer comes in more than one flavour. Only the method lists are read:
+// asking the runtime to look a method up would run +initialize on classes
+// that are not ready for it this early.
+static void YTKACEQueueInstallFoundHooks(NSDictionary<NSString *, NSValue *> *hooks) {
+    if (YTKACEQueueFoundOriginals == nil) {
+        YTKACEQueueFoundOriginals = [NSMutableDictionary dictionary];
+    }
+    NSMutableSet<NSString *> *missing = [NSMutableSet setWithArray:hooks.allKeys];
+    for (NSString *name in YTKACEAppClassNames()) {
+        Class cls = NSClassFromString(name);
+        if (cls == Nil) continue;
+        unsigned int count = 0;
+        Method *methods = class_copyMethodList(cls, &count);
+        for (unsigned int index = 0; index < count; index++) {
+            NSString *selectorName = NSStringFromSelector(
+                method_getName(methods[index]));
+            NSValue *replacement = hooks[selectorName];
+            if (replacement == nil) continue;
+            IMP original = NULL;
+            if (!YTKACEInstallInstanceHook(name, selectorName,
+                                           (IMP)replacement.pointerValue,
+                                           &original)) {
+                continue;
+            }
+            YTKACEQueueFoundOriginals[[NSString stringWithFormat:@"%@|%@",
+                selectorName, name]] =
+                [NSValue valueWithPointer:(void *)original];
+            [missing removeObject:selectorName];
+            YTKACEDebugLog(@"queue", @"hook %@ on %@", selectorName, name);
+        }
+        free(methods);
+    }
+    for (NSString *selectorName in missing) {
+        YTKACEDebugLog(@"queue", @"hook %@: no class", selectorName);
+    }
+}
+
+// Drops the queue without touching the watch page, for when it is closing.
+static void YTKACEQueueDropAll(void) {
+    if (!YTKACEFeatureEnabled(YTKACEQueueKey) || YTKACEQueue().count == 0) return;
+    [YTKACEQueue() removeAllObjects];
+    YTKACEQueueSetCursor(nil);
+    YTKACEQueueSave();
+}
+
+static void YTKACEQueueDidDismissMiniBar(id receiver, SEL selector) {
+    YTKACEDebugLog(@"queue", @"miniplayer dismissed queue=%lu",
+                      (unsigned long)YTKACEQueue().count);
+    YTKACEQueueDropAll();
+    IMP original = YTKACEQueueFoundOriginal(receiver, selector);
+    if (original == NULL) return;
+    ((void (*)(id, SEL))original)(receiver, selector);
+}
+
 static void YTKACEQueueDidTapAction(id receiver, SEL selector, id button) {
     if (!YTKACEQueueIsActive()) {
         if (OriginalDidTapAction == NULL) return;
@@ -1386,11 +1886,28 @@ static void YTKACEQueueDidTapAction(id receiver, SEL selector, id button) {
                                                       button);
         return;
     }
-    YTKACEShowYouTubeConfirmation(YTKACELocalized(@"Clear queue"),
-        YTKACELocalized(@"Remove every video from the queue?"),
-        YTKACELocalized(@"Clear"), ^{
-        YTKACEQueueClearAll();
-    });
+    UIView *source = [button isKindOfClass:UIView.class] ? button : nil;
+    YTKACEDownloadCoordinator *coordinator =
+        YTKACEDownloadCoordinator.sharedCoordinator;
+    NSMutableArray *actions = [NSMutableArray array];
+    if (YTKACEQueue().count != 0 && YTKACEDownloadsEnabled()) {
+        [actions addObject:[coordinator nativeSheetAction:
+            YTKACELocalized(@"Download") icon:@"arrow.down.circle"
+            handler:^{
+                NSArray *queue = [YTKACEQueue() copy];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                    (int64_t)(0.12 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                        YTKACEPresentVideoListDownloadMenu(queue,
+                            YTKACELocalized(@"Queue"), source);
+                    });
+            }]];
+    }
+    [actions addObject:[coordinator nativeSheetAction:
+        YTKACELocalized(@"Clear queue") icon:@"trash" handler:^{
+            YTKACEQueueConfirmClear();
+        }]];
+    [coordinator presentPlaylistSheetWithTitle:nil subtitle:nil
+                                    sourceView:source actions:actions];
 }
 
 static void YTKACEQueueDidTapLoop(id receiver, SEL selector) {
@@ -1406,7 +1923,9 @@ static void YTKACEQueueDidTapLoop(id receiver, SEL selector) {
 static BOOL YTKACEQueueHasStep(NSInteger offset) {
     if (!YTKACEFeatureEnabled(YTKACEQueueKey)) return NO;
     NSUInteger current = YTKACEQueueIndexOfVideo(YTKACEQueueCurrentVideoID());
-    if (current == NSNotFound) return NO;
+    if (current == NSNotFound) {
+        return offset > 0 && YTKACEQueueNextIndex() != NSNotFound;
+    }
     if (YTKACEQueueSavedLoopMode() != 0) return YTKACEQueue().count > 1;
     const NSInteger target = (NSInteger)current + offset;
     return target >= 0 && target < (NSInteger)YTKACEQueue().count;
@@ -1444,6 +1963,7 @@ static unsigned long long YTKACEQueueNextNavigable(id receiver, SEL selector) {
             const NSUInteger count = YTKACEQueue().count;
             return (unsigned long long)((current + 1) % MAX(count, 1u));
         }
+        return (unsigned long long)YTKACEQueueNextIndex();
     }
     if (OriginalNextNavigable == NULL) return 0;
     return ((unsigned long long (*)(id, SEL))OriginalNextNavigable)(receiver,
@@ -1502,41 +2022,57 @@ static void YTKACEQueueHandlePlaybackTime(NSNotification *notification) {
     if (!YTKACEFeatureEnabled(YTKACEQueueKey)) return;
     id receiver = notification.object;
     if (receiver == nil) return;
+    // Feed previews run their own player; only the watch player drives the
+    // queue and names its current video.
+    id watchPlayer = YTKACEQueuePlayerViewController;
+    if (watchPlayer != nil && receiver != watchPlayer) return;
     YTKACEQueueResponder = receiver;
     id live = YTKACEQueueValue(receiver, @[@"currentVideoID", @"contentVideoID"]);
     if ([live isKindOfClass:NSString.class] && [live length] != 0 &&
         ![live isEqualToString:YTKACEQueueActiveVideo]) {
         YTKACEQueueActiveVideo = live;
         YTKACEQueueActiveVideoTime = 0;
+        if (receiver == YTKACEQueuePlayerViewController &&
+            YTKACEQueueNoteStarted(live)) {
+            YTKACEQueueRefreshPanel();
+        }
     }
+    YTKACEQueuePauseIfPending(receiver, live, YES);
     if (YTKACEQueue().count == 0) return;
     SEL totalSelector = NSSelectorFromString(@"currentVideoTotalMediaTime");
     if (![receiver respondsToSelector:totalSelector]) return;
     const double total = ((double (*)(id, SEL))objc_msgSend)(receiver, totalSelector);
     const double time = [notification.userInfo[@"time"] doubleValue];
     if (total <= 0.0 || time <= 0.0) return;
-    NSString *videoID = YTKACELastVideoID();
-    if (![videoID isEqualToString:YTKACEQueueActiveVideoID]) {
-        YTKACEQueueActiveVideoID = videoID;
-        YTKACEQueueAdvancedFromVideoID = nil;
-    }
-    if (time < total - 0.75) return;
-    if (videoID.length != 0 &&
-        [videoID isEqualToString:YTKACEQueueAdvancedFromVideoID]) {
-        return;
-    }
-
+    // Track the video that is finishing itself rather than the last requested
+    // ID, which prefetching changes; otherwise a late tick from the old video
+    // advances a second time and skips a queued item.
     NSString *finishing = [live isKindOfClass:NSString.class] && [live length] != 0
-        ? (NSString *)live : videoID;
-    if (finishing.length == 0 ||
-        YTKACEQueueIndexOfVideo(finishing) == NSNotFound) {
+        ? (NSString *)live : YTKACELastVideoID();
+    if (finishing.length == 0) return;
+    const BOOL advanced =
+        [finishing isEqualToString:YTKACEQueueAdvancedFromVideoID];
+    if (time < total - 0.75) {
+        if (advanced && time < MAX(total - 5.0, total * 0.5)) {
+            YTKACEQueueAdvancedFromVideoID = nil;
+        }
         return;
+    }
+    if (advanced) return;
+    if (YTKACEQueueIndexOfVideo(finishing) == NSNotFound) {
+        // Only the watch player, never a muted feed preview, hands over to
+        // the queue after a video that was opened outside it.
+        if (receiver != YTKACEQueuePlayerViewController ||
+            !YTKACEQueueVideoIsOpen() ||
+            YTKACEQueueNextIndex() == NSNotFound) {
+            return;
+        }
     }
     if (YTKACEFeatureEnabled(@"YTKACE.Preference.Playback.AutoplayDisabled")) {
         return;
     }
-    YTKACEQueueAdvancedFromVideoID = videoID;
-    YTKACEQueueAdvance();
+    YTKACEQueueAdvancedFromVideoID = finishing;
+    YTKACEQueueAdvance(finishing);
 }
 
 
@@ -1597,7 +2133,7 @@ static BOOL YTKACEQueueHandleSentinel(id command) {
     if (index == NSNotFound) return NO;
     NSDictionary *entry = YTKACEQueue()[index];
     if ([action isEqualToString:@"remove"]) {
-        [YTKACEQueue() removeObjectAtIndex:index];
+        YTKACEQueueRemoveAt(index);
         YTKACEQueueSave();
         id controller = YTKACEQueueControllerInstance;
         if ([controller respondsToSelector:@selector(removeVideoID:)]) {
@@ -1610,10 +2146,13 @@ static BOOL YTKACEQueueHandleSentinel(id command) {
         YTKACEShowNotice(YTKACELocalized(@"Removed from queue"));
         YTKACEQueueRebuildWatchPage();
     } else if ([action isEqualToString:@"next"]) {
-        NSUInteger current = YTKACEQueueIndexOfVideo(YTKACEQueueCurrentVideoID());
-        if (current == NSNotFound) return NO;
+        NSUInteger target = YTKACEQueueUpcomingIndex(YTKACEQueueOpenVideoID());
+        if (index < target) target--;
+        if (index == target) {
+            YTKACEShowNotice(YTKACELocalized(@"Playing next"));
+            return YES;
+        }
         [YTKACEQueue() removeObjectAtIndex:index];
-        NSUInteger target = current < index ? current + 1 : current;
         [YTKACEQueue() insertObject:entry atIndex:MIN(target,
             YTKACEQueue().count)];
         YTKACEQueueSave();
@@ -1671,6 +2210,44 @@ static NSString *YTKACEQueueClip(id object, NSUInteger limit) {
 
 
 
+// Queue adds that carry the video directly (queueAddEndpoint, or the
+// queueAddMenuItemCommand YouTube sends when nothing is playing).
+static BOOL YTKACEQueueHandleEndpointAdd(NSString *dump, id view) {
+    NSRange marker = [dump rangeOfString:@"queue_add_endpoint"];
+    if (marker.location == NSNotFound) marker = [dump rangeOfString:@"queueAddEndpoint"];
+    if (marker.location == NSNotFound) {
+        marker = [dump rangeOfString:@"queue_add_menu_item_command"];
+    }
+    if (marker.location == NSNotFound) {
+        marker = [dump rangeOfString:@"queueAddMenuItemCommand"];
+    }
+    // Only a command that is itself a queue add, not one (like a menu) that
+    // merely contains queue options somewhere inside it.
+    if (marker.location == NSNotFound || marker.location > 300) return NO;
+    if ([dump containsString:@"menu_renderer"] ||
+        [dump containsString:@"menuRenderer"] ||
+        [dump containsString:@"popup"]) {
+        return NO;
+    }
+    static NSRegularExpression *expression;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        expression = [NSRegularExpression regularExpressionWithPattern:
+            @"video_?[iI]d:\\s*\"([A-Za-z0-9_-]{11})\""
+                                                               options:0 error:NULL];
+    });
+    NSRange tail = NSMakeRange(marker.location, dump.length - marker.location);
+    NSTextCheckingResult *match = [expression firstMatchInString:dump options:0
+                                                           range:tail];
+    if (match == nil) return NO;
+    NSString *videoID = [dump substringWithRange:[match rangeAtIndex:1]];
+    NSString *upper = dump.uppercaseString;
+    const BOOL playNext = [upper containsString:@"AFTER_CURRENT"] ||
+        [upper containsString:@"PLAY_NEXT"];
+    YTKACEQueueAdd(videoID, YTKACEQueueTitleNearView(view), playNext);
+    return YES;
+}
+
 static BOOL YTKACEQueueHandleMenuAdd(id command, id view) {
     if (!YTKACEFeatureEnabled(YTKACEQueueKey)) return NO;
     NSString *dump = nil;
@@ -1679,7 +2256,9 @@ static BOOL YTKACEQueueHandleMenuAdd(id command, id view) {
     } @catch (__unused NSException *exception) {
         return NO;
     }
-    if (![dump containsString:@"getWatchNextQueueAddCommand"]) return NO;
+    if (![dump containsString:@"getWatchNextQueueAddCommand"]) {
+        return YTKACEQueueHandleEndpointAdd(dump, view);
+    }
     static NSRegularExpression *expression;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -1747,6 +2326,7 @@ void YTKACEQueuePrepareMenuRenderers(id renderers) {
 
 static BOOL YTKACEQueueRouterHandle(id receiver, SEL selector, id command,
                                     id entry, id view, id sender) {
+    YTKACEQueueNoteRouter(receiver, OriginalRouterHandle, NO, view, sender);
     if (YTKACEQueueHandleMenuAdd(command, view)) return YES;
     if (YTKACEQueueHandleSentinel(command)) return YES;
     if (YTKACEQueueHandleDiscovery(command, view)) return YES;
@@ -1758,6 +2338,8 @@ static BOOL YTKACEQueueRouterHandle(id receiver, SEL selector, id command,
 static BOOL YTKACEQueueRouterHandleCompletion(id receiver, SEL selector,
                                               id command, id entry, id view,
                                               id sender, id block) {
+    YTKACEQueueNoteRouter(receiver, OriginalRouterHandleCompletion, YES, view,
+                          sender);
     if (YTKACEQueueHandleMenuAdd(command, view)) return YES;
     if (YTKACEQueueHandleSentinel(command)) return YES;
     if (YTKACEQueueHandleDiscovery(command, view)) return YES;
@@ -1768,6 +2350,8 @@ static BOOL YTKACEQueueRouterHandleCompletion(id receiver, SEL selector,
 
 static BOOL YTKACEQueueScopedRouterHandle(id receiver, SEL selector, id command,
                                           id entry, id view, id sender) {
+    YTKACEQueueNoteRouter(receiver, OriginalScopedRouterHandle, NO, view,
+                          sender);
     if (YTKACEQueueHandleMenuAdd(command, view)) return YES;
     if (YTKACEQueueHandleSentinel(command)) return YES;
     if (YTKACEQueueHandleDiscovery(command, view)) return YES;
@@ -1780,6 +2364,8 @@ static BOOL YTKACEQueueScopedRouterHandleCompletion(id receiver, SEL selector,
                                                     id command, id entry,
                                                     id view, id sender,
                                                     id block) {
+    YTKACEQueueNoteRouter(receiver, OriginalScopedRouterHandleCompletion, YES,
+                          view, sender);
     if (YTKACEQueueHandleMenuAdd(command, view)) return YES;
     if (YTKACEQueueHandleSentinel(command)) return YES;
     if (YTKACEQueueHandleDiscovery(command, view)) return YES;
@@ -1806,7 +2392,97 @@ static void YTKACELegacyWatchNextQueueAdd(id receiver, SEL selector, id command,
         receiver, selector, command, entry, view, sender);
 }
 
+// This YouTube build routes queue menu taps to the Impl subclasses, which
+// override the base-class methods hooked above.
+static IMP OriginalImplMenuExecute;
+static IMP OriginalImplMenuExecuteCompletion;
+static IMP OriginalImplMenuHandle;
+static IMP OriginalImplMenuHandleCompletion;
+static IMP OriginalImplWatchNextExecute;
+static IMP OriginalImplWatchNextExecuteCompletion;
+
+static BOOL YTKACEQueueTakeMenuCommand(id command, id view, id sender) {
+    YTKACEQueueCommandSender = sender;
+    YTKACEQueueCommandView = view;
+    return YTKACEQueueHandleMenuAdd(command, view);
+}
+
+static void YTKACEImplMenuExecute(id receiver, SEL selector, id command,
+                                  id entry, id view, id sender) {
+    if (YTKACEQueueTakeMenuCommand(command, view, sender)) return;
+    if (OriginalImplMenuExecute == NULL) return;
+    ((void (*)(id, SEL, id, id, id, id))OriginalImplMenuExecute)(
+        receiver, selector, command, entry, view, sender);
+}
+
+static void YTKACEImplMenuExecuteCompletion(id receiver, SEL selector,
+                                            id command, id entry, id view,
+                                            id sender, id block) {
+    if (YTKACEQueueTakeMenuCommand(command, view, sender)) return;
+    if (OriginalImplMenuExecuteCompletion == NULL) return;
+    ((void (*)(id, SEL, id, id, id, id, id))OriginalImplMenuExecuteCompletion)(
+        receiver, selector, command, entry, view, sender, block);
+}
+
+static void YTKACEImplMenuHandle(id receiver, SEL selector, id command,
+                                 id entry, id view, id sender) {
+    if (YTKACEQueueTakeMenuCommand(command, view, sender)) return;
+    if (OriginalImplMenuHandle == NULL) return;
+    ((void (*)(id, SEL, id, id, id, id))OriginalImplMenuHandle)(
+        receiver, selector, command, entry, view, sender);
+}
+
+static void YTKACEImplMenuHandleCompletion(id receiver, SEL selector,
+                                           id command, id entry, id view,
+                                           id sender, id block) {
+    if (YTKACEQueueTakeMenuCommand(command, view, sender)) return;
+    if (OriginalImplMenuHandleCompletion == NULL) return;
+    ((void (*)(id, SEL, id, id, id, id, id))OriginalImplMenuHandleCompletion)(
+        receiver, selector, command, entry, view, sender, block);
+}
+
+static void YTKACEImplWatchNextExecute(id receiver, SEL selector, id command,
+                                       id entry, id view, id sender) {
+    if (YTKACEQueueTakeMenuCommand(command, view, sender)) return;
+    if (OriginalImplWatchNextExecute == NULL) return;
+    ((void (*)(id, SEL, id, id, id, id))OriginalImplWatchNextExecute)(
+        receiver, selector, command, entry, view, sender);
+}
+
+static void YTKACEImplWatchNextExecuteCompletion(id receiver, SEL selector,
+                                                 id command, id entry,
+                                                 id view, id sender,
+                                                 id block) {
+    if (YTKACEQueueTakeMenuCommand(command, view, sender)) return;
+    if (OriginalImplWatchNextExecuteCompletion == NULL) return;
+    ((void (*)(id, SEL, id, id, id, id, id))
+        OriginalImplWatchNextExecuteCompletion)(
+        receiver, selector, command, entry, view, sender, block);
+}
+
 void YTKACEInstallQueueHooks(void) {
+    YTKACEInstallInstanceHook(@"YTQueueAddMenuItemCommandHandlerImpl",
+        @"executeWithCommand:entry:fromView:sender:",
+        (IMP)YTKACEImplMenuExecute, &OriginalImplMenuExecute);
+    YTKACEInstallInstanceHook(@"YTQueueAddMenuItemCommandHandlerImpl",
+        @"executeWithCommand:entry:fromView:sender:completionBlock:",
+        (IMP)YTKACEImplMenuExecuteCompletion,
+        &OriginalImplMenuExecuteCompletion);
+    YTKACEInstallInstanceHook(@"YTQueueAddMenuItemCommandHandlerImpl",
+        @"handleQueueAddMenuItemWithCommand:entry:fromView:sender:",
+        (IMP)YTKACEImplMenuHandle, &OriginalImplMenuHandle);
+    YTKACEInstallInstanceHook(@"YTQueueAddMenuItemCommandHandlerImpl",
+        @"handleQueueAddMenuItemWithCommand:entry:fromView:sender:"
+        @"completionBlock:",
+        (IMP)YTKACEImplMenuHandleCompletion,
+        &OriginalImplMenuHandleCompletion);
+    YTKACEInstallInstanceHook(@"YTGetWatchNextQueueAddCommandHandlerImpl",
+        @"executeWithCommand:entry:fromView:sender:",
+        (IMP)YTKACEImplWatchNextExecute, &OriginalImplWatchNextExecute);
+    YTKACEInstallInstanceHook(@"YTGetWatchNextQueueAddCommandHandlerImpl",
+        @"executeWithCommand:entry:fromView:sender:completionBlock:",
+        (IMP)YTKACEImplWatchNextExecuteCompletion,
+        &OriginalImplWatchNextExecuteCompletion);
     YTKACEInstallInstanceHook(@"YTQueueAddMenuItemCommandHandler",
         @"executeWithCommand:entry:fromView:sender:",
         (IMP)YTKACELegacyQueueMenuAdd, &OriginalLegacyQueueMenuAdd);
@@ -1948,6 +2624,10 @@ void YTKACEInstallQueueHooks(void) {
         @"handleCommand:entry:fromView:sender:completionBlock:",
         (IMP)YTKACEQueueScopedRouterHandleCompletion,
         &OriginalScopedRouterHandleCompletion);
+    YTKACEQueueInstallFoundHooks(@{
+        @"didDismissMiniBar":
+            [NSValue valueWithPointer:(void *)YTKACEQueueDidDismissMiniBar],
+    });
     [NSNotificationCenter.defaultCenter
         addObserverForName:@"YTKACEPlaybackTimeDidChange"
                     object:nil

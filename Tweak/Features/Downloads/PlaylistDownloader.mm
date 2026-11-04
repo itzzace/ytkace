@@ -739,17 +739,11 @@ static void YTKACEPresentPlaylistMenu(UIView *source) {
     });
 }
 
-static void YTKACEShowPlaylistMenu(UIView *source, NSArray<NSDictionary *> *items) {
+static void YTKACEShowVideoListMenu(UIView *source, NSArray<NSDictionary *> *items,
+                                    NSString *title, NSString *name) {
     YTKACEDownloadCoordinator *coordinator =
         YTKACEDownloadCoordinator.sharedCoordinator;
-    if (items.count == 0) {
-        YTKACEShowNotice(YTKACELocalized(
-            @"Scroll the playlist once so YTKACE can read it, then try again."));
-        return;
-    }
     NSMutableArray *actions = [NSMutableArray array];
-    NSString *name = YTKACECurrentPlaylistTitle.length != 0
-        ? YTKACECurrentPlaylistTitle : YTKACELocalized(@"playlist");
     [actions addObject:[coordinator nativeSheetAction:
         [NSString stringWithFormat:YTKACELocalized(@"Download all of %@ (%lu)"),
             name, (unsigned long)items.count]
@@ -785,13 +779,45 @@ static void YTKACEShowPlaylistMenu(UIView *source, NSArray<NSDictionary *> *item
                                                         animated:YES
                                                       completion:nil];
         }]];
-    [coordinator presentPlaylistSheetWithTitle:
-        YTKACECurrentPlaylistTitle.length != 0 ? YTKACECurrentPlaylistTitle
-                                               : YTKACELocalized(@"Playlist")
+    [coordinator presentPlaylistSheetWithTitle:title
         subtitle:[NSString stringWithFormat:YTKACELocalized(@"%lu videos"),
             (unsigned long)items.count]
         sourceView:YTKACESheetAnchorForView(source)
         actions:actions];
+}
+
+static void YTKACEShowPlaylistMenu(UIView *source, NSArray<NSDictionary *> *items) {
+    if (items.count == 0) {
+        YTKACEShowNotice(YTKACELocalized(
+            @"Scroll the playlist once so YTKACE can read it, then try again."));
+        return;
+    }
+    const BOOL named = YTKACECurrentPlaylistTitle.length != 0;
+    YTKACEShowVideoListMenu(source, items,
+        named ? YTKACECurrentPlaylistTitle : YTKACELocalized(@"Playlist"),
+        named ? YTKACECurrentPlaylistTitle : YTKACELocalized(@"playlist"));
+}
+
+void YTKACEPresentVideoListDownloadMenu(NSArray<NSDictionary *> *items,
+                                        NSString *title, UIView *source) {
+    NSMutableArray<NSDictionary *> *list = [NSMutableArray array];
+    for (NSDictionary *item in items) {
+        NSString *videoID = item[@"videoId"];
+        if (videoID.length == 0) continue;
+        if ([item[@"thumbnail"] length] != 0) {
+            [list addObject:item];
+            continue;
+        }
+        NSMutableDictionary *copy = [item mutableCopy];
+        copy[@"thumbnail"] = [NSString stringWithFormat:
+            @"https://i.ytimg.com/vi/%@/mqdefault.jpg", videoID];
+        [list addObject:copy];
+    }
+    if (list.count == 0) {
+        YTKACEShowNotice(YTKACELocalized(@"No videos selected"));
+        return;
+    }
+    YTKACEShowVideoListMenu(source, list, title, title);
 }
 
 @interface YTKACEPlaylistButtonTarget : NSObject
