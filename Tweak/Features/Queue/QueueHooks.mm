@@ -1890,13 +1890,16 @@ static void YTKACEQueueDidTapAction(id receiver, SEL selector, id button) {
     YTKACEDownloadCoordinator *coordinator =
         YTKACEDownloadCoordinator.sharedCoordinator;
     NSMutableArray *actions = [NSMutableArray array];
-    if (YTKACEQueue().count != 0) {
+    if (YTKACEQueue().count != 0 && YTKACEDownloadsEnabled()) {
         [actions addObject:[coordinator nativeSheetAction:
-            YTKACELocalized(@"Download all") icon:@"arrow.down.circle"
+            YTKACELocalized(@"Download") icon:@"arrow.down.circle"
             handler:^{
-                // One tap for the whole queue: best quality, no per-video
-                // questions.
-                YTKACEDownloadVideoList([YTKACEQueue() copy], source);
+                NSArray *queue = [YTKACEQueue() copy];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                    (int64_t)(0.12 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                        YTKACEPresentVideoListDownloadMenu(queue,
+                            YTKACELocalized(@"Queue"), source);
+                    });
             }]];
     }
     [actions addObject:[coordinator nativeSheetAction:

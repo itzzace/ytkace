@@ -8,10 +8,10 @@ FOUNDATION_EXPORT UIImage *YTKACEDownloadGlyphImage(void);
 FOUNDATION_EXPORT void YTKACESaveVideoToPhotosFile(
     NSURL *url, void (^_Nullable completion)(BOOL success, NSError *_Nullable error));
 
-// Downloads every video in the list at the best available quality without
-// asking about quality; items need a "videoId" key.
-FOUNDATION_EXPORT void YTKACEDownloadVideoList(NSArray<NSDictionary *> *items,
-                                               UIView *_Nullable source);
+// Shows the playlist download menu (download all or select videos, then
+// quality) for a list of videos; items need a "videoId" key.
+FOUNDATION_EXPORT void YTKACEPresentVideoListDownloadMenu(
+    NSArray<NSDictionary *> *items, NSString *title, UIView *_Nullable source);
 
 @interface YTKACEDownloadCoordinator : NSObject
 + (instancetype)sharedCoordinator;
