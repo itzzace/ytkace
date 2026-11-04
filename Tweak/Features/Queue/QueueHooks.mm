@@ -154,22 +154,9 @@ static void YTKACEQueueSave(void) {
     [YTKACEQueueItems writeToFile:path atomically:YES];
 }
 
-static NSString *const YTKACEQueueFormatKey = @"YTKACE.Queue.Format";
-
 static NSMutableArray<NSDictionary *> *YTKACEQueue(void) {
     if (YTKACEQueueItems != nil) return YTKACEQueueItems;
     NSString *path = YTKACEQueueStorePath();
-    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
-    if ([defaults integerForKey:YTKACEQueueFormatKey] < 2) {
-        // Queues saved by older builds filled up with watch history.
-        if (path.length != 0) {
-            [NSFileManager.defaultManager removeItemAtPath:path error:NULL];
-        }
-        [defaults removeObjectForKey:YTKACEQueueCursorKey];
-        [defaults setInteger:2 forKey:YTKACEQueueFormatKey];
-        YTKACEQueueItems = [NSMutableArray array];
-        return YTKACEQueueItems;
-    }
     NSArray *stored = path.length != 0
         ? [NSArray arrayWithContentsOfFile:path]
         : nil;
@@ -227,8 +214,12 @@ static NSString *YTKACEQueueDiscoveryParams(id command) {
     }
     if (dump.length == 0) return nil;
     if (![dump containsString:@"discovery_params"]) return nil;
-    if ([dump containsString:@"watch_endpoint"] ||
-        [dump containsString:@"watchEndpoint"]) {
+    // A plain video tap carries discovery params too; only treat a command
+    // as a queue add when it is not a bare watch endpoint.
+    const BOOL watch = [dump containsString:@"watch_endpoint"] ||
+        [dump containsString:@"watchEndpoint"];
+    if (watch && [dump rangeOfString:@"queue"
+                             options:NSCaseInsensitiveSearch].location == NSNotFound) {
         return nil;
     }
     static NSRegularExpression *expression;
@@ -798,11 +789,9 @@ static BOOL YTKACEQueueVideoIsOpen(void) {
     if (![watch isKindOfClass:UIViewController.class]) return NO;
     UIViewController *controller = watch;
     if (!controller.isViewLoaded) return NO;
-    for (UIView *view = controller.view; view != nil; view = view.superview) {
-        if (view.hidden || view.alpha < 0.01) return NO;
-        if ([view isKindOfClass:UIWindow.class]) return YES;
-    }
-    return NO;
+    // The miniplayer keeps the watch view in the window while it is hidden or
+    // transparent, so only a view that left the window counts as closed.
+    return controller.view.window != nil;
 }
 
 static NSString *YTKACEQueueOpenVideoID(void) {
@@ -861,7 +850,7 @@ static BOOL YTKACEQueueNoteStarted(NSString *videoID) {
     }
     NSUInteger cursor = YTKACEQueueIndexOfVideo(YTKACEQueueCursor());
     NSUInteger next = cursor == NSNotFound ? 0 : cursor + 1;
-    if (next >= queue.count && YTKACEQueueFinished()) {
+    if (next >= queue.count) {
         [queue removeAllObjects];
         YTKACEQueueSave();
         return YES;
