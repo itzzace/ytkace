@@ -23,7 +23,6 @@ void YTKACEInstallDownloadHooks(void);
 void YTKACEInstallQueueHooks(void);
 void YTKACEQueuePrepareMenuRenderers(id _Nullable renderers);
 BOOL YTKACEQueueHasItems(void);
-BOOL YTKACEQueueIsRunning(void);
 BOOL YTKACEQueueOwnsCurrentVideo(void);
 NSString * _Nullable YTKACELastVideoID(void);
 void YTKACEInstallGlobalDownloadMiniPlayer(void);

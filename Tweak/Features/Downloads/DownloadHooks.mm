@@ -975,10 +975,7 @@ static id YTKACEFilteredMenuRenderers(id renderers) {
         @"PERSON_CIRCLE_SLASH": @"YTKACE.Preference.Menu.DontRecommendHidden",
         @"OUTLINE_YOUTUBE_MUSIC": @"YTKACE.Preference.Menu.YouTubeMusicHidden"
     };
-    // Play last is hidden until a queue is running.
-    const BOOL hideLast = YTKACEFeatureEnabled(@"YTKACE.Preference.Playback.LocalQueue") &&
-        !YTKACEQueueIsRunning();
-    BOOL any = hideLast;
+    BOOL any = NO;
     for (NSString *key in [NSSet setWithArray:hidden.allValues]) {
         if (YTKACEFeatureEnabled(key)) any = YES;
     }
@@ -987,10 +984,6 @@ static id YTKACEFilteredMenuRenderers(id renderers) {
     for (id renderer in (NSArray *)renderers) {
         NSString *key = hidden[YTKACEMenuItemIcon(renderer) ?: @""];
         if (key != nil && YTKACEFeatureEnabled(key)) continue;
-        if (hideLast &&
-            [key isEqualToString:@"YTKACE.Preference.Menu.PlayLastHidden"]) {
-            continue;
-        }
         [kept addObject:renderer];
     }
     return kept.count == [renderers count] ? renderers : kept;

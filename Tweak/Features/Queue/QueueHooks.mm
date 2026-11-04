@@ -173,13 +173,6 @@ BOOL YTKACEQueueHasItems(void) {
     return YTKACEQueueNextIndex() != NSNotFound;
 }
 
-// True while a queue is running: the open video plus at least one more.
-// Play last only shows then; before that Play next is what starts a queue.
-BOOL YTKACEQueueIsRunning(void) {
-    if (!YTKACEFeatureEnabled(YTKACEQueueKey)) return NO;
-    return YTKACEQueue().count >= 2 && YTKACEQueueVideoIsOpen();
-}
-
 // True when the queue decides what plays after the current video, including
 // a video opened outside the queue while queued videos are still waiting.
 BOOL YTKACEQueueOwnsCurrentVideo(void) {
@@ -1815,9 +1808,7 @@ static void YTKACEQueueConfirmClear(void) {
     });
 }
 
-// Closing the miniplayer ends the queue. YouTube already asks before closing
-// it while casting; the same dialog hooks ask about the queue instead, and
-// closing it clears the queue.
+// Closing the miniplayer ends the queue, as it ends YouTube's own.
 // Originals of hooks installed on every class implementing a selector,
 // keyed "selector|class"; a receiver finds its own through its class chain.
 static NSMutableDictionary<NSString *, NSValue *> *YTKACEQueueFoundOriginals;
@@ -1831,47 +1822,6 @@ static IMP YTKACEQueueFoundOriginal(id receiver, SEL selector) {
         if (value != nil) return (IMP)value.pointerValue;
     }
     return NULL;
-}
-
-static BOOL YTKACEQueueAsksBeforeClose(void) {
-    return YTKACEFeatureEnabled(YTKACEQueueKey) && YTKACEQueue().count != 0 &&
-        YTKACEQueueVideoIsOpen();
-}
-
-static BOOL YTKACEQueueVerifyDismissMiniBar(id receiver, SEL selector) {
-    if (YTKACEQueueAsksBeforeClose()) return YES;
-    IMP original = YTKACEQueueFoundOriginal(receiver, selector);
-    if (original == NULL) return NO;
-    return ((BOOL (*)(id, SEL))original)(receiver, selector);
-}
-
-static void YTKACEQueueShowVerifyDismissMiniBar(id receiver, SEL selector,
-                                                id confirm, id cancel) {
-    YTKACEDebugLog(@"queue", @"verify dismiss dialog queue=%lu",
-                      (unsigned long)YTKACEQueue().count);
-    dispatch_block_t confirmBlock = confirm;
-    dispatch_block_t cancelBlock = cancel;
-    if (YTKACEQueueAsksBeforeClose()) {
-        NSString *message = [NSString stringWithFormat:
-            YTKACELocalized(@"Closing the miniplayer removes %lu videos from the queue."),
-            (unsigned long)YTKACEQueue().count];
-        const BOOL shown = YTKACEShowYouTubeConfirmationWithCancel(
-            YTKACELocalized(@"Close the queue?"), message,
-            YTKACELocalized(@"Close"), ^{
-                YTKACEQueueClearAll();
-                if (confirmBlock != nil) confirmBlock();
-            },
-            YTKACELocalized(@"Cancel"), ^{
-                if (cancelBlock != nil) cancelBlock();
-            });
-        if (shown) return;
-    }
-    IMP original = YTKACEQueueFoundOriginal(receiver, selector);
-    if (original == NULL) {
-        if (confirmBlock != nil) confirmBlock();
-        return;
-    }
-    ((void (*)(id, SEL, id, id))original)(receiver, selector, confirm, cancel);
 }
 
 // Hooks each selector on every app class whose own method list has it; the
@@ -1920,64 +1870,6 @@ static void YTKACEQueueDropAll(void) {
     YTKACEQueueSave();
 }
 
-// The X on the bottom miniplayer. With a queue it asks first; Close drops the
-// queue and closes, Cancel leaves the miniplayer where it is.
-static void YTKACEQueueMiniplayerDidTapClose(id receiver, SEL selector, id view) {
-    YTKACEDebugLog(@"queue", @"miniplayer close tapped queue=%lu on %@",
-                      (unsigned long)YTKACEQueue().count, [receiver class]);
-    IMP original = YTKACEQueueFoundOriginal(receiver, selector);
-    void (^close)(void) = ^{
-        if (original == NULL) return;
-        ((void (*)(id, SEL, id))original)(receiver, selector, view);
-    };
-    if (YTKACEQueueAsksBeforeClose()) {
-        NSString *message = [NSString stringWithFormat:
-            YTKACELocalized(@"Closing the miniplayer removes %lu videos from the queue."),
-            (unsigned long)YTKACEQueue().count];
-        const BOOL shown = YTKACEShowYouTubeConfirmationWithCancel(
-            YTKACELocalized(@"Close the queue?"), message,
-            YTKACELocalized(@"Close"), ^{
-                YTKACEQueueDropAll();
-                close();
-            },
-            YTKACELocalized(@"Cancel"), nil);
-        if (shown) return;
-    }
-    close();
-}
-
-// Logs what the miniplayer classes offer around closing, so the right method
-// can be hooked on a new YouTube build without a class dump.
-static void YTKACEQueueLogMiniplayerMethods(void) {
-    if (!YTKACEDebugLogsEnabled()) return;
-    for (NSString *name in YTKACEAppClassNames()) {
-        if ([name rangeOfString:@"MiniBar"].location == NSNotFound &&
-            [name rangeOfString:@"Miniplayer"].location == NSNotFound &&
-            [name rangeOfString:@"WatchLayer"].location == NSNotFound) {
-            continue;
-        }
-        Class cls = NSClassFromString(name);
-        if (cls == Nil) continue;
-        unsigned int count = 0;
-        Method *methods = class_copyMethodList(cls, &count);
-        NSMutableArray<NSString *> *found = [NSMutableArray array];
-        for (unsigned int index = 0; index < count; index++) {
-            NSString *selectorName = NSStringFromSelector(
-                method_getName(methods[index]));
-            if ([selectorName rangeOfString:@"ismiss"].location == NSNotFound &&
-                [selectorName rangeOfString:@"lose"].location == NSNotFound &&
-                [selectorName rangeOfString:@"MiniBar"].location == NSNotFound) {
-                continue;
-            }
-            [found addObject:[NSString stringWithFormat:@"%@ %s", selectorName,
-                method_getTypeEncoding(methods[index]) ?: ""]];
-        }
-        free(methods);
-        if (found.count == 0) continue;
-        YTKACEDebugLog(@"queue", @"methods %@: %@", name,
-                          [found componentsJoinedByString:@" | "]);
-    }
-}
 static void YTKACEQueueDidDismissMiniBar(id receiver, SEL selector) {
     YTKACEDebugLog(@"queue", @"miniplayer dismissed queue=%lu",
                       (unsigned long)YTKACEQueue().count);
@@ -2730,18 +2622,9 @@ void YTKACEInstallQueueHooks(void) {
         (IMP)YTKACEQueueScopedRouterHandleCompletion,
         &OriginalScopedRouterHandleCompletion);
     YTKACEQueueInstallFoundHooks(@{
-        @"verifyDismissMiniBarWhileCasting":
-            [NSValue valueWithPointer:(void *)YTKACEQueueVerifyDismissMiniBar],
-        @"showVerifyDismissMiniBarDialogWithConfirmationBlock:cancelBlock:":
-            [NSValue valueWithPointer:(void *)YTKACEQueueShowVerifyDismissMiniBar],
         @"didDismissMiniBar":
             [NSValue valueWithPointer:(void *)YTKACEQueueDidDismissMiniBar],
-        @"miniplayerViewDidTapClose:":
-            [NSValue valueWithPointer:(void *)YTKACEQueueMiniplayerDidTapClose],
-        @"miniplayerControlsViewDidTapClose:":
-            [NSValue valueWithPointer:(void *)YTKACEQueueMiniplayerDidTapClose],
     });
-    YTKACEQueueLogMiniplayerMethods();
     [NSNotificationCenter.defaultCenter
         addObserverForName:@"YTKACEPlaybackTimeDidChange"
                     object:nil
