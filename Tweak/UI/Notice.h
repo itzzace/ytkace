@@ -14,5 +14,13 @@ FOUNDATION_EXPORT BOOL YTKACEShowYouTubeConfirmation(
     NSString *actionTitle,
     dispatch_block_t action
 );
+FOUNDATION_EXPORT BOOL YTKACEShowYouTubeConfirmationWithCancel(
+    NSString *title,
+    NSString *message,
+    NSString *actionTitle,
+    dispatch_block_t action,
+    NSString *cancelTitle,
+    dispatch_block_t _Nullable cancel
+);
 
 NS_ASSUME_NONNULL_END

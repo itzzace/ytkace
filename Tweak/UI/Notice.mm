@@ -106,6 +106,40 @@ BOOL YTKACEShowYouTubeConfirmation(NSString *title,
     }
 }
 
+// Like YTKACEShowYouTubeConfirmation, but the cancel button runs a block too.
+BOOL YTKACEShowYouTubeConfirmationWithCancel(NSString *title,
+                                              NSString *message,
+                                              NSString *actionTitle,
+                                              dispatch_block_t action,
+                                              NSString *cancelTitle,
+                                              dispatch_block_t cancel) {
+    Class alertClass = NSClassFromString(@"YTAlertView");
+    SEL dialogSelector = NSSelectorFromString(
+        @"confirmationDialogWithAction:actionTitle:cancelAction:cancelTitle:");
+    if (alertClass == Nil || ![alertClass respondsToSelector:dialogSelector]) {
+        return NO;
+    }
+    @try {
+        id alert = ((id (*)(id, SEL, id, id, id, id))objc_msgSend)(
+            alertClass, dialogSelector, [action copy], actionTitle ?: @"Continue",
+            [cancel copy], cancelTitle ?: @"Cancel");
+        SEL titleSelector = NSSelectorFromString(@"setTitle:");
+        SEL subtitleSelector = NSSelectorFromString(@"setSubtitle:");
+        SEL showSelector = NSSelectorFromString(@"show");
+        if (alert == nil || ![alert respondsToSelector:titleSelector] ||
+            ![alert respondsToSelector:subtitleSelector] ||
+            ![alert respondsToSelector:showSelector]) {
+            return NO;
+        }
+        ((void (*)(id, SEL, id))objc_msgSend)(alert, titleSelector, title ?: @"");
+        ((void (*)(id, SEL, id))objc_msgSend)(alert, subtitleSelector, message ?: @"");
+        ((void (*)(id, SEL))objc_msgSend)(alert, showSelector);
+        return YES;
+    } @catch (__unused NSException *exception) {
+        return NO;
+    }
+}
+
 static UIViewController *YTKACENoticeController(void) {
     UIWindow *window = nil;
     for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
