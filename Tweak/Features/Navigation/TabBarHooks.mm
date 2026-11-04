@@ -3609,7 +3609,9 @@ static BOOL YTKACEApplyPivotBarGlass(UIView *receiver, UIView *blur) {
     CGFloat shortSide = MIN(CGRectGetWidth(screen), CGRectGetHeight(screen));
     if (shortSide > 0.0) glassWidth = MIN(glassWidth, shortSide - margin * 2.0);
     if (tabs > 0 && tabs <= 4) {
-        glassWidth = MIN(glassWidth, 86.0 * (CGFloat)tabs + 16.0);
+        // Grow by the same amount as a full-width bar when pressed.
+        CGFloat grow = expanded ? (21.0 - 14.0) * 2.0 : 0.0;
+        glassWidth = MIN(glassWidth, 86.0 * (CGFloat)tabs + 16.0 + grow);
     }
     CGRect frame = CGRectMake((barWidth - glassWidth) * 0.5, glassTop, glassWidth, glassHeight);
     UIView *current = YTKACESelectedPivotItem(receiver);
