@@ -3,6 +3,7 @@
 #import "../../Runtime/Localization.h"
 #import "../../Runtime/Preferences.h"
 #import "../../UI/Notice.h"
+#import "../Downloads/DownloadCoordinator.h"
 #import "../Downloads/DownloadLog.h"
 #import "../Downloads/SABRDownloader.h"
 
@@ -835,33 +836,17 @@ static NSUInteger YTKACEQueueNextIndex(void) {
 }
 
 // Called when a video starts. A queued video moves the cursor. A video
-// opened from elsewhere while queued videos are still waiting joins the
-// queue right after the one that was playing and becomes the current item;
-// with nothing left to play the queue is finished, so it is cleared.
+// opened from elsewhere leaves the queue exactly as it was: it is not added,
+// and the queue is not cleared, so it picks up again when that video ends.
 // Returns YES when the queue changed.
 static BOOL YTKACEQueueNoteStarted(NSString *videoID) {
     NSMutableArray *queue = YTKACEQueue();
     if (videoID.length == 0 || queue.count == 0) return NO;
-    if (YTKACEQueueIndexOfVideo(videoID) != NSNotFound) {
-        const BOOL moved = ![videoID isEqualToString:YTKACEQueueCursor()];
-        YTKACEQueueSetCursor(videoID);
-        YTKACEQueueSetFinished(NO);
-        return moved;
-    }
-    NSUInteger cursor = YTKACEQueueIndexOfVideo(YTKACEQueueCursor());
-    NSUInteger next = cursor == NSNotFound ? 0 : cursor + 1;
-    if (next >= queue.count) {
-        [queue removeAllObjects];
-        YTKACEQueueSave();
-        return YES;
-    }
-    NSMutableDictionary *entry = [NSMutableDictionary dictionary];
-    entry[@"videoId"] = videoID;
-    [queue insertObject:entry atIndex:next];
+    if (YTKACEQueueIndexOfVideo(videoID) == NSNotFound) return NO;
+    const BOOL moved = ![videoID isEqualToString:YTKACEQueueCursor()];
     YTKACEQueueSetCursor(videoID);
-    YTKACEQueueSave();
-    YTKACEQueueFetchTitle(videoID);
-    return YES;
+    YTKACEQueueSetFinished(NO);
+    return moved;
 }
 
 static NSString *YTKACEQueuePausePendingID;
@@ -1740,6 +1725,14 @@ static void YTKACEQueueClearAll(void) {
     YTKACEQueueRebuildWatchPage();
 }
 
+static void YTKACEQueueConfirmClear(void) {
+    YTKACEShowYouTubeConfirmation(YTKACELocalized(@"Clear queue"),
+        YTKACELocalized(@"Remove every video from the queue?"),
+        YTKACELocalized(@"Clear"), ^{
+        YTKACEQueueClearAll();
+    });
+}
+
 static void YTKACEQueueDidTapAction(id receiver, SEL selector, id button) {
     if (!YTKACEQueueIsActive()) {
         if (OriginalDidTapAction == NULL) return;
@@ -1747,11 +1740,25 @@ static void YTKACEQueueDidTapAction(id receiver, SEL selector, id button) {
                                                       button);
         return;
     }
-    YTKACEShowYouTubeConfirmation(YTKACELocalized(@"Clear queue"),
-        YTKACELocalized(@"Remove every video from the queue?"),
-        YTKACELocalized(@"Clear"), ^{
-        YTKACEQueueClearAll();
-    });
+    UIView *source = [button isKindOfClass:UIView.class] ? button : nil;
+    YTKACEDownloadCoordinator *coordinator =
+        YTKACEDownloadCoordinator.sharedCoordinator;
+    NSMutableArray *actions = [NSMutableArray array];
+    if (YTKACEQueue().count != 0) {
+        [actions addObject:[coordinator nativeSheetAction:
+            YTKACELocalized(@"Download all") icon:@"arrow.down.circle"
+            handler:^{
+                // One tap for the whole queue: best quality, no per-video
+                // questions.
+                YTKACEDownloadVideoList([YTKACEQueue() copy], source);
+            }]];
+    }
+    [actions addObject:[coordinator nativeSheetAction:
+        YTKACELocalized(@"Clear queue") icon:@"trash" handler:^{
+            YTKACEQueueConfirmClear();
+        }]];
+    [coordinator presentPlaylistSheetWithTitle:nil subtitle:nil
+                                    sourceView:source actions:actions];
 }
 
 static void YTKACEQueueDidTapLoop(id receiver, SEL selector) {

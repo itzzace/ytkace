@@ -397,6 +397,14 @@ static void YTKACEStartPlaylistDownload(NSArray<NSDictionary *> *items,
         }];
 }
 
+void YTKACEDownloadVideoList(NSArray<NSDictionary *> *items, UIView *source) {
+    if (!YTKACEDownloadsEnabled()) {
+        YTKACEShowNotice(YTKACELocalized(@"Downloads are turned off"));
+        return;
+    }
+    YTKACEStartPlaylistDownload(items, nil, 0, NO, source);
+}
+
 static void YTKACEPresentCustomQualityMenu(UIView *source,
                                            NSArray<NSDictionary *> *items,
                                            NSSet<NSString *> *selection) {
