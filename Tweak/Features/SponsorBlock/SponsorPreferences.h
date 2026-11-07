@@ -12,5 +12,6 @@ FOUNDATION_EXPORT UIColor *YTKACESponsorCategoryColor(NSString *category);
 FOUNDATION_EXPORT NSInteger YTKACESponsorNotificationMode(void);
 FOUNDATION_EXPORT NSTimeInterval YTKACESponsorSkipAlertDuration(void);
 FOUNDATION_EXPORT NSTimeInterval YTKACESponsorUnskipAlertDuration(void);
+FOUNDATION_EXPORT NSTimeInterval YTKACESponsorMinimumSegmentLength(void);
 
 NS_ASSUME_NONNULL_END

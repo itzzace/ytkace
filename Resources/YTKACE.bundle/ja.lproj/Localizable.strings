@@ -924,6 +924,7 @@ CC BY-NC-SA 4.0 でライセンスされています。";
 "Play a sound and vibrate when a segment is skipped." = "セグメントをスキップしたときに音とバイブレーションで知らせます。";
 "Notice Duration" = "通知の表示時間";
 "Unskip Duration" = "取り消しの表示時間";
+"Minimum Segment Length" = "セグメントの最小の長さ";
 "Add a button that opens the video in picture in picture." = "動画をピクチャ・イン・ピクチャで開くボタンを追加します。";
 "Lock Screen Skip" = "ロック画面でスキップ";
 "Replace next and previous on the lock screen and in Control Center with skip buttons." = "ロック画面とコントロールセンターの前へ/次へをスキップボタンに置き換えます。";

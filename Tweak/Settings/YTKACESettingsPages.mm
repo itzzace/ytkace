@@ -1458,7 +1458,9 @@ static NSDictionary *YTKACESponsorBlockDefinition(void) {
         YTKACESlider(@"Notice Duration", @"YTKACE.Preference.SponsorBlock.SkipAlertSeconds",
                      1.0, 10.0, 1.0, 4.0),
         YTKACESlider(@"Unskip Duration", @"YTKACE.Preference.SponsorBlock.UnskipAlertSeconds",
-                     1.0, 10.0, 1.0, 4.0)
+                     1.0, 10.0, 1.0, 4.0),
+        YTKACESlider(@"Minimum Segment Length", @"YTKACE.Preference.SponsorBlock.MinimumSeconds",
+                     0.0, 20.0, 1.0, 0.0)
     ]];
     NSMutableArray<NSString *> *titles = [NSMutableArray arrayWithObject:YTKACELocalized(@"MAIN")];
 

@@ -924,6 +924,7 @@ Concesso in licenza CC BY-NC-SA 4.0.";
 "Play a sound and vibrate when a segment is skipped." = "Riproduce un suono e vibra quando un segmento viene saltato.";
 "Notice Duration" = "Durata avviso";
 "Unskip Duration" = "Durata annullamento salto";
+"Minimum Segment Length" = "Durata minima del segmento";
 "Add a button that opens the video in picture in picture." = "Aggiunge un pulsante che apre il video in Picture in Picture.";
 "Lock Screen Skip" = "Salto da schermata di blocco";
 "Replace next and previous on the lock screen and in Control Center with skip buttons." = "Sostituisce precedente e successivo nella schermata di blocco e nel Centro di Controllo con pulsanti di salto.";

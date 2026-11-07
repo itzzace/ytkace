@@ -924,6 +924,7 @@ CC BY-NC-SA 4.0 ile lisanslanmıştır.";
 "Play a sound and vibrate when a segment is skipped." = "Bir bölüm atlandığında ses çalar ve titreşir.";
 "Notice Duration" = "Bildirim Süresi";
 "Unskip Duration" = "Geri Alma Süresi";
+"Minimum Segment Length" = "Minimum bölüm uzunluğu";
 "Add a button that opens the video in picture in picture." = "Videoyu Resim İçinde Resim olarak açan bir düğme ekler.";
 "Lock Screen Skip" = "Kilit Ekranında Atlama";
 "Replace next and previous on the lock screen and in Control Center with skip buttons." = "Kilit ekranında ve Denetim Merkezi'nde önceki ve sonraki yerine atlama düğmeleri koyar.";

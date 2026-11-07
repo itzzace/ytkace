@@ -924,6 +924,7 @@ Cấp phép theo CC BY-NC-SA 4.0.";
 "Play a sound and vibrate when a segment is skipped." = "Phát âm thanh và rung khi một đoạn được bỏ qua.";
 "Notice Duration" = "Thời lượng thông báo";
 "Unskip Duration" = "Thời lượng hoàn tác";
+"Minimum Segment Length" = "Độ dài phân đoạn tối thiểu";
 "Add a button that opens the video in picture in picture." = "Thêm nút mở video ở chế độ hình trong hình.";
 "Lock Screen Skip" = "Tua trên màn hình khóa";
 "Replace next and previous on the lock screen and in Control Center with skip buttons." = "Thay nút trước và tiếp trên màn hình khóa và Trung tâm điều khiển bằng nút tua.";

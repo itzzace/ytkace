@@ -924,6 +924,7 @@ Lizenziert unter CC BY-NC-SA 4.0.";
 "Play a sound and vibrate when a segment is skipped." = "Spielt einen Ton ab und vibriert, wenn ein Segment übersprungen wird.";
 "Notice Duration" = "Dauer des Hinweises";
 "Unskip Duration" = "Dauer für Rückgängig";
+"Minimum Segment Length" = "Mindestlänge des Segments";
 "Add a button that opens the video in picture in picture." = "Fügt eine Taste hinzu, die das Video in Bild-in-Bild öffnet.";
 "Lock Screen Skip" = "Sprungtasten im Sperrbildschirm";
 "Replace next and previous on the lock screen and in Control Center with skip buttons." = "Ersetzt Zurück und Weiter im Sperrbildschirm und im Kontrollzentrum durch Sprungtasten.";

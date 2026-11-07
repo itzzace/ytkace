@@ -906,6 +906,7 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE usa datos de SponsorBlock.\nCon licen
 "Play a sound and vibrate when a segment is skipped." = "Reproduce un sonido y vibra al saltar un segmento.";
 "Notice Duration" = "Duración del aviso";
 "Unskip Duration" = "Duración de deshacer salto";
+"Minimum Segment Length" = "Duración mínima del segmento";
 "Add a button that opens the video in picture in picture." = "Añade un botón que abre el vídeo en imagen en imagen.";
 "Lock Screen Skip" = "Saltos en pantalla de bloqueo";
 "Replace next and previous on the lock screen and in Control Center with skip buttons." = "Sustituye anterior y siguiente en la pantalla de bloqueo y el centro de control por botones de salto.";

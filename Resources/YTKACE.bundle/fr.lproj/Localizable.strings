@@ -924,6 +924,7 @@ Sous licence CC BY-NC-SA 4.0.";
 "Play a sound and vibrate when a segment is skipped." = "Émet un son et vibre quand un segment est passé.";
 "Notice Duration" = "Durée de l’alerte";
 "Unskip Duration" = "Durée de l’annulation";
+"Minimum Segment Length" = "Durée minimale du segment";
 "Add a button that opens the video in picture in picture." = "Ajoute un bouton qui ouvre la vidéo en image dans l’image.";
 "Lock Screen Skip" = "Saut sur l’écran verrouillé";
 "Replace next and previous on the lock screen and in Control Center with skip buttons." = "Remplace Précédent et Suivant sur l’écran verrouillé et dans le centre de contrôle par des boutons de saut.";

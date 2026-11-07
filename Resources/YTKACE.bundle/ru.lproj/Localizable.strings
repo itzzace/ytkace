@@ -924,6 +924,7 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE использует данные Spo
 "Play a sound and vibrate when a segment is skipped." = "Звук и вибрация при пропуске сегмента.";
 "Notice Duration" = "Длительность уведомления";
 "Unskip Duration" = "Время на отмену";
+"Minimum Segment Length" = "Минимальная длина сегмента";
 "Add a button that opens the video in picture in picture." = "Добавляет кнопку, открывающую видео в режиме «Картинка в картинке».";
 "Lock Screen Skip" = "Перемотка на экране блокировки";
 "Replace next and previous on the lock screen and in Control Center with skip buttons." = "Заменяет «Назад» и «Вперёд» на экране блокировки и в Пункте управления кнопками перемотки.";

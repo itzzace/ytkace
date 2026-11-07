@@ -924,6 +924,7 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE داتای SponsorBlock بەکارد�
 "Play a sound and vibrate when a segment is skipped." = "کاتێک بەشێک تێدەپەڕێنرێت دەنگێک لێ دەدات و دەلەرزێت.";
 "Notice Duration" = "ماوەی ئاگاداری";
 "Unskip Duration" = "ماوەی هەڵوەشاندنەوە";
+"Minimum Segment Length" = "کەمترین درێژی بەش";
 "Add a button that opens the video in picture in picture." = "دوگمەیەک زیاد دەکات کە ڤیدیۆکە لە وێنە لەناو وێنە دەکاتەوە.";
 "Lock Screen Skip" = "تێپەڕاندن لە شاشەی قوفڵ";
 "Replace next and previous on the lock screen and in Control Center with skip buttons." = "دوگمەکانی دواتر و پێشوو لە شاشەی قوفڵ و سەنتەری کۆنترۆڵ بە دوگمەی تێپەڕاندن دەگۆڕێت.";
