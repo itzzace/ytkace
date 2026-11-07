@@ -882,6 +882,7 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE 使用 SponsorBlock 数据。
 "HOME" = "首页";
 "Shorts Progress Bar" = "Shorts 进度条";
 "Auto-Scroll to Next Short" = "自动滑到下一个 Shorts";
+"Auto-Scroll Delay" = "自动滚动延迟";
 "Shorts Speed" = "Shorts 倍速";
 "SCREEN TIME" = "屏幕使用时间";
 "HIDE FROM SHORTS" = "从 Shorts 中隐藏";

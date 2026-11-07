@@ -1763,6 +1763,9 @@ static NSDictionary *YTKACEShortsOptionsDefinition(void) {
         @[
             YTKACEToggleDetail(@"Shorts Progress Bar", @"Show a thin progress line at the bottom of Shorts.", @"shortsProgress"),
             YTKACEToggle(@"Auto-Scroll to Next Short", @"autoSkipShorts", @"", @""),
+            YTKACEPicker(@"Auto-Scroll Delay", @"YTKACE.Preference.Shorts.AutoScrollDelay",
+                         @[@"Off", @"0.5s", @"1s", @"2s", @"3s"],
+                         @[@0, @0.5, @1, @2, @3], 0, @"", @""),
             YTKACEToggleDetail(@"Play Shorts Once",
                                @"Pause at the end instead of replaying.",
                                @"YTKACE.Preference.Shorts.LoopDisabled"),

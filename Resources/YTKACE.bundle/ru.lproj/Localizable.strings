@@ -871,6 +871,7 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE использует данные Spo
 "HOME" = "ГЛАВНАЯ";
 "Shorts Progress Bar" = "Полоса прогресса в Shorts";
 "Auto-Scroll to Next Short" = "Автопереход к следующему Short";
+"Auto-Scroll Delay" = "Задержка автопрокрутки";
 "Shorts Speed" = "Скорость Shorts";
 "SCREEN TIME" = "ЭКРАННОЕ ВРЕМЯ";
 "HIDE FROM SHORTS" = "СКРЫТЬ В SHORTS";

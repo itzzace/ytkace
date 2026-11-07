@@ -871,6 +871,7 @@ Licensed under CC BY-NC-SA 4.0." = "يستخدم YTKACE بيانات SponsorBloc
 "HOME" = "الصفحة الرئيسية";
 "Shorts Progress Bar" = "شريط تقدم Shorts";
 "Auto-Scroll to Next Short" = "التمرير التلقائي إلى Short التالي";
+"Auto-Scroll Delay" = "تأخير التمرير التلقائي";
 "Shorts Speed" = "سرعة Shorts";
 "SCREEN TIME" = "مدة استخدام الجهاز";
 "HIDE FROM SHORTS" = "إخفاء من Shorts";

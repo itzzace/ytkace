@@ -871,6 +871,7 @@ Lizenziert unter CC BY-NC-SA 4.0.";
 "HOME" = "STARTSEITE";
 "Shorts Progress Bar" = "Shorts-Fortschrittsleiste";
 "Auto-Scroll to Next Short" = "Automatisch zum nächsten Short";
+"Auto-Scroll Delay" = "Verzögerung beim automatischen Scrollen";
 "Shorts Speed" = "Shorts-Tempo";
 "SCREEN TIME" = "BILDSCHIRMZEIT";
 "HIDE FROM SHORTS" = "IN SHORTS AUSBLENDEN";

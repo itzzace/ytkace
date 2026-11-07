@@ -871,6 +871,7 @@ CC BY-NC-SA 4.0 でライセンスされています。";
 "HOME" = "ホーム";
 "Shorts Progress Bar" = "ショートのシークバー";
 "Auto-Scroll to Next Short" = "次のショートへ自動でスクロール";
+"Auto-Scroll Delay" = "自動スクロールの遅延";
 "Shorts Speed" = "ショートの再生速度";
 "SCREEN TIME" = "視聴時間";
 "HIDE FROM SHORTS" = "ショートから非表示";

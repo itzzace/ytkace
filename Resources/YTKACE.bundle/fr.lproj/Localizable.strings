@@ -871,6 +871,7 @@ Sous licence CC BY-NC-SA 4.0.";
 "HOME" = "ACCUEIL";
 "Shorts Progress Bar" = "Barre de progression des Shorts";
 "Auto-Scroll to Next Short" = "Passer au Short suivant automatiquement";
+"Auto-Scroll Delay" = "Délai du défilement automatique";
 "Shorts Speed" = "Vitesse des Shorts";
 "SCREEN TIME" = "TEMPS D’ÉCRAN";
 "HIDE FROM SHORTS" = "MASQUER DANS LES SHORTS";

@@ -871,6 +871,7 @@ CC BY-NC-SA 4.0 라이선스가 적용됩니다.";
 "HOME" = "홈";
 "Shorts Progress Bar" = "Shorts 진행률 표시줄";
 "Auto-Scroll to Next Short" = "다음 Shorts로 자동 스크롤";
+"Auto-Scroll Delay" = "자동 스크롤 지연";
 "Shorts Speed" = "Shorts 속도";
 "SCREEN TIME" = "스크린 타임";
 "HIDE FROM SHORTS" = "Shorts에서 숨기기";

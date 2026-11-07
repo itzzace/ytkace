@@ -853,6 +853,7 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE korzysta z danych SponsorBlock.\nLice
 "HOME" = "GŁÓWNA";
 "Shorts Progress Bar" = "Pasek postępu w Shorts";
 "Auto-Scroll to Next Short" = "Automatycznie przewijaj do następnego";
+"Auto-Scroll Delay" = "Opóźnienie automatycznego przewijania";
 "Shorts Speed" = "Prędkość Shorts";
 "SCREEN TIME" = "CZAS PRZED EKRANEM";
 "HIDE FROM SHORTS" = "UKRYJ W SHORTS";
