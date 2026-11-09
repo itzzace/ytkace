@@ -1068,3 +1068,6 @@ CC BY-NC-SA 4.0 でライセンスされています。";
 "Still show Shorts on the Home feed when shelves are removed." = "棚を削除してもホームに Shorts を表示します。";
 "Still show Shorts in search results when shelves are removed." = "棚を削除しても検索結果に Shorts を表示します。";
 "Still show Shorts on channel pages when shelves are removed." = "棚を削除してもチャンネルページに Shorts を表示します。";
+
+"Remove Live Videos from Home" = "ホームからライブ動画を削除";
+"Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "ホームのフィードからライブ配信を削除します。登録チャンネル、検索、チャンネルには表示されます。";

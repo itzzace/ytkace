@@ -83,6 +83,7 @@ void YTKACERegisterDefaults(void) {
         @"YTKACE.Preference.Feed.CommunityPostsHidden": @NO,
         @"YTKACE.Preference.Feed.HorizontalShelvesHidden": @NO,
         @"YTKACE.Preference.Feed.MixesHidden": @NO,
+        @"YTKACE.Preference.Feed.HomeLiveHidden": @NO,
         @"YTKACE.Preference.Feed.PlayablesHidden": @NO,
         @"YTKACE.Preference.Navigation.MessagesHidden": @NO,
         @"YTKACE.Preference.ActionBar.LikeHidden": @NO,
