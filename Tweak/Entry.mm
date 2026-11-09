@@ -52,6 +52,9 @@ static void YTKACEInstallModules(void) {
     YTKACEInstallHLSPlaybackHooks();
     YTKACEInstallShortsHooks();
     YTKACEInstallTabBarHooks();
+    YTKACEInstallDuoTabBarHooks();
+    YTKACEInstallDuoDeskPlayerHooks();
+    YTKACEInstallDuoStatusBarHooks();
     YTKACEInstallNavigationBehaviorHooks();
     YTKACEInstallPlayerGestureHooks();
     YTKACEInstallOverlayVisibilityHooks();

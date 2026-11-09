@@ -13,6 +13,7 @@ An open-source YouTube enhancement for iOS.
 | Interface | OLED mode, overlay controls, navigation cleanup and native share sheets |
 | Liquid Glass | Glass tab bar, top bar buttons, menus, sheets, player buttons and YTKACE popups on iOS 26, with shrink on scroll and a selected tab color |
 | Tabs | Hide, reorder and add YouTube destinations |
+| iPhone Duo | System tab bar in every position, video above the crease with controls below when half open like a laptop, and the status bar hidden over the watch page video |
 | Library | Downloaded video, Shorts and audio players with resume support |
 | Settings | Searchable settings, 15 languages and a native YouTube settings section |
 
