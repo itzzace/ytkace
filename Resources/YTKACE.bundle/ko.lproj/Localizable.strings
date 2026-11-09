@@ -1068,3 +1068,6 @@ CC BY-NC-SA 4.0 라이선스가 적용됩니다.";
 "Still show Shorts on the Home feed when shelves are removed." = "선반을 제거해도 홈에 Shorts를 표시합니다.";
 "Still show Shorts in search results when shelves are removed." = "선반을 제거해도 검색 결과에 Shorts를 표시합니다.";
 "Still show Shorts on channel pages when shelves are removed." = "선반을 제거해도 채널 페이지에 Shorts를 표시합니다.";
+
+"Remove Live Videos from Home" = "홈에서 라이브 동영상 삭제";
+"Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "홈 피드에서 라이브 스트림을 삭제합니다. 구독, 검색, 채널에는 계속 표시됩니다.";

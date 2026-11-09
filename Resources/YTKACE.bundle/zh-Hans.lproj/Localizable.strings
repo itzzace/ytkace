@@ -1068,3 +1068,6 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE 使用 SponsorBlock 数据。
 "Still show Shorts on the Home feed when shelves are removed." = "移除书架后仍在首页显示 Shorts。";
 "Still show Shorts in search results when shelves are removed." = "移除书架后仍在搜索结果中显示 Shorts。";
 "Still show Shorts on channel pages when shelves are removed." = "移除书架后仍在频道页面显示 Shorts。";
+
+"Remove Live Videos from Home" = "从首页移除直播视频";
+"Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "从首页 Feed 中移除直播。订阅、搜索和频道中仍会显示。";

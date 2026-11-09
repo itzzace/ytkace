@@ -1068,3 +1068,6 @@ Concesso in licenza CC BY-NC-SA 4.0.";
 "Still show Shorts on the Home feed when shelves are removed." = "Mostra ancora gli Shorts nella Home quando gli scaffali sono rimossi.";
 "Still show Shorts in search results when shelves are removed." = "Mostra ancora gli Shorts nei risultati di ricerca quando gli scaffali sono rimossi.";
 "Still show Shorts on channel pages when shelves are removed." = "Mostra ancora gli Shorts nei canali quando gli scaffali sono rimossi.";
+
+"Remove Live Videos from Home" = "Rimuovi video dal vivo dalla Home";
+"Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Rimuove le dirette dal feed della Home. Iscrizioni, ricerca e canali le mantengono.";
