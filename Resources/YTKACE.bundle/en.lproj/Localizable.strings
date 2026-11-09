@@ -1078,3 +1078,6 @@ Licensed under CC BY-NC-SA 4.0.";
 "Still show Shorts on the Home feed when shelves are removed." = "Still show Shorts on the Home feed when shelves are removed.";
 "Still show Shorts in search results when shelves are removed." = "Still show Shorts in search results when shelves are removed.";
 "Still show Shorts on channel pages when shelves are removed." = "Still show Shorts on channel pages when shelves are removed.";
+
+"Remove Live Videos from Home" = "Remove Live Videos from Home";
+"Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Removes live streams from the Home feed. Subscriptions, search and channels keep them.";
