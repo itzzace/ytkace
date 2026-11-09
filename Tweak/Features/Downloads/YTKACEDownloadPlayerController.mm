@@ -2281,8 +2281,10 @@ static BOOL YTKACECanForceOrientation(void) {
             CGFloat change = -dy / MAX(180.0, CGRectGetHeight(self.view.bounds));
             CGPoint location = [gesture locationInView:self.view];
             if (location.x < CGRectGetMidX(self.view.bounds)) {
-                UIScreen.mainScreen.brightness = MAX(0.0,
-                    MIN(1.0, UIScreen.mainScreen.brightness + change));
+                // The screen this player is on; on the iPhone Duo mainScreen is the outer
+                // screen even while the app runs unfolded on the inner one.
+                UIScreen *screen = self.view.window.windowScene.screen ?: UIScreen.mainScreen;
+                screen.brightness = MAX(0.0, MIN(1.0, screen.brightness + change));
             } else {
                 MPVolumeView *volumeView = [MPVolumeView new];
                 UISlider *volumeSlider = nil;
