@@ -49,7 +49,7 @@ Rootless and roothide packages are both published. The repository page also has 
 
 Fork the repository, enable Actions, open the **IPA** workflow and provide a direct link to a decrypted YouTube IPA you are legally allowed to use. The completed workflow provides the injected IPA as an artifact. The **Deb** workflow builds the tweak package.
 
-To build both IPAs in one run, fill in the second URL field as well: the workflow takes an iOS 16 base (21.33.6) and an optional iOS 17+ base (21.44.4), and uploads them as separate artifacts. Leaving the second field empty builds a single IPA.
+To build both IPAs in one run, fill in the second URL field as well: the workflow takes an iOS 16 base (21.33.6) and an optional iOS 17+ base (21.45.4), and uploads them as separate artifacts. Leaving the second field empty builds a single IPA.
 
 ## Settings
 

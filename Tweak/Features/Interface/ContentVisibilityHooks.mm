@@ -1096,6 +1096,7 @@ static _Atomic BOOL YTKACEFeedHideProducts = NO;
 static _Atomic BOOL YTKACEFeedHideCommunity = NO;
 static _Atomic BOOL YTKACEFeedHideHorizontalShelves = NO;
 static _Atomic BOOL YTKACEFeedHideMixes = NO;
+static _Atomic BOOL YTKACEFeedHideHomeLive = NO;
 static _Atomic BOOL YTKACEFeedHidePlayables = NO;
 static _Atomic BOOL YTKACEFeedHideAIBlock = NO;
 static _Atomic BOOL YTKACEFeedHideAIWarn = NO;
@@ -1114,12 +1115,14 @@ static void YTKACEFeedRefreshFlags(void) {
         YTKACEFeatureEnabled(@"YTKACE.Preference.Feed.HorizontalShelvesHidden");
     BOOL hideMixes =
         YTKACEFeatureEnabled(@"YTKACE.Preference.Feed.MixesHidden");
+    BOOL hideHomeLive =
+        YTKACEFeatureEnabled(@"YTKACE.Preference.Feed.HomeLiveHidden");
     BOOL hidePlayables =
         YTKACEFeatureEnabled(@"YTKACE.Preference.Feed.PlayablesHidden");
     BOOL hideAIBlock = YTKACEFeatureEnabled(@"YTKACE.Preference.Feed.AIChannelsHidden");
     BOOL hideAIWarn = YTKACEFeatureEnabled(@"YTKACE.Preference.Feed.SuspectedAIChannelsHidden");
     if (hideAIBlock || hideAIWarn) YTKACEAiSListRefreshIfStale();
-    BOOL hideAny = (hideShorts || hideProducts ||
+    BOOL hideAny = (hideShorts || hideProducts || hideHomeLive ||
         hideCommunity || hideHorizontalShelves || hideMixes || hidePlayables || hideAIBlock || hideAIWarn);
     BOOL actionHideAny = YTKACEAnyActionPreferenceEnabled();
     BOOL contentHideAny = (hideAny ||
@@ -1150,6 +1153,7 @@ static void YTKACEFeedRefreshFlags(void) {
     atomic_store(&YTKACEFeedHideCommunity, hideCommunity);
     atomic_store(&YTKACEFeedHideHorizontalShelves, hideHorizontalShelves);
     atomic_store(&YTKACEFeedHideMixes, hideMixes);
+    atomic_store(&YTKACEFeedHideHomeLive, hideHomeLive);
     atomic_store(&YTKACEFeedHidePlayables, hidePlayables);
     atomic_store(&YTKACEFeedHideAIBlock, hideAIBlock);
     atomic_store(&YTKACEFeedHideAIWarn, hideAIWarn);
@@ -1340,6 +1344,7 @@ typedef NS_OPTIONS(NSUInteger, YTKACEFeedKind) {
     YTKACEFeedKindCommunity = 1 << 2,
     YTKACEFeedKindPlayable  = 1 << 3,
     YTKACEFeedKindHorizontalShelves = 1 << 4,
+    YTKACEFeedKindLive      = 1 << 5,
 };
 
 static NSArray<NSString *> *YTKACEShortsClasses(void) {
@@ -1710,6 +1715,18 @@ static NSArray<NSString *> *YTKACEPlayableBytesMarkers(void) {
     return v;
 }
 
+// Live videos carry the LIVE badge's icon; their view count reads "N
+// watching". The Live filter chip carries the icon too, but chip bars are
+// never filtered (YTKACEFeedKindForSection).
+static NSArray<NSString *> *YTKACELiveBytesMarkers(void) {
+    static NSArray<NSString *> *v;
+    static dispatch_once_t t;
+    dispatch_once(&t, ^{ v = @[
+        @"youtube_outline_experimental/live_24pt"
+    ]; });
+    return v;
+}
+
 static NSArray<NSString *> *YTKACEHorizontalShelfBytesMarkers(void) {
     static NSArray<NSString *> *v;
     static dispatch_once_t t;
@@ -1739,7 +1756,7 @@ static YTKACEFeedKind YTKACEFeedKindForSection(id section,
     }
     BOOL truncated = NO;
     YTKACEFeedKind structural = YTKACEFeedKindStructural(
-        section, wanted & ~YTKACEFeedKindHorizontalShelves, &truncated);
+        section, wanted & ~(YTKACEFeedKindHorizontalShelves | YTKACEFeedKindLive), &truncated);
     if ((wanted & YTKACEFeedKindShorts) &&
         !(structural & YTKACEFeedKindShorts)) {
         if (YTKACEFastAllChildrenReel(section)) {
@@ -1766,6 +1783,10 @@ static YTKACEFeedKind YTKACEFeedKindForSection(id section,
             if ((missing & YTKACEFeedKindPlayable) &&
                 YTKACEBytesContain(bytes, YTKACEPlayableBytesMarkers())) {
                 structural |= YTKACEFeedKindPlayable;
+            }
+            if ((missing & YTKACEFeedKindLive) &&
+                YTKACEBytesContain(bytes, YTKACELiveBytesMarkers())) {
+                structural |= YTKACEFeedKindLive;
             }
             if ((missing & YTKACEFeedKindHorizontalShelves) &&
                 YTKACEBytesContain(bytes,
@@ -2036,11 +2057,25 @@ static NSArray *YTKACEFilteredFeedSections(id receiver, NSArray *sections) {
     BOOL hideHorizontalShelves = atomic_load(&YTKACEFeedHideHorizontalShelves) &&
         !YTKACEKeepsShelvesInFeed(receiver);
     BOOL hidePlayables = atomic_load(&YTKACEFeedHidePlayables);
+    BOOL hideLive = atomic_load(&YTKACEFeedHideHomeLive) &&
+        YTKACEShortsSurface(receiver) == YTKACEFeedSurfaceHome;
+    if (hideLive) {
+        // Home's "Live" chip loads a page of live streams under Home's browse
+        // ID, which the user opened on purpose. Its batches are half live
+        // streams (the other sections aren't videos), while regular Home
+        // batches have one or two, so a batch that is at least half live is kept.
+        NSUInteger live = 0;
+        for (id section in adFiltered) {
+            if (YTKACEFeedKindForSection(section, YTKACEFeedKindLive) & YTKACEFeedKindLive) live++;
+        }
+        if (live >= 3 && live * 2 >= adFiltered.count) hideLive = NO;
+    }
     YTKACEFeedKind wanted = 0;
     if (hideShorts) wanted |= YTKACEFeedKindShorts;
     if (hideProducts) wanted |= YTKACEFeedKindProducts;
     if (hideCommunity) wanted |= YTKACEFeedKindCommunity;
     if (hidePlayables) wanted |= YTKACEFeedKindPlayable;
+    if (hideLive) wanted |= YTKACEFeedKindLive;
     if (hideHorizontalShelves) wanted |= YTKACEFeedKindHorizontalShelves;
     BOOL hideAIBlock = atomic_load(&YTKACEFeedHideAIBlock);
     BOOL hideAIWarn = atomic_load(&YTKACEFeedHideAIWarn);
@@ -2056,9 +2091,11 @@ static NSArray *YTKACEFilteredFeedSections(id receiver, NSArray *sections) {
         else if (hideProducts && (kind & YTKACEFeedKindProducts)) cut = @"products";
         else if (hideCommunity && (kind & YTKACEFeedKindCommunity)) cut = @"community";
         else if (hidePlayables && (kind & YTKACEFeedKindPlayable)) cut = @"playables";
+        else if (hideLive && (kind & YTKACEFeedKindLive)) cut = @"live";
         else if (hideHorizontalShelves &&
             (kind & YTKACEFeedKindHorizontalShelves)) cut = @"shelves";
         if (cut != nil) {
+            YTKACEDebugLog(@"feed", @"removed %@ from %@", cut, YTKACEBrowseID(receiver) ?: @"-");
             continue;
         }
         [filtered addObject:section];

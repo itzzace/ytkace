@@ -1050,3 +1050,6 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE korzysta z danych SponsorBlock.\nLice
 "Still show Shorts on the Home feed when shelves are removed." = "Nadal pokazuj Shorts na stronie głównej, gdy półki są usunięte.";
 "Still show Shorts in search results when shelves are removed." = "Nadal pokazuj Shorts w wynikach wyszukiwania, gdy półki są usunięte.";
 "Still show Shorts on channel pages when shelves are removed." = "Nadal pokazuj Shorts na kanałach, gdy półki są usunięte.";
+
+"Remove Live Videos from Home" = "Usuń transmisje na żywo z głównej";
+"Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Usuwa transmisje na żywo z kanału głównego. Subskrypcje, wyszukiwanie i kanały je zachowują.";
