@@ -23,6 +23,7 @@ static IMP OriginalIsPlayingAd;
 static IMP OriginalIsPlayingAdSurvey;
 static IMP OriginalIsPlayingAdIntro;
 static IMP OriginalCreateAdsPlaybackCoordinator;
+static IMP OriginalReelContentModel;
 static IMP OriginalReelShouldDisplay;
 static IMP OriginalCompanionAd;
 static IMP OriginalHasCompanionAdRenderer;
@@ -63,7 +64,16 @@ static const char * const YTKACEAdMarkers[] = {
     ".native_ad_badge",
     "_native_ad_badge",
     ".simple_ad_badge",
-    "_simple_ad_badge"
+    "_simple_ad_badge",
+    "YTIReelNonVideoAdsCustomData",
+    "reelNonVideoAdsCustomData",
+    "YTIReelNonVideoAdsCustomData_reelNonVideoAdsCustomData",
+    "adsVideoWithContext",
+    "ads_video_with_context",
+    "shorts_ad",
+    "shortsAd",
+    "reel_ad",
+    "reelAd"
 };
 
 typedef struct {
@@ -435,6 +445,44 @@ static BOOL YTKACEReelShouldDisplay(id receiver, SEL selector) {
     return !YTKACEReelObjectLooksLikeAd(receiver, 0);
 }
 
+static BOOL YTKACEShortsAdBytes(NSData *data) {
+    const uint8_t *bytes = (const uint8_t *)data.bytes;
+    NSUInteger length = data.length;
+    for (NSUInteger index = 0; index + 3 < length; index++) {
+        if (bytes[index] != 0x82 || bytes[index + 1] != 0x01) continue;
+        NSUInteger cursor = index + 2;
+        NSUInteger size = 0;
+        NSUInteger shift = 0;
+        while (cursor < length && shift < 28) {
+            uint8_t byte = bytes[cursor++];
+            size |= (NSUInteger)(byte & 0x7f) << shift;
+            if ((byte & 0x80) == 0) break;
+            shift += 7;
+        }
+        if (size < 2 || cursor + size > length) continue;
+        for (NSUInteger end = cursor + size; cursor + 1 < end; cursor++) {
+            if (bytes[cursor] == 0x08 && bytes[cursor + 1] == 0x01) {
+                return YES;
+            }
+        }
+    }
+    return NO;
+}
+
+static id YTKACEReelContentModel(id receiver, SEL selector, id entry) {
+    if (YTKACEFeatureEnabled(YTKACENoAdsKey)) {
+        NSData *data = ((id (*)(id, SEL))objc_msgSend)(entry, @selector(data));
+        if (YTKACEAdBytes(data) || YTKACEShortsAdBytes(data)) {
+            return nil;
+        }
+    }
+    return ((id (*)(id, SEL, id))OriginalReelContentModel)(
+        receiver,
+        selector,
+        entry
+    );
+}
+
 NSArray *YTKACEFilterAdSections(NSArray *sections) {
     if (!YTKACEFeatureEnabled(YTKACENoAdsKey) ||
         ![sections isKindOfClass:NSArray.class] || sections.count == 0) {
@@ -639,6 +687,10 @@ void YTKACEInstallAdsHooks(void) {
                               @"createAdsPlaybackCoordinator",
                               (IMP)YTKACENoAdsPlaybackCoordinator,
                               &OriginalCreateAdsPlaybackCoordinator);
+    YTKACEInstallInstanceHook(@"YTReelDataSource",
+                              @"makeContentModelForEntry:",
+                              (IMP)YTKACEReelContentModel,
+                              &OriginalReelContentModel);
     YTKACEInstallInstanceHook(@"YTReelContentModel",
                               @"shouldDisplay",
                               (IMP)YTKACEReelShouldDisplay,
