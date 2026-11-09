@@ -172,6 +172,7 @@ static CGFloat YTKACEPlayerBarTop(UIView *view) {
 // Called last from OverlayButtonHost.mm's layoutSubviews hook on the controls
 // overlay (YTKACE hooks a method once).
 void YTKACEDuoDeskControlsLayout(UIView *self) {
+    if (!DUOIsDuo()) return;
     DUOObserveHinge(self);
     CGRect fold = YTKACEDeskFold(self);
     if (CGRectIsNull(fold)) return;
@@ -202,6 +203,7 @@ void YTKACEDuoDeskControlsLayout(UIView *self) {
 }
 
 void YTKACEInstallDuoDeskPlayerHooks(void) {
+    if (!DUOIsDuo()) return;
     YTKACEInstallInstanceHook(@"YTPlayerView", @"layoutSubviews",
                               (IMP)YTKACEPlayerLayout, &YTKACEOrigPlayerLayout);
 }

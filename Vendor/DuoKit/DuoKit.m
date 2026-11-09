@@ -4,6 +4,26 @@
 // (Theos tweaks often build with one) and does nothing on older systems.
 #import "DuoKit.h"
 #import <objc/message.h>
+#import <sys/sysctl.h>
+
+BOOL DUOIsDuo(void) {
+    static BOOL duo;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        NSString *model = NSProcessInfo.processInfo.environment[@"SIMULATOR_MODEL_IDENTIFIER"];
+        if (model.length == 0) {
+            char buffer[64] = {0};
+            size_t size = sizeof(buffer) - 1;
+            if (sysctlbyname("hw.machine", buffer, &size, NULL, 0) == 0) {
+                model = [NSString stringWithUTF8String:buffer];
+            }
+        }
+        // iPhone19,4 is the iPhone Duo. A hinge seen on an earlier launch
+        // covers models added later.
+        duo = [model isEqualToString:@"iPhone19,4"] || DUOHasHinge();
+    });
+    return duo;
+}
 
 NSInteger DUOVerticalBarEdge(UIWindow *window) {
     UITraitCollection *traits = window.traitCollection;

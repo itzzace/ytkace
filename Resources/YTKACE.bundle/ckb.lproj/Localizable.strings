@@ -1071,3 +1071,10 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE داتای SponsorBlock بەکارد�
 
 "Remove Live Videos from Home" = "لابردنی ڤیدیۆی ڕاستەوخۆ لە سەرەکی";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "پەخشی ڕاستەوخۆ لە فیدی سەرەکی لادەبات. بەشداربوونەکان و گەڕان و کەناڵەکان دەیانهێڵنەوە.";
+
+"iPhone Duo System Tab Bar" = "شریتی تابی سیستەمی iPhone Duo";
+"Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright." = "تابەکان لە شریتی تایبەتی iPhone Duo پیشان دەدات: شریتی ستوونی کە بە ڕاگرتن لەگەڵ ناونیشانەکان فراوان دەبێت، یان شریتی خوارەوە کاتێک بە ڕاستی کراوەیە.";
+"iPhone Duo Laptop Layout" = "شێوازی لاپتۆپی iPhone Duo";
+"Half open like a laptop, full-screen video plays above the crease with the controls below." = "کاتێک وەک لاپتۆپ نیوە کراوەیە، ڤیدیۆی پڕشاشە لە سەرووی چەماوەکە لێدەدرێت و کۆنترۆڵەکان لە خوارەوەن.";
+"iPhone Duo Status Bar Over Video" = "شریتی دۆخ لەسەر ڤیدیۆ لە iPhone Duo";
+"Hide the clock and status icons while the watch page's video is under them." = "کاتژمێر و ئایکۆنەکانی دۆخ بشارەوە کاتێک ڤیدیۆی پەڕەی سەیرکردن لە ژێریانە.";

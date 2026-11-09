@@ -1071,3 +1071,10 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE 使用 SponsorBlock 資料。
 
 "Remove Live Videos from Home" = "從首頁移除直播影片";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "從首頁動態中移除直播。訂閱內容、搜尋和頻道仍會顯示。";
+
+"iPhone Duo System Tab Bar" = "iPhone Duo 系統標籤列";
+"Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright." = "在 iPhone Duo 內建的標籤列中顯示標籤：按住時展開顯示名稱的直立列，或直立展開時底部的浮動列。";
+"iPhone Duo Laptop Layout" = "iPhone Duo 筆電佈局";
+"Half open like a laptop, full-screen video plays above the crease with the controls below." = "像筆電一樣半開時，全螢幕影片在折痕上方播放，控制項位於下方。";
+"iPhone Duo Status Bar Over Video" = "iPhone Duo 影片上的狀態列";
+"Hide the clock and status icons while the watch page's video is under them." = "當觀看頁面的影片位於下方時，隱藏時鐘和狀態圖示。";

@@ -56,6 +56,7 @@ static BOOL YTKACEWatchStatusHidden(UIViewController *self, SEL _cmd) {
 }
 
 void YTKACEInstallDuoStatusBarHooks(void) {
+    if (!DUOIsDuo()) return;
     YTKACEInstallInstanceHook(@"YTWatchLayerViewController", @"prefersStatusBarHidden",
                               (IMP)YTKACEWatchStatusHidden, &YTKACEOrigWatchStatusHidden);
 }

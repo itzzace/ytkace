@@ -1053,3 +1053,10 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE usa datos de SponsorBlock.\nCon licen
 
 "Remove Live Videos from Home" = "Quitar vídeos en directo de Inicio";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Quita las emisiones en directo del feed de Inicio. Suscripciones, búsqueda y canales las mantienen.";
+
+"iPhone Duo System Tab Bar" = "Barra de pestañas del sistema del iPhone Duo";
+"Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright." = "Muestra las pestañas en la barra propia del iPhone Duo: la barra vertical, que se amplía con etiquetas al mantenerla pulsada, o la barra flotante inferior cuando está desplegado y en vertical.";
+"iPhone Duo Laptop Layout" = "Diseño de portátil del iPhone Duo";
+"Half open like a laptop, full-screen video plays above the crease with the controls below." = "Medio abierto como un portátil, el vídeo a pantalla completa se ve sobre el pliegue y los controles debajo.";
+"iPhone Duo Status Bar Over Video" = "Barra de estado sobre el vídeo en el iPhone Duo";
+"Hide the clock and status icons while the watch page's video is under them." = "Oculta el reloj y los iconos de estado mientras el vídeo de la página de reproducción está debajo.";

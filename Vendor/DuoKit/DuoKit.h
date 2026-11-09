@@ -41,10 +41,6 @@ FOUNDATION_EXPORT CGFloat DUOListTrailingInsetBesideVerticalBar(UIView *view, CG
 // that hide the status bar should remember the area from while it showed.
 FOUNDATION_EXPORT CGRect DUOStatusItemsFrame(UIView *_Nullable view);
 
-// Decides per window whether a module applies. Modules that take one use it in
-// place of their default rule (usually: the vertical bar shows).
-typedef BOOL (^DUOWindowRule)(UIWindow *_Nullable window);
-
 #pragma mark - Desk (laptop) posture
 
 // The crease's frame in `view`'s coordinates while the Duo is half open with
@@ -65,31 +61,15 @@ FOUNDATION_EXPORT void DUOObserveHinge(UIView *_Nullable view);
 // reports no crease region, so this is how to tell it from other iPhones.
 FOUNDATION_EXPORT BOOL DUOHasHinge(void);
 
+// Whether this is an iPhone Duo, from the model identifier (iPhone19,4) or a
+// hinge seen on an earlier launch. Cached after the first call.
+FOUNDATION_EXPORT BOOL DUOIsDuo(void);
+
 // Fills `host` below the crease with a live, mirrored, blurred and darkened
 // copy of `source` (the video's view), behind the controls, the way Netflix
 // fills the lower half. Pass CGRectNull for `fold` to hide it. Call from the
 // host's layout. Uses UIKit's private _UIPortalView; does nothing without it.
 FOUNDATION_EXPORT void DUOUpdateDeskReflection(UIView *_Nullable host, UIView *_Nullable source, CGRect fold);
-
-#pragma mark - Launch and screens
-
-// Scene lifecycle for apps that still build their window in the app delegate.
-// Apps re-stamped with the iOS 27 SDK must use scenes or UIKit stops them at
-// launch. Call from a constructor, and name DUOSceneDelegate in Info.plist's
-// UIApplicationSceneManifest (scripts/duo-patch-ipa.sh does both sides).
-FOUNDATION_EXPORT void DUOInstallSceneAdapter(void);
-
-// Shows the app only the screen its scene is on. The Duo reports both panels in
-// UIScreen.screens, and apps that drive an external display treat the second
-// panel as a TV. Not needed for apps without external-display code.
-FOUNDATION_EXPORT void DUOInstallSingleScreen(void);
-
-#pragma mark - Bars
-
-// Clear title bar that minimizes while scrolling down, and on the first screen
-// of each navigation stack a hidden title with content moved up to the top.
-// `enabled` defaults to "the vertical bar shows".
-FOUNDATION_EXPORT void DUOInstallTitleBar(DUOWindowRule _Nullable enabled);
 
 // One tab of an app's own tab bar, as the system's vertical tab bar shows it.
 // Images may be any size or color; they are redrawn as same-size templates.
@@ -136,17 +116,5 @@ FOUNDATION_EXPORT BOOL DUOViewShowing(UIView *_Nullable view);
 // and no touches. Read the bar's alpha and hidden to learn whether the app
 // wants it on screen, and hide the mirror when it does not.
 FOUNDATION_EXPORT void DUOSetViewCovered(UIView *view, BOOL covered);
-
-// Hides scroll indicators in every scroll view. Beside the Duo's vertical bar
-// they land left of the bar's column or mid-screen during sideways slides.
-FOUNDATION_EXPORT void DUOInstallHiddenScrollIndicators(void);
-
-#pragma mark - Sideloading
-
-// Answers the app's Info.plist lookups for `infoKey` with the signing team's
-// prefix ("ABCDE12345."), read from the app's default keychain group. For apps
-// that name their keychain group from an Info.plist value, so a release IPA
-// works for whoever signs it.
-FOUNDATION_EXPORT void DUOInstallSignedTeamPrefix(NSString *infoKey);
 
 NS_ASSUME_NONNULL_END

@@ -312,13 +312,14 @@ UIViewController *YTKACEMakeDownloadLogController(void) {
     const CGFloat top = self.headerTop;
     // Keep the header inside the safe area: beside the iPhone Duo's vertical
     // bar the right inset covers the clock and camera column.
+    const BOOL duo = DUOIsDuo();
     const UIEdgeInsets safe = self.view.safeAreaInsets;
-    const CGFloat left = safe.left;
-    const CGFloat right = safe.right;
+    const CGFloat left = duo ? safe.left : 0.0;
+    const CGFloat right = duo ? safe.right : 0.0;
     // With no status bar above it (the Duo's status bar is vertical) the header
     // starts at the screen's top edge, so the buttons need more room from the
     // rounded corners.
-    const CGFloat inset = top < 1.0 ? 16.0 : 8.0;
+    const CGFloat inset = duo && top < 1.0 ? 16.0 : 8.0;
     self.settingsHeader.frame = CGRectMake(0.0, top, width, 170.0);
     self.closeButton.frame = CGRectMake(left + inset, inset, 40.0, 40.0);
     self.applyButton.frame = CGRectMake(width - right - inset - 40.0, inset, 40.0, 40.0);
@@ -332,8 +333,8 @@ UIViewController *YTKACEMakeDownloadLogController(void) {
     const CGFloat contentTop = top + 170.0;
     const CGFloat contentHeight =
         MAX(0.0, CGRectGetHeight(self.view.bounds) - contentTop);
-    const CGFloat listTrailing =
-        DUOListTrailingInsetBesideVerticalBar(self.view, contentTop);
+    const CGFloat listTrailing = duo
+        ? DUOListTrailingInsetBesideVerticalBar(self.view, contentTop) : 0.0;
     // Rows normally keep out of the safe area; when the list may use the
     // vertical bar's column, its frame stops at the bar region instead.
     self.tableView.frame = CGRectMake(0.0, contentTop,

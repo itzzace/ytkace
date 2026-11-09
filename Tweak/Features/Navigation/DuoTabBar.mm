@@ -121,7 +121,7 @@ static void YTKACEUpdateDuoTabs(UIView *bar) {
     // bottom tab bar takes YouTube's tabs there, so every pose has the same
     // bar. Other iPhones keep YouTube's own bar.
     DUOObserveHinge(bar);
-    BOOL bottomBar = DUOHasHinge();
+    BOOL bottomBar = DUOIsDuo();
     if (items.count == 0 || (edge == 0 && !bottomBar)) {
         YTKACELogDuoDecision(bar, [NSString stringWithFormat:@"youtube column: enabled=%d showing=%d items=%lu edge=%ld alpha=%.2f hidden=%d",
                                    enabled, showing, (unsigned long)items.count, (long)edge, bar.alpha, bar.hidden]);
@@ -200,11 +200,13 @@ static void YTKACEFloatingMoveToWindow(UIView *self, SEL _cmd) {
 
 // Called from TabBarHooks.mm's setSelected: hook (a method is hooked once).
 void YTKACEDuoTabsSelectionChanged(UIView *item) {
+    if (!DUOIsDuo()) return;
     UIView *bar = YTKACEFloatingBarAncestor(item);
     if (bar != nil) YTKACEScheduleDuoTabs(bar);
 }
 
 void YTKACEInstallDuoTabBarHooks(void) {
+    if (!DUOIsDuo()) return;
     if (NSClassFromString(@"YTFloatingPivotBarView") == Nil) return;
     YTKACEInstallInstanceHook(@"YTFloatingPivotBarView", @"layoutSubviews",
                               (IMP)YTKACEFloatingLayout, &YTKACEOrigFloatingLayout);
