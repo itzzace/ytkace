@@ -5,6 +5,7 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <stdint.h>
+#import <string.h>
 
 static IMP OriginalShouldBlockUpgradeDialog;
 static IMP OriginalAdShieldSignals;
@@ -252,20 +253,43 @@ static void YTKACEAccountAdsDecorateContext(id receiver, SEL selector, id contex
 }
 
 static IMP OriginalAccountAdsDecorateService;
+static IMP OriginalAdsDecorateService;
 
-static void YTKACEAccountAdsDecorateService(id receiver,
-                                            SEL selector,
-                                            id context,
-                                            long long type) {
-    if (!YTKACEFeatureEnabled(YTKACENoAdsKey) &&
-        OriginalAccountAdsDecorateService != NULL) {
-        ((void (*)(id, SEL, id, long long))OriginalAccountAdsDecorateService)(
+static void YTKACECallAdsDecorateService(IMP original,
+                                         id receiver,
+                                         SEL selector,
+                                         id context,
+                                         long long type) {
+    if (!YTKACEFeatureEnabled(YTKACENoAdsKey) && original != NULL) {
+        ((void (*)(id, SEL, id, long long))original)(
             receiver,
             selector,
             context,
             type
         );
     }
+}
+
+static void YTKACEAccountAdsDecorateService(id receiver,
+                                            SEL selector,
+                                            id context,
+                                            long long type) {
+    YTKACECallAdsDecorateService(OriginalAccountAdsDecorateService,
+                                 receiver,
+                                 selector,
+                                 context,
+                                 type);
+}
+
+static void YTKACEAdsDecorateService(id receiver,
+                                     SEL selector,
+                                     id context,
+                                     long long type) {
+    YTKACECallAdsDecorateService(OriginalAdsDecorateService,
+                                 receiver,
+                                 selector,
+                                 context,
+                                 type);
 }
 
 static id YTKACEPlayerAdsArray(id receiver, SEL selector) {
@@ -596,6 +620,29 @@ static BOOL YTKACEHasShoppingCompanionAdRenderer(id receiver, SEL selector) {
     );
 }
 
+static void YTKACEInstallAdsDecorateServiceHook(NSString *className,
+                                                IMP replacement,
+                                                IMP *originalStorage) {
+    Class cls = NSClassFromString(className);
+    if (cls == Nil) return;
+
+    Method method = class_getInstanceMethod(
+        cls,
+        NSSelectorFromString(@"decorateContext:serviceType:")
+    );
+    if (method == NULL) return;
+
+    const char *types = method_getTypeEncoding(method);
+    if (types == NULL || strcmp(types, "v32@0:8@16q24") != 0) {
+        return;
+    }
+
+    YTKACEInstallInstanceHook(className,
+                              @"decorateContext:serviceType:",
+                              replacement,
+                              originalStorage);
+}
+
 void YTKACEInstallAdsHooks(void) {
     YTKACEAdTrieBuild();
     YTKACEInstallInstanceHook(@"NSURLSessionTask",
@@ -622,22 +669,16 @@ void YTKACEInstallAdsHooks(void) {
                               @"decorateContext:",
                               (IMP)YTKACEAccountAdsDecorateContext,
                               &OriginalAccountAdsDecorateContext);
-    Method serviceMethod = class_getInstanceMethod(
-        NSClassFromString(@"YTAccountScopedAdsInnerTubeContextDecorator"),
-        NSSelectorFromString(@"decorateContext:serviceType:")
+    YTKACEInstallAdsDecorateServiceHook(
+        @"YTAccountScopedAdsInnerTubeContextDecorator",
+        (IMP)YTKACEAccountAdsDecorateService,
+        &OriginalAccountAdsDecorateService
     );
-    const char *serviceTypes = serviceMethod != NULL
-        ? method_getTypeEncoding(serviceMethod)
-        : NULL;
-    if (serviceTypes != NULL &&
-        strncmp(serviceTypes, "v32@0:8@16q24", 13) == 0) {
-        YTKACEInstallInstanceHook(
-            @"YTAccountScopedAdsInnerTubeContextDecorator",
-            @"decorateContext:serviceType:",
-            (IMP)YTKACEAccountAdsDecorateService,
-            &OriginalAccountAdsDecorateService
-        );
-    }
+    YTKACEInstallAdsDecorateServiceHook(
+        @"YTAdsInnerTubeContextDecoratorImpl",
+        (IMP)YTKACEAdsDecorateService,
+        &OriginalAdsDecorateService
+    );
 
     YTKACEInstallInstanceHook(@"YTIPlayerResponse",
                               @"playerAdsArray",
