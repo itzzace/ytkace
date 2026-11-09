@@ -20,14 +20,14 @@ An open-source YouTube enhancement for iOS.
 
 - **iOS:** 15.0 and newer (tweak packages); the prebuilt IPAs follow their YouTube base
 - **Architecture:** arm64
-- **YTKACE:** 1.1.4
+- **YTKACE:** 1.1.5
 
 YouTube 21.44.4 requires iOS 17, so two IPAs are published:
 
 | IPA | YouTube base | iOS |
 | --- | --- | --- |
-| `YTKACE_1.1.4_YouTube_iOS16_21.33.6.ipa` | 21.33.6 | 16.0 and newer |
-| `YTKACE_1.1.4_YouTube_21.44.4.ipa` | 21.44.4 | 17.0 and newer |
+| `YTKACE_1.1.5_YouTube_iOS16_21.33.6.ipa` | 21.33.6 | 16.0 and newer |
+| `YTKACE_1.1.5_YouTube_21.44.4.ipa` | 21.44.4 | 17.0 and newer |
 
 Pick the 21.44.4 build unless you are on iOS 16. Either one installs with TrollStore or a developer-certificate sideloader.
 

@@ -16,6 +16,7 @@ static NSMutableSet<NSString *> *YTKACEShortsInstalledHooks;
 static const void *YTKACEShortsTrackAssociation = &YTKACEShortsTrackAssociation;
 static const void *YTKACEShortsFillAssociation = &YTKACEShortsFillAssociation;
 static const void *YTKACEShortsSkipAssociation = &YTKACEShortsSkipAssociation;
+static const void *YTKACEShortsLastTimeAssociation = &YTKACEShortsLastTimeAssociation;
 static const void *YTKACEShortsDownloadAssociation = &YTKACEShortsDownloadAssociation;
 static const void *YTKACEShortsHiddenAssociation = &YTKACEShortsHiddenAssociation;
 static const void *YTKACEShortsDownloadConstraintsAssociation =
@@ -1007,17 +1008,58 @@ static void YTKACEShortsTimeChanged(NSNotification *notification) {
     if (!YTKACEFeatureEnabled(@"autoSkipShorts") || duration <= 1.0) {
         return;
     }
-    if (time < duration * 0.5) {
-        objc_setAssociatedObject(shorts, YTKACEShortsSkipAssociation, nil,
-                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    }
-    if (time >= duration - 0.35 &&
-        ![objc_getAssociatedObject(shorts, YTKACEShortsSkipAssociation) boolValue]) {
-        if (YTKACEAdvanceShort(shorts, player)) {
-            objc_setAssociatedObject(shorts, YTKACEShortsSkipAssociation, @YES,
+    const double previous =
+        [objc_getAssociatedObject(shorts, YTKACEShortsLastTimeAssociation) doubleValue];
+    objc_setAssociatedObject(shorts, YTKACEShortsLastTimeAssociation, @(time),
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    // Wait for the real end: either the last frames, or the jump back to the
+    // start when the Short loops.
+    const BOOL ended = time >= duration - 0.08 ||
+        (previous >= duration - 1.0 && time < 1.0);
+    if (!ended) {
+        if (time < duration * 0.5 && time >= 1.0) {
+            objc_setAssociatedObject(shorts, YTKACEShortsSkipAssociation, nil,
                                      OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         }
+        return;
     }
+    if ([objc_getAssociatedObject(shorts, YTKACEShortsSkipAssociation) boolValue]) {
+        return;
+    }
+    objc_setAssociatedObject(shorts, YTKACEShortsSkipAssociation, @YES,
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    id delayValue = YTKACEPreferenceObject(@"YTKACE.Preference.Shorts.AutoScrollDelay");
+    const double delay = [delayValue respondsToSelector:@selector(doubleValue)]
+        ? MAX(0.0, MIN([delayValue doubleValue], 5.0)) : 0.0;
+    if (delay <= 0.0) {
+        if (!YTKACEAdvanceShort(shorts, player)) {
+            objc_setAssociatedObject(shorts, YTKACEShortsSkipAssociation, nil,
+                                     OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
+        return;
+    }
+    __weak id weakShorts = shorts;
+    __weak id weakPlayer = player;
+    SEL videoGetter = NSSelectorFromString(@"currentVideoID");
+    id videoID = [player respondsToSelector:videoGetter]
+        ? ((id (*)(id, SEL))objc_msgSend)(player, videoGetter) : nil;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        id strongShorts = weakShorts;
+        id strongPlayer = weakPlayer;
+        if (strongShorts == nil || strongPlayer == nil ||
+            !YTKACEFeatureEnabled(@"autoSkipShorts")) {
+            return;
+        }
+        // Skip if the user already moved to another Short.
+        id nowID = [strongPlayer respondsToSelector:videoGetter]
+            ? ((id (*)(id, SEL))objc_msgSend)(strongPlayer, videoGetter) : nil;
+        if (videoID != nil && ![videoID isEqual:nowID]) return;
+        if (!YTKACEAdvanceShort(strongShorts, strongPlayer)) {
+            objc_setAssociatedObject(strongShorts, YTKACEShortsSkipAssociation, nil,
+                                     OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
+    });
 }
 
 void YTKACEInstallShortsHooks(void) {

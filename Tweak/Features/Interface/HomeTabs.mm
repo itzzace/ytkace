@@ -4,6 +4,7 @@
 #import "../../Runtime/Preferences.h"
 
 #import <objc/message.h>
+#import <objc/runtime.h>
 
 static IMP OriginalBrowseLoadResponse;
 static IMP OriginalBrowseLoadInitialResponse;
@@ -248,7 +249,104 @@ static void YTKACEBrowseLoadInitialResponse(id receiver, SEL selector, id respon
     ((void (*)(id, SEL, id))OriginalBrowseLoadInitialResponse)(receiver, selector, response);
 }
 
+// Report an older app version on Home requests so the server sends the
+// layout from before the redesign.
+static NSString * const YTKACEHomeSpoofVersion = @"21.33.6";
+static IMP OriginalBrowseRequestWrite;
+static IMP OriginalBrowseRequestSize;
+
+static BOOL YTKACEIsHomeContinuation(NSString *token) {
+    if (![token isKindOfClass:NSString.class] || token.length == 0) return NO;
+    NSString *base64 = [[token stringByReplacingOccurrencesOfString:@"-" withString:@"+"]
+        stringByReplacingOccurrencesOfString:@"_" withString:@"/"];
+    base64 = [base64 stringByRemovingPercentEncoding] ?: base64;
+    while (base64.length % 4 != 0) base64 = [base64 stringByAppendingString:@"="];
+    NSData *data = [[NSData alloc] initWithBase64EncodedString:base64
+                                                        options:NSDataBase64DecodingIgnoreUnknownCharacters];
+    NSData *needle = [@"FEwhat_to_watch" dataUsingEncoding:NSUTF8StringEncoding];
+    return data.length != 0 && [data rangeOfData:needle options:0 range:NSMakeRange(0, data.length)].location != NSNotFound;
+}
+
+static void YTKACESpoofHomeRequest(id request) {
+    id browseID = YTKACEHomeObject(request, @"browseId");
+    BOOL home = [browseID isKindOfClass:NSString.class] && [browseID isEqualToString:@"FEwhat_to_watch"];
+    if (!home && YTKACEIsHomeContinuation(YTKACEHomeObject(request, @"continuation"))) home = YES;
+    if (!home) return;
+    if (!YTKACEFeatureEnabled(@"YTKACE.Preference.Feed.HomeTabsHidden")) return;
+    id context = YTKACEHomeObject(request, @"context");
+    NSString *version = YTKACEHomeObject(YTKACEHomeObject(context, @"client"), @"clientVersion");
+    if (context == nil || [version isEqualToString:YTKACEHomeSpoofVersion]) return;
+    id copy = [context copy];
+    YTKACEHomeSet(YTKACEHomeObject(copy, @"client"), @"setClientVersion:", YTKACEHomeSpoofVersion);
+    YTKACEHomeSet(request, @"setContext:", copy);
+}
+
+static size_t YTKACEBrowseRequestSize(id receiver, SEL selector) {
+    YTKACESpoofHomeRequest(receiver);
+    return ((size_t (*)(id, SEL))OriginalBrowseRequestSize)(receiver, selector);
+}
+
+static void YTKACEBrowseRequestWrite(id receiver, SEL selector, id stream) {
+    YTKACESpoofHomeRequest(receiver);
+    ((void (*)(id, SEL, id))OriginalBrowseRequestWrite)(receiver, selector, stream);
+}
+
+static IMP OriginalRequestSetHeader;
+static IMP OriginalRequestSetBody;
+
+static BOOL YTKACEIsSpoofedHomeBody(NSData *body) {
+    if (body.length == 0) return NO;
+    NSData *needle = [YTKACEHomeSpoofVersion dataUsingEncoding:NSUTF8StringEncoding];
+    return [body rangeOfData:needle options:0 range:NSMakeRange(0, body.length)].location != NSNotFound;
+}
+
+// Keep the version header in line with the spoofed request body.
+static void YTKACEMatchVersionHeader(NSMutableURLRequest *request) {
+    if (![request.URL.path containsString:@"/browse"] || !YTKACEIsSpoofedHomeBody(request.HTTPBody)) return;
+    NSString *current = [request valueForHTTPHeaderField:@"X-Youtube-Client-Version"];
+    if (current == nil || [current isEqualToString:YTKACEHomeSpoofVersion]) return;
+    ((void (*)(id, SEL, id, id))OriginalRequestSetHeader)(request, @selector(setValue:forHTTPHeaderField:),
+                                                         YTKACEHomeSpoofVersion, @"X-Youtube-Client-Version");
+}
+
+static void YTKACERequestSetHeader(NSMutableURLRequest *receiver, SEL selector, NSString *value, NSString *field) {
+    ((void (*)(id, SEL, id, id))OriginalRequestSetHeader)(receiver, selector, value, field);
+    if (![field isKindOfClass:NSString.class] ||
+        [field caseInsensitiveCompare:@"X-Youtube-Client-Version"] != NSOrderedSame) return;
+    YTKACEMatchVersionHeader(receiver);
+}
+
+static void YTKACERequestSetBody(NSMutableURLRequest *receiver, SEL selector, NSData *body) {
+    ((void (*)(id, SEL, id))OriginalRequestSetBody)(receiver, selector, body);
+    YTKACEMatchVersionHeader(receiver);
+}
+
 __attribute__((constructor)) static void YTKACEInstallHomeTabs(void) {
+    YTKACEInstallInstanceHook(@"NSMutableURLRequest", @"setValue:forHTTPHeaderField:",
+                              (IMP)YTKACERequestSetHeader, &OriginalRequestSetHeader);
+    YTKACEInstallInstanceHook(@"NSMutableURLRequest", @"setHTTPBody:",
+                              (IMP)YTKACERequestSetBody, &OriginalRequestSetBody);
+    Class browseRequest = NSClassFromString(@"YTIBrowseRequest");
+    SEL write = NSSelectorFromString(@"writeToCodedOutputStream:");
+    Method inherited = class_getInstanceMethod(browseRequest, write);
+    const char *writeTypes = inherited != NULL ? method_getTypeEncoding(inherited) : NULL;
+    if (writeTypes != NULL && strncmp(writeTypes, "v24@0:8@16", 10) == 0) {
+        OriginalBrowseRequestWrite = method_getImplementation(inherited);
+        if (!class_addMethod(browseRequest, write, (IMP)YTKACEBrowseRequestWrite, writeTypes)) {
+            OriginalBrowseRequestWrite = method_setImplementation(
+                class_getInstanceMethod(browseRequest, write), (IMP)YTKACEBrowseRequestWrite);
+        }
+    }
+    SEL size = NSSelectorFromString(@"serializedSize");
+    Method sizeMethod = class_getInstanceMethod(browseRequest, size);
+    const char *sizeTypes = sizeMethod != NULL ? method_getTypeEncoding(sizeMethod) : NULL;
+    if (OriginalBrowseRequestWrite != NULL && sizeTypes != NULL && strncmp(sizeTypes, "Q16@0:8", 7) == 0) {
+        OriginalBrowseRequestSize = method_getImplementation(sizeMethod);
+        if (!class_addMethod(browseRequest, size, (IMP)YTKACEBrowseRequestSize, sizeTypes)) {
+            OriginalBrowseRequestSize = method_setImplementation(
+                class_getInstanceMethod(browseRequest, size), (IMP)YTKACEBrowseRequestSize);
+        }
+    }
     YTKACEInstallInstanceHook(@"YTBrowseViewController", @"loadWithResponse:",
                               (IMP)YTKACEBrowseLoadResponse, &OriginalBrowseLoadResponse);
     YTKACEInstallInstanceHook(@"YTBrowseViewController", @"loadWithInitialResponse:",

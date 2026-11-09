@@ -450,6 +450,7 @@ static void YTKACEEvaluateSponsorTime(id controller, double time) {
                                  OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
 
+    const double minimum = YTKACESponsorMinimumSegmentLength();
     [segments enumerateObjectsUsingBlock:
         ^(NSDictionary<NSString *, id> *segment, NSUInteger index, BOOL *stop) {
             double start = [segment[@"start"] doubleValue];
@@ -458,6 +459,8 @@ static void YTKACEEvaluateSponsorTime(id controller, double time) {
                 ? segment[@"category"] : @"sponsor";
             NSInteger behavior = YTKACESponsorCategoryBehavior(category);
             if (behavior == 2 || behavior == 3) return;
+            // Segments shorter than the minimum just play.
+            if (end - start < minimum) return;
             NSNumber *token = @(index);
             if (time < start - 1.0) {
                 [skipped removeObject:token];

@@ -1,6 +1,6 @@
 Package: com.itzzace.ytkace
 Name: YTKACE
-Version: 1.1.4
+Version: 1.1.5
 Architecture: iphoneos-arm64
 Description: Open-source YouTube enhancement with downloads, SponsorBlock, background playback and interface controls
 Maintainer: itzzace

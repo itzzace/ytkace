@@ -110,6 +110,10 @@ static BOOL YTKACEReloadPlayer(id pvc, NSString *stage) {
         ![video respondsToSelector:mediaGetter]) {
         YTKACEDownloadLog(@"fix", @"%@ player reload unavailable on %@", stage,
                           video == nil ? @"nil" : NSStringFromClass([video class]));
+        YTKACEDebugLog(@"fix", @"%@ reload pvc=%@ video=%@ reload=%d media=%d context=%d", stage,
+                       NSStringFromClass([pvc class]), video ? NSStringFromClass([video class]) : @"nil",
+                       [video respondsToSelector:reloadSel], [video respondsToSelector:mediaGetter],
+                       contextClass != Nil);
         return NO;
     }
     id allocated = [contextClass alloc];
@@ -193,6 +197,11 @@ static void YTKACEHandleError(id receiver, SEL selector, id error) {
                 id strongPlayer = weakPlayer;
                 if (available && strongPlayer != nil && YTKACEReloadPlayer(strongPlayer, @"hls fallback")) {
                     YTKACEDownloadLog(@"hls", @"fallback to vision video=%@", videoID);
+                    return;
+                }
+                if (available && strongReceiver != nil) {
+                    YTKACESendRetryEvent(strongReceiver, @"hls fallback");
+                    YTKACEDownloadLog(@"hls", @"fallback to vision video=%@ retry", videoID);
                     return;
                 }
                 YTKACEDownloadLog(@"hls", @"fallback unavailable video=%@", videoID);
