@@ -29,6 +29,13 @@ static const void *YTKACESeekIndicatorAssociation = &YTKACESeekIndicatorAssociat
 static const void *YTKACESeekIconAssociation = &YTKACESeekIconAssociation;
 static const void *YTKACESeekLabelAssociation = &YTKACESeekLabelAssociation;
 
+// The screen the player is on. On the iPhone Duo UIScreen.mainScreen is the
+// outer screen even while the app runs unfolded on the inner one, so setting
+// its brightness changed the screen that's off.
+static UIScreen *YTKACEScreenForView(UIView *view) {
+    return view.window.windowScene.screen ?: UIScreen.mainScreen;
+}
+
 @interface YTKACEPriorityPanGestureRecognizer : UIPanGestureRecognizer
 @end
 
@@ -363,7 +370,7 @@ shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)other 
     if (recognizer.state == UIGestureRecognizerStateBegan) {
         double start = volume
             ? AVAudioSession.sharedInstance.outputVolume
-            : UIScreen.mainScreen.brightness;
+            : YTKACEScreenForView(view).brightness;
         objc_setAssociatedObject(recognizer,
                                  YTKACEGestureInitialAssociation,
                                  @(start),
@@ -391,7 +398,7 @@ shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)other 
             [slider setValue:(float)value animated:NO];
             [slider sendActionsForControlEvents:UIControlEventValueChanged];
         } else {
-            UIScreen.mainScreen.brightness = value;
+            YTKACEScreenForView(view).brightness = value;
             if (both) {
                 double volumeStart = [objc_getAssociatedObject(
                     recognizer, YTKACEGestureSecondaryInitialAssociation)
