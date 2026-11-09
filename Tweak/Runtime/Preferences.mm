@@ -55,6 +55,9 @@ void YTKACERegisterDefaults(void) {
     [YTKACEDefaults() registerDefaults:@{
         YTKACEMasterEnabledKey: @YES,
         YTKACENoAdsKey: @YES,
+        @"YTKACE.Preference.Tabs.DuoNativeBar": @YES,
+        @"YTKACE.Preference.Player.DuoDeskSplit": @YES,
+        @"YTKACE.Preference.Player.DuoStatusBarHidden": @YES,
         YTKACEOLEDKey: @NO,
         YTKACEDownloadKey: @NO,
         YTKACEBackgroundPlaybackKey: @YES,

@@ -304,6 +304,8 @@ UIButton *YTKACEOverlayButton(UIStackView *stack,
     return button;
 }
 
+void YTKACEDuoDeskControlsLayout(UIView *controls);
+
 static void YTKACEControlsOverlayLayout(UIView *receiver, SEL selector) {
     if (OriginalControlsOverlayLayout != NULL) {
         ((void (*)(id, SEL))OriginalControlsOverlayLayout)(receiver, selector);
@@ -328,6 +330,8 @@ static void YTKACEControlsOverlayLayout(UIView *receiver, SEL selector) {
         }
     }
     stack.hidden = !visible || !aligned;
+    // Last, so the laptop-posture split moves the final positions.
+    YTKACEDuoDeskControlsLayout(receiver);
 }
 
 void YTKACERegisterOverlayConfigurator(NSString *identifier,

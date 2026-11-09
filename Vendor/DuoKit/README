@@ -1,0 +1,1 @@
+Shared iPhone Duo helpers: the crease in laptop posture, the vertical bar's edge and layout region, mirroring tabs into the system tab bar, and the picture below the crease. The iOS 27.1 APIs are looked up by name, so these build with older SDKs and do nothing on other iPhones.

@@ -6,6 +6,7 @@
 #import "YTKACETabEditorController.h"
 #import "../Runtime/Preferences.h"
 #import "../YTKACE.h"
+#import "DuoKit.h"
 #import "../Runtime/Localization.h"
 #import "../UI/Assets.h"
 #import "../UI/Notice.h"
@@ -1348,10 +1349,38 @@ static NSArray *YTKACEQualityValues(void) {
     return @[@0, @1, @2, @3, @4, @5, @6, @7, @8, @9, @10, @11, @12];
 }
 
+// iPhone Duo options only show on a Duo.
+static NSArray *YTKACEWithoutDuoRows(NSArray *sections) {
+    if (DUOIsDuo()) return sections;
+    NSSet<NSString *> *duoKeys = [NSSet setWithArray:@[
+        @"YTKACE.Preference.Tabs.DuoNativeBar",
+        @"YTKACE.Preference.Player.DuoDeskSplit",
+        @"YTKACE.Preference.Player.DuoStatusBarHidden"
+    ]];
+    NSMutableArray *filtered = [NSMutableArray arrayWithCapacity:sections.count];
+    for (id section in sections) {
+        if (![section isKindOfClass:NSArray.class]) {
+            [filtered addObject:section];
+            continue;
+        }
+        NSMutableArray *rows = [NSMutableArray array];
+        for (id row in (NSArray *)section) {
+            if ([row isKindOfClass:NSDictionary.class] &&
+                [duoKeys containsObject:((NSDictionary *)row)[@"key"] ?: @""]) {
+                continue;
+            }
+            [rows addObject:row];
+        }
+        [filtered addObject:rows];
+    }
+    return filtered;
+}
+
 static NSDictionary *YTKACEPageDefinition(NSString *pageID,
                                           NSString *title,
                                           NSArray *sections,
                                           NSArray *headers) {
+    sections = YTKACEWithoutDuoRows(sections);
     return @{
         @"id": pageID,
         @"title": title,
@@ -1503,6 +1532,8 @@ static NSDictionary *YTKACEPlayerDefinition(void) {
     return YTKACEPageDefinition(@"player", @"Player", @[
         @[
             YTKACEToggleDetail(@"PiP Button", @"Add a button that opens the video in picture in picture.", YTKACEPiPKey),
+            YTKACEToggleDetail(@"iPhone Duo Laptop Layout", @"Half open like a laptop, full-screen video plays above the crease with the controls below.", @"YTKACE.Preference.Player.DuoDeskSplit"),
+            YTKACEToggleDetail(@"iPhone Duo Status Bar Over Video", @"Hide the clock and status icons while the watch page's video is under them.", @"YTKACE.Preference.Player.DuoStatusBarHidden"),
             YTKACEToggle(@"Loop Button", YTKACELoopKey, @"", @""),
             YTKACEToggle(@"Sleep Timer Button", YTKACESleepTimerKey, @"", @""),
             YTKACEToggle(@"Speed Button", YTKACESpeedKey, @"", @""),
@@ -2116,6 +2147,8 @@ NSArray<NSDictionary *> *YTKACEAllPageDefinitions(void) {
     }
     [pages addObject:YTKACEPageDefinition(@"tabs", @"Tabs", @[
         @[
+            YTKACEWithFooter(YTKACEToggle(@"iPhone Duo System Tab Bar", @"YTKACE.Preference.Tabs.DuoNativeBar", @"", @""),
+                             @"Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright."),
             YTKACEToggle(@"Hide Tab Labels", @"YTKACE.Preference.Tabs.LabelsHidden", @"", @""),
             YTKACEToggle(@"Don't Open App in Shorts", @"YTKACE.Preference.Shorts.PreventAutoOpen", @"", @""),
             YTKACEPicker(@"Frosted Tab Bar", @"YTKACE.Preference.Tabs.Frosted",

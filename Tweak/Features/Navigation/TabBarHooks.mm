@@ -1942,7 +1942,7 @@ static id YTKACEPivotItemAnyRenderer(UIView *item) {
     return renderer;
 }
 
-static void YTKACESelectPivotItem(UIView *item) {
+void YTKACESelectPivotItem(UIView *item) {
     id controller = nil;
     id renderer = nil;
     @try {
@@ -3994,6 +3994,8 @@ static void YTKACEPivotItemLayout(UIView *receiver, SEL selector) {
     YTKACEApplyPivotItemPresentation(receiver);
 }
 
+void YTKACEDuoTabsSelectionChanged(UIView *item);
+
 static void YTKACEPivotItemSetSelected(UIView *receiver,
                                        SEL selector,
                                        BOOL selected) {
@@ -4008,6 +4010,7 @@ static void YTKACEPivotItemSetSelected(UIView *receiver,
                              @(selected),
                              OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     YTKACEApplyPivotItemPresentation(receiver);
+    YTKACEDuoTabsSelectionChanged(receiver);
     if (YTKACEStencilRendering) return;
     if (selected) {
         UIView *bar = receiver.superview;

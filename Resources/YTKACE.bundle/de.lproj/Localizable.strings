@@ -1071,3 +1071,10 @@ Lizenziert unter CC BY-NC-SA 4.0.";
 
 "Remove Live Videos from Home" = "Livevideos von der Startseite entfernen";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Entfernt Livestreams aus dem Startseiten-Feed. Abos, Suche und Kanäle behalten sie.";
+
+"iPhone Duo System Tab Bar" = "iPhone Duo-System-Tableiste";
+"Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright." = "Zeigt die Tabs in der eigenen Tableiste des iPhone Duo: die vertikale Leiste, die beim Halten mit Beschriftungen aufklappt, oder die schwebende Leiste unten, wenn es aufgeklappt aufrecht steht.";
+"iPhone Duo Laptop Layout" = "iPhone Duo-Laptoplayout";
+"Half open like a laptop, full-screen video plays above the crease with the controls below." = "Halb geöffnet wie ein Laptop läuft das Vollbildvideo über dem Falz, die Steuerung liegt darunter.";
+"iPhone Duo Status Bar Over Video" = "iPhone Duo-Statusleiste über dem Video";
+"Hide the clock and status icons while the watch page's video is under them." = "Uhr und Statussymbole ausblenden, solange das Video der Wiedergabeseite darunter liegt.";

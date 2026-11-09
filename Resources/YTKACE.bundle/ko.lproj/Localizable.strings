@@ -1071,3 +1071,10 @@ CC BY-NC-SA 4.0 라이선스가 적용됩니다.";
 
 "Remove Live Videos from Home" = "홈에서 라이브 동영상 삭제";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "홈 피드에서 라이브 스트림을 삭제합니다. 구독, 검색, 채널에는 계속 표시됩니다.";
+
+"iPhone Duo System Tab Bar" = "iPhone Duo 시스템 탭 막대";
+"Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright." = "iPhone Duo 자체 탭 막대에 탭을 표시합니다. 길게 누르면 레이블과 함께 펼쳐지는 세로 막대, 또는 세로로 펼쳤을 때 하단의 플로팅 막대입니다.";
+"iPhone Duo Laptop Layout" = "iPhone Duo 노트북 레이아웃";
+"Half open like a laptop, full-screen video plays above the crease with the controls below." = "노트북처럼 반쯤 열면 전체 화면 동영상은 접힌 부분 위에, 컨트롤은 아래에 표시됩니다.";
+"iPhone Duo Status Bar Over Video" = "iPhone Duo 동영상 위 상태 표시줄";
+"Hide the clock and status icons while the watch page's video is under them." = "재생 페이지의 동영상이 아래에 있는 동안 시계와 상태 아이콘을 숨깁니다.";

@@ -1071,3 +1071,10 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE использует данные Spo
 
 "Remove Live Videos from Home" = "Убрать прямые эфиры с главной";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Убирает прямые трансляции из ленты на главной. В подписках, поиске и на каналах они остаются.";
+
+"iPhone Duo System Tab Bar" = "Системная панель вкладок iPhone Duo";
+"Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright." = "Показывает вкладки на собственной панели iPhone Duo: вертикальной панели, которая раскрывается с подписями при удержании, или плавающей панели внизу, когда он разложен вертикально.";
+"iPhone Duo Laptop Layout" = "Режим ноутбука на iPhone Duo";
+"Half open like a laptop, full-screen video plays above the crease with the controls below." = "Когда он наполовину открыт как ноутбук, полноэкранное видео идёт над сгибом, а элементы управления под ним.";
+"iPhone Duo Status Bar Over Video" = "Строка состояния над видео на iPhone Duo";
+"Hide the clock and status icons while the watch page's video is under them." = "Скрывает часы и значки состояния, пока под ними видео на странице просмотра.";
