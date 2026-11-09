@@ -1110,8 +1110,11 @@ static BOOL YTKACENativeTabRows(UIView *view, CGRect *iconFrame, CGRect *labelFr
             image == nil || image.hidden || CGRectIsEmpty(image.frame)) {
             continue;
         }
-        *iconFrame = [button convertRect:image.frame toView:view];
-        *labelFrame = [button convertRect:label.frame toView:view];
+        // Measure the rows inside the sibling tab, not relative to this one:
+        // tabs share a size, but on a vertical tab bar (iPhone Duo) they are
+        // stacked, so converting to this tab would shift by the tab offset.
+        *iconFrame = [button convertRect:image.frame toView:sibling];
+        *labelFrame = [button convertRect:label.frame toView:sibling];
         return YES;
     }
     return NO;
