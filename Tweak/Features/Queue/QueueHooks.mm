@@ -36,6 +36,7 @@ static id YTKACEQueueSentinelCommand(NSString *action, NSString *videoID);
 static void YTKACEQueueRefreshPanel(void);
 static void YTKACEQueueRebuildWatchPage(void);
 static void YTKACEQueueRestoreLoopMode(id controller);
+static BOOL YTKACEQueueVideoIsLive(NSString *videoID, id player);
 static long long YTKACEQueueSavedLoopMode(void);
 static void YTKACEQueueStoreLoopMode(long long mode);
 static void YTKACEQueueApplyLoopMode(id controller, long long mode);
@@ -1393,6 +1394,18 @@ static void YTKACEQueueDidPressPrevious(id receiver, SEL selector, id sender) {
 }
 
 static void YTKACEQueueAutonavPlayNext(id receiver, SEL selector) {
+    // Returning to the live edge of a stream can report it as ended; a live
+    // stream never hands over to the queue.
+    id player = YTKACEQueuePlayerViewController;
+    id playing = YTKACEQueueValue(player, @[@"currentVideoID", @"contentVideoID"]);
+    NSString *current = [playing isKindOfClass:NSString.class] ? playing : YTKACEQueueActiveVideo;
+    const BOOL live = YTKACEQueueVideoIsLive(current, player);
+    if (live) {
+        if (OriginalAutonavPlayNext != NULL) {
+            ((void (*)(id, SEL))OriginalAutonavPlayNext)(receiver, selector);
+        }
+        return;
+    }
     BOOL active = YTKACEQueueIsActive();
     if (active && YTKACEQueueOverlayLoop()) {
         if (YTKACEQueueReplayCurrent()) return;
@@ -2018,6 +2031,35 @@ static BOOL YTKACEQueueHasContents(id receiver, SEL selector) {
     return ((BOOL (*)(id, SEL))OriginalHasQueueContents)(receiver, selector);
 }
 
+// Whether the player is on a live stream. At the live edge the playback time
+// equals the length, which would otherwise look like the end of the video.
+static BOOL YTKACEQueueVideoIsLive(NSString *videoID, id player) {
+    id single = YTKACEQueueValue(player, @[@"activeVideo"]);
+    SEL pegged = NSSelectorFromString(@"isPeggedToLive");
+    if ([single respondsToSelector:pegged] &&
+        ((BOOL (*)(id, SEL))objc_msgSend)(single, pegged)) {
+        return YES;
+    }
+    static NSString *cachedID;
+    static BOOL cachedLive;
+    if (videoID.length != 0 && [videoID isEqualToString:cachedID]) return cachedLive;
+    id details = nil;
+    @try {
+        details = YTKACEQueueVideoDetails(
+            YTKACEQueueValue(player, @[@"contentPlayerResponse", @"playerResponse"]));
+        if (details == nil && videoID.length != 0) {
+            details = YTKACEQueueVideoDetails(YTKACECachedPlayerResponse(videoID));
+        }
+    } @catch (__unused NSException *exception) {
+    }
+    SEL liveSelector = NSSelectorFromString(@"isLive");
+    if (details == nil || ![details respondsToSelector:liveSelector]) return NO;
+    const BOOL live = ((BOOL (*)(id, SEL))objc_msgSend)(details, liveSelector);
+    cachedID = [videoID copy];
+    cachedLive = live;
+    return live;
+}
+
 static void YTKACEQueueHandlePlaybackTime(NSNotification *notification) {
     if (!YTKACEFeatureEnabled(YTKACEQueueKey)) return;
     id receiver = notification.object;
@@ -2050,6 +2092,7 @@ static void YTKACEQueueHandlePlaybackTime(NSNotification *notification) {
     NSString *finishing = [live isKindOfClass:NSString.class] && [live length] != 0
         ? (NSString *)live : YTKACELastVideoID();
     if (finishing.length == 0) return;
+    if (YTKACEQueueVideoIsLive(finishing, receiver)) return;
     const BOOL advanced =
         [finishing isEqualToString:YTKACEQueueAdvancedFromVideoID];
     if (time < total - 0.75) {
