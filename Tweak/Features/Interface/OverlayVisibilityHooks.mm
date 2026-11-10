@@ -885,6 +885,8 @@ static CGFloat YTKACETimelyShelfHeightHook(id receiver, SEL selector) {
 
 static BOOL YTKACEShouldHidePreviousButton(id receiver, SEL selector) {
     if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.PreviousNextHidden")) return YES;
+    // seeking works without a previous video
+    if (YTKACEPreviousNextSeekSeconds() > 0) return NO;
     return OriginalShouldHidePreviousButton == NULL
         ? NO
         : ((BOOL (*)(id, SEL))OriginalShouldHidePreviousButton)(
@@ -893,6 +895,7 @@ static BOOL YTKACEShouldHidePreviousButton(id receiver, SEL selector) {
 
 static BOOL YTKACEShouldHideNextButton(id receiver, SEL selector) {
     if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.PreviousNextHidden")) return YES;
+    if (YTKACEPreviousNextSeekSeconds() > 0) return NO;
     return OriginalShouldHideNextButton == NULL
         ? NO
         : ((BOOL (*)(id, SEL))OriginalShouldHideNextButton)(
@@ -901,7 +904,7 @@ static BOOL YTKACEShouldHideNextButton(id receiver, SEL selector) {
 
 static void YTKACESetPreviousButtonEnabled(id receiver, SEL selector, BOOL enabled) {
     ((void (*)(id, SEL, BOOL))OriginalSetPreviousButtonEnabled)(
-        receiver, selector, enabled);
+        receiver, selector, enabled || YTKACEPreviousNextSeekSeconds() > 0);
     YTKACEApplyPreviousNextVisibility(
         receiver,
         YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.PreviousNextHidden"));
@@ -909,7 +912,7 @@ static void YTKACESetPreviousButtonEnabled(id receiver, SEL selector, BOOL enabl
 
 static void YTKACESetNextButtonEnabled(id receiver, SEL selector, BOOL enabled) {
     ((void (*)(id, SEL, BOOL))OriginalSetNextButtonEnabled)(
-        receiver, selector, enabled);
+        receiver, selector, enabled || YTKACEPreviousNextSeekSeconds() > 0);
     YTKACEApplyPreviousNextVisibility(
         receiver,
         YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.PreviousNextHidden"));

@@ -51,6 +51,7 @@ YTKACE_FILES = \
 	Tweak/Features/Playback/LoopControls.mm \
 	Tweak/Features/Playback/QualityButton.mm \
 	Tweak/Features/Playback/FullscreenControls.mm \
+	Tweak/Features/Playback/PreviousNextSeek.mm \
 	Tweak/Features/Playback/AutoplayControls.mm \
 	Tweak/Features/Playback/CaptionControls.mm \
 	Tweak/Features/Playback/TranscriptExport.mm \

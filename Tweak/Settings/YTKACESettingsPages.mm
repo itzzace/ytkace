@@ -1652,6 +1652,10 @@ static NSDictionary *YTKACEPlayerDefinition(void) {
                 @[@0, @1, @2], 0)
         ],
         @[
+            YTKACEPickerDetail(@"Previous/Next Skip",
+                @"Previous and next skip back and forward in the video instead.",
+                @"YTKACE.Preference.Overlay.PreviousNextSeek",
+                @[@"Off", @"5 seconds", @"10 seconds", @"15 seconds", @"30 seconds"], @[@0, @5, @10, @15, @30], 0),
             YTKACEToggleDetail(@"Disable Previous/Next", @"Grey out previous and next so they can't be tapped.",
                                @"YTKACE.Preference.Overlay.PreviousNextDisabled"),
             YTKACEToggle(@"Smaller Previous/Next", @"YTKACE.Preference.Overlay.CompactPreviousNext", @"", @""),

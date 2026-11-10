@@ -33,6 +33,8 @@ UIImage *YTKACESpeedButtonImage(BOOL plus);
 void YTKACEInstallLoopHooks(void);
 void YTKACEInstallQualityButtonHooks(void);
 void YTKACEInstallFullscreenHooks(void);
+void YTKACEInstallPreviousNextSeekHooks(void);
+NSInteger YTKACEPreviousNextSeekSeconds(void);
 void YTKACEInstallSponsorMenu(void);
 void YTKACEInstallLinkCleaningHooks(void);
 void YTKACEInstallHapticHooks(void);
