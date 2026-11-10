@@ -186,9 +186,14 @@ static void YTKACEHLSFetchVisionThen(NSString *videoID, void (^done)(BOOL ready)
     });
 }
 
+static NSString *YTKACEHLSLastVideo;
+
 BOOL YTKACEHLSBeginFallback(NSString *videoID, void (^ready)(BOOL available)) {
-    if (!YTKACEHLSEnabled() || videoID.length == 0 || YTKACEHLSSources == nil) return NO;
+    if (!YTKACEHLSEnabled() || YTKACEHLSSources == nil) return NO;
     @synchronized (YTKACEHLSSources) {
+        // the player has no video yet when the manifest fails on load
+        if (videoID.length == 0) videoID = YTKACEHLSLastVideo;
+        if (videoID.length == 0) return NO;
         if (![YTKACEHLSSources[videoID] isEqualToString:@"ios"] || [YTKACEHLSFallbacks containsObject:videoID]) {
             return NO;
         }
@@ -271,6 +276,7 @@ static void YTKACEHLSSwap(id data) {
     @synchronized (YTKACEHLSSources) {
         if (YTKACEHLSSources.count > 50) [YTKACEHLSSources removeAllObjects];
         YTKACEHLSSources[videoID] = vision.length != 0 ? @"vision" : @"ios";
+        YTKACEHLSLastVideo = [videoID copy];
     }
     YTKACEDownloadLog(@"hls", @"swap video=%@ source=%@", videoID, vision.length != 0 ? @"vision" : @"ios");
 }
