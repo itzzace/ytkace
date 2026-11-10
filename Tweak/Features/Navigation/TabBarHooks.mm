@@ -3883,6 +3883,8 @@ static BOOL YTKACENavigateToPivot(id controller, NSString *identifier) {
     return YES;
 }
 
+static BOOL YTKACEStartupNavigated;
+
 static void YTKACEApplyStartupTab(UIView *receiver) {
     if (YTKACEStartupApplied) return;
     NSString *identifier = YTKACEWantedStartupPivot();
@@ -3904,8 +3906,17 @@ static void YTKACEApplyStartupTab(UIView *receiver) {
     SEL current = NSSelectorFromString(@"selectedPivotIdentifier");
     if ([target respondsToSelector:current]) {
         id selected = ((id (*)(id, SEL))objc_msgSend)(target, current);
-        if ([selected isKindOfClass:NSString.class] &&
-            [selected caseInsensitiveCompare:identifier] == NSOrderedSame &&
+        // Already switched to it by tapping it below: done. Running the Home
+        // workaround after a real switch breaks tab switching for good.
+        if (YTKACEStartupNavigated && [selected isKindOfClass:NSString.class] &&
+            [selected caseInsensitiveCompare:identifier] == NSOrderedSame) {
+            YTKACEStartupApplied = YES;
+            return;
+        }
+        // Home hidden: YouTube files its launch Home page under whichever tab
+        // it starts on. Point it at Home first, then switch, so that tab gets
+        // its own page. Only before our first switch.
+        if ([selected isKindOfClass:NSString.class] && !YTKACEStartupNavigated &&
             [NSUserDefaults.standardUserDefaults boolForKey:@"YTKACE.Preference.Tabs.Hidden.Home"]) {
             SEL selectItem = NSSelectorFromString(@"selectItemWithPivotIdentifier:");
             SEL setSelected = NSSelectorFromString(@"setSelectedPivotIdentifier:");
@@ -3917,8 +3928,10 @@ static void YTKACEApplyStartupTab(UIView *receiver) {
                 [controller setValue:@"FEwhat_to_watch" forKey:@"_pivotIdentifier"];
             } @catch (__unused NSException *exception) {
             }
-            YTKACENavigateToPivot(controller, identifier);
-            YTKACEStartupApplied = YES;
+            YTKACEStartupNavigated = YTKACENavigateToPivot(controller, identifier);
+            if ([selected caseInsensitiveCompare:identifier] == NSOrderedSame || !YTKACEStartupNavigated) {
+                YTKACEStartupApplied = YES;
+            }
             return;
         }
         if ([selected isKindOfClass:NSString.class] &&
@@ -3928,7 +3941,10 @@ static void YTKACEApplyStartupTab(UIView *receiver) {
         }
     }
 
-    if (YTKACENavigateToPivot(controller, identifier)) return;
+    if (YTKACENavigateToPivot(controller, identifier)) {
+        YTKACEStartupNavigated = YES;
+        return;
+    }
 
     SEL select = NSSelectorFromString(@"selectItemWithPivotIdentifier:");
     if ([target respondsToSelector:select]) {
