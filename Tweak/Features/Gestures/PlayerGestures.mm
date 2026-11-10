@@ -509,7 +509,25 @@ shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)other 
         objc_setAssociatedObject(
             recognizer, YTKACEGestureSecondaryInitialAssociation,
             nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        if (volume || both) [self removeVolumeViewFromView:view];
     }
+}
+
+// A volume view on screen hides the system volume HUD, so only keep ours
+// around while the gesture is changing the volume.
+- (void)removeVolumeViewFromView:(UIView *)view {
+    __weak UIView *weakView = view;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        UIView *strong = weakView;
+        if (strong == nil) return;
+        for (UIGestureRecognizer *recognizer in strong.gestureRecognizers) {
+            if (recognizer.state == UIGestureRecognizerStateBegan ||
+                recognizer.state == UIGestureRecognizerStateChanged) return;
+        }
+        MPVolumeView *volumeView = objc_getAssociatedObject(strong, YTKACEVolumeViewAssociation);
+        [volumeView removeFromSuperview];
+        objc_setAssociatedObject(strong, YTKACEVolumeViewAssociation, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    });
 }
 
 - (double)seekStep {
