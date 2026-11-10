@@ -98,7 +98,13 @@ static void YTKACEAdTrieInsert(const char *marker) {
     int32_t state = 0;
     for (const unsigned char *byte = (const unsigned char *)marker;
          *byte != '\0'; byte++) {
+        if (*byte >= 128) return;
         if (YTKACEAdTrie[state].next[*byte] < 0) {
+            const int32_t capacity =
+                (int32_t)(sizeof(YTKACEAdTrie) / sizeof(YTKACEAdTrie[0]));
+            // Out of room: skip the rest of this marker instead of writing
+            // past the table.
+            if (YTKACEAdTrieCount + 1 >= capacity) return;
             int32_t node = ++YTKACEAdTrieCount;
             YTKACEAdTrieReset(node);
             YTKACEAdTrie[state].next[*byte] = (int16_t)node;
