@@ -38,6 +38,8 @@ static UIColor *YTKACEOLEDColor(id receiver, SEL selector) {
         ? nil
         : ((id (*)(id, SEL))original)(receiver, selector);
     if (!YTKACEFeatureEnabled(YTKACEOLEDKey)) return base;
+    // light mode: leave YouTube's colors alone
+    if (!YTKACEOLEDActive(nil)) return base;
     __weak id weakReceiver = receiver;
     return [UIColor colorWithDynamicProvider:^UIColor *(UITraitCollection *traits) {
         if (YTKACEOLEDActive(traits)) return UIColor.blackColor;
