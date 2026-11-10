@@ -1106,3 +1106,8 @@ CC BY-NC-SA 4.0 ile lisanslanmıştır.";
 "30 seconds" = "30 saniye";
 "Keep Playing" = "Oynatmaya devam et";
 "Don't stop to ask if you're still watching." = "Hâlâ izleyip izlemediğini sormak için durma.";
+"Playlist Tab" = "Oynatma listesi sekmesi";
+"Paste a playlist link. Private playlists work when you're signed in." = "Bir oynatma listesi bağlantısı yapıştır. Gizli listeler oturum açıkken çalışır.";
+"Playlist link" = "Liste bağlantısı";
+"Name" = "Ad";
+"That isn't a playlist link." = "Bu bir oynatma listesi bağlantısı değil.";

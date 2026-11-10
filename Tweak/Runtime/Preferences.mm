@@ -163,6 +163,7 @@ void YTKACERegisterDefaults(void) {
         @"YTKACE.Preference.Tabs.Hidden.History": @YES,
         @"YTKACE.Preference.Tabs.Hidden.Notifs": @YES,
         @"YTKACE.Preference.Tabs.Hidden.WatchLater": @YES,
+        @"YTKACE.Preference.Tabs.Hidden.CustomPlaylist": @YES,
         @"YTKACE.Preference.Tabs.Order": @[@"home", @"shorts", @"subscriptions", @"library", @"ytkace"]
     }];
     if (!hasPlacement && [legacyDownloadButton boolValue]) {

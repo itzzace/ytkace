@@ -76,6 +76,27 @@ static NSString *YTKACETintHexFromColor(UIColor *color) {
 @interface YTKACETabEditorController () <UIColorPickerViewControllerDelegate>
 @end
 
+static NSString *const YTKACECustomPlaylistKey = @"YTKACE.Preference.Tabs.CustomPlaylist";
+
+static NSString *YTKACECustomPlaylistID(void) {
+    id stored = [NSUserDefaults.standardUserDefaults objectForKey:YTKACECustomPlaylistKey];
+    return [stored isKindOfClass:NSString.class] ? stored : @"";
+}
+
+// A playlist link (list=...) or a bare playlist id; VL ids are browse ids.
+static NSString *YTKACEPlaylistIDFromText(NSString *text) {
+    NSString *trimmed = [text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    NSURLComponents *components = [NSURLComponents componentsWithString:trimmed];
+    for (NSURLQueryItem *item in components.queryItems) {
+        if ([item.name isEqualToString:@"list"] && item.value.length != 0) trimmed = item.value;
+    }
+    if ([trimmed hasPrefix:@"VL"] && trimmed.length > 12) trimmed = [trimmed substringFromIndex:2];
+    NSCharacterSet *allowed = [NSCharacterSet characterSetWithCharactersInString:
+        @"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"];
+    if (trimmed.length < 2 || [trimmed rangeOfCharacterFromSet:allowed.invertedSet].location != NSNotFound) return nil;
+    return trimmed;
+}
+
 @implementation YTKACETabEditorController
 
 - (NSArray<NSString *> *)mainRows {
@@ -143,7 +164,8 @@ static NSString *YTKACETintHexFromColor(UIColor *color) {
         [self tab:@"playlists" title:YTKACELocalized(@"Playlists") symbol:@"music.note.list" key:@"YTKACE.Preference.Tabs.Hidden.Playlists"],
         [self tab:@"history" title:YTKACELocalized(@"History") symbol:@"clock.arrow.circlepath" key:@"YTKACE.Preference.Tabs.Hidden.History"],
         [self tab:@"notifications" title:YTKACELocalized(@"Notifs") symbol:@"bell" key:@"YTKACE.Preference.Tabs.Hidden.Notifs"],
-        [self tab:@"watchlater" title:YTKACELocalized(@"WLater") symbol:@"clock" key:@"YTKACE.Preference.Tabs.Hidden.WatchLater"]
+        [self tab:@"watchlater" title:YTKACELocalized(@"WLater") symbol:@"clock" key:@"YTKACE.Preference.Tabs.Hidden.WatchLater"],
+        [self tab:@"customplaylist" title:YTKACELocalized(@"Playlist") symbol:@"list.bullet.rectangle" key:@"YTKACE.Preference.Tabs.Hidden.CustomPlaylist"]
     ];
     self.activeTabs = [NSMutableArray array];
     self.inactiveTabs = [NSMutableArray array];
@@ -151,7 +173,7 @@ static NSString *YTKACETintHexFromColor(UIColor *color) {
         BOOL initiallyInactive = [@[
             @"create", @"music", @"live", @"gaming", @"news", @"sports",
             @"learning", @"fashion", @"playlists", @"history",
-            @"notifications", @"watchlater"
+            @"notifications", @"watchlater", @"customplaylist"
         ] containsObject:tab[@"token"]];
         id stored = YTKACEPreferenceObject(tab[@"key"]);
         BOOL hidden = [stored respondsToSelector:@selector(boolValue)] ? [stored boolValue] : initiallyInactive;
@@ -420,6 +442,12 @@ commitEditingStyle:(UITableViewCellEditingStyle)editingStyle
         [self.activeTabs removeObjectAtIndex:(NSUInteger)indexPath.row];
         [self.inactiveTabs addObject:tab];
     } else if (editingStyle == UITableViewCellEditingStyleInsert) {
+        if ([tab[@"token"] isEqualToString:@"customplaylist"] && YTKACECustomPlaylistID().length == 0) {
+            [self askForPlaylistThen:^{
+                [self tableView:tableView commitEditingStyle:editingStyle forRowAtIndexPath:indexPath];
+            }];
+            return;
+        }
         [self.inactiveTabs removeObjectAtIndex:(NSUInteger)indexPath.row];
         [self.activeTabs addObject:tab];
     }
@@ -428,6 +456,48 @@ commitEditingStyle:(UITableViewCellEditingStyle)editingStyle
     [tableView reloadSections:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(2, 2)]
              withRowAnimation:UITableViewRowAnimationAutomatic];
     YTKACEShowRestartNotice(self);
+}
+
+// The Playlist tab: its name and which playlist it opens.
+- (void)askForPlaylistThen:(dispatch_block_t)done {
+    NSDictionary *names = [NSUserDefaults.standardUserDefaults dictionaryForKey:@"YTKACE.Preference.Tabs.Names"];
+    UIAlertController *alert = [UIAlertController
+        alertControllerWithTitle:YTKACELocalized(@"Playlist Tab")
+        message:YTKACELocalized(@"Paste a playlist link. Private playlists work when you're signed in.")
+        preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
+        field.placeholder = YTKACELocalized(@"Playlist link");
+        field.text = YTKACECustomPlaylistID();
+        field.clearButtonMode = UITextFieldViewModeWhileEditing;
+        field.autocorrectionType = UITextAutocorrectionTypeNo;
+        field.autocapitalizationType = UITextAutocapitalizationTypeNone;
+        field.keyboardType = UIKeyboardTypeURL;
+    }];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
+        field.placeholder = YTKACELocalized(@"Name");
+        field.text = names[@"customplaylist"];
+        field.clearButtonMode = UITextFieldViewModeWhileEditing;
+    }];
+    [alert addAction:[UIAlertAction actionWithTitle:YTKACELocalized(@"Cancel")
+        style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:YTKACELocalized(@"Save")
+        style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
+            NSString *playlist = YTKACEPlaylistIDFromText(alert.textFields[0].text);
+            if (playlist == nil) {
+                YTKACEShowNotice(YTKACELocalized(@"That isn't a playlist link."));
+                return;
+            }
+            [NSUserDefaults.standardUserDefaults setObject:playlist forKey:YTKACECustomPlaylistKey];
+            NSMutableDictionary *updated = [names mutableCopy] ?: [NSMutableDictionary dictionary];
+            NSString *name = [alert.textFields[1].text
+                stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+            if (name.length == 0) [updated removeObjectForKey:@"customplaylist"];
+            else updated[@"customplaylist"] = name;
+            [NSUserDefaults.standardUserDefaults setObject:updated forKey:@"YTKACE.Preference.Tabs.Names"];
+            [NSNotificationCenter.defaultCenter postNotificationName:@"YTKACETabConfigDidChange" object:nil];
+            if (done != nil) done();
+        }]];
+    [self presentViewController:alert animated:YES completion:nil];
 }
 
 - (void)saveOrder {
@@ -488,6 +558,13 @@ commitEditingStyle:(UITableViewCellEditingStyle)editingStyle
     } else if (indexPath.section == 2) {
         NSMutableDictionary *tab = self.activeTabs[(NSUInteger)indexPath.row];
         NSString *token = tab[@"token"];
+        if ([token isEqualToString:@"customplaylist"]) {
+            [self askForPlaylistThen:^{
+                [self.tableView reloadData];
+                YTKACEShowRestartNotice(self);
+            }];
+            return;
+        }
         NSDictionary *names = [NSUserDefaults.standardUserDefaults
             dictionaryForKey:@"YTKACE.Preference.Tabs.Names"];
         UIAlertController *alert = [UIAlertController

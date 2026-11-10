@@ -1061,3 +1061,8 @@
 "30 seconds" = "30 segundos";
 "Keep Playing" = "Continuar tocando";
 "Don't stop to ask if you're still watching." = "Não parar para perguntar se você ainda está assistindo.";
+"Playlist Tab" = "Aba de playlist";
+"Paste a playlist link. Private playlists work when you're signed in." = "Cole o link de uma playlist. Playlists privadas funcionam se você estiver conectado.";
+"Playlist link" = "Link da playlist";
+"Name" = "Nome";
+"That isn't a playlist link." = "Isso não é um link de playlist.";

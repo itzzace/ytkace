@@ -1106,3 +1106,8 @@ Lizenziert unter CC BY-NC-SA 4.0.";
 "30 seconds" = "30 Sekunden";
 "Keep Playing" = "Weiter abspielen";
 "Don't stop to ask if you're still watching." = "Nicht anhalten, um zu fragen, ob du noch zuschaust.";
+"Playlist Tab" = "Playlist-Tab";
+"Paste a playlist link. Private playlists work when you're signed in." = "Füge einen Playlist-Link ein. Private Playlists gehen, wenn du angemeldet bist.";
+"Playlist link" = "Playlist-Link";
+"Name" = "Name";
+"That isn't a playlist link." = "Das ist kein Playlist-Link.";

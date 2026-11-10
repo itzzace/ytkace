@@ -1106,3 +1106,8 @@ CC BY-NC-SA 4.0 でライセンスされています。";
 "30 seconds" = "30秒";
 "Keep Playing" = "再生を続ける";
 "Don't stop to ask if you're still watching." = "視聴を続けるか確認するために止めません。";
+"Playlist Tab" = "再生リストタブ";
+"Paste a playlist link. Private playlists work when you're signed in." = "再生リストのリンクを貼り付けます。非公開の再生リストはログイン中に使えます。";
+"Playlist link" = "再生リストのリンク";
+"Name" = "名前";
+"That isn't a playlist link." = "再生リストのリンクではありません。";

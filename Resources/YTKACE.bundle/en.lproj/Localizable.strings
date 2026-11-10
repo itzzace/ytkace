@@ -1116,3 +1116,8 @@ Licensed under CC BY-NC-SA 4.0.";
 "30 seconds" = "30 seconds";
 "Keep Playing" = "Keep Playing";
 "Don't stop to ask if you're still watching." = "Don't stop to ask if you're still watching.";
+"Playlist Tab" = "Playlist Tab";
+"Paste a playlist link. Private playlists work when you're signed in." = "Paste a playlist link. Private playlists work when you're signed in.";
+"Playlist link" = "Playlist link";
+"Name" = "Name";
+"That isn't a playlist link." = "That isn't a playlist link.";

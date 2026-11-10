@@ -1106,3 +1106,8 @@ CC BY-NC-SA 4.0 라이선스가 적용됩니다.";
 "30 seconds" = "30초";
 "Keep Playing" = "계속 재생";
 "Don't stop to ask if you're still watching." = "계속 시청 중인지 묻기 위해 멈추지 않습니다.";
+"Playlist Tab" = "재생목록 탭";
+"Paste a playlist link. Private playlists work when you're signed in." = "재생목록 링크를 붙여넣으세요. 비공개 재생목록은 로그인했을 때 작동합니다.";
+"Playlist link" = "재생목록 링크";
+"Name" = "이름";
+"That isn't a playlist link." = "재생목록 링크가 아닙니다.";

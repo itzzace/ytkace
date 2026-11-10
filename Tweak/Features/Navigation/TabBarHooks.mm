@@ -365,7 +365,22 @@ static void YTKACENoteStartupIdentifier(NSString *canonical, id item) {
            forKey:@"YTKACE.Preference.Tabs.Known"];
 }
 
+// The playlist picked for the Playlist tab, as a browse id (VL + playlist id).
+static NSString *YTKACECustomPlaylistBrowseID(void) {
+    id stored = [NSUserDefaults.standardUserDefaults objectForKey:@"YTKACE.Preference.Tabs.CustomPlaylist"];
+    if (![stored isKindOfClass:NSString.class] || [stored length] == 0) return nil;
+    return [@"VL" stringByAppendingString:stored];
+}
+
+// Playlist ids are random letters, so match the Playlist tab exactly and
+// before the other tabs' substring checks.
+static BOOL YTKACEIsCustomPlaylistToken(NSString *token) {
+    NSString *browseID = YTKACECustomPlaylistBrowseID();
+    return browseID != nil && [token isEqualToString:browseID.lowercaseString];
+}
+
 static NSString *YTKACEHideKeyForToken(NSString *token) {
+    if (YTKACEIsCustomPlaylistToken(token)) return @"YTKACE.Preference.Tabs.Hidden.CustomPlaylist";
     if ([token containsString:@"uc-9-kytw8zkzndhqj6fgpwq"] ||
         [token containsString:@"music_home"]) {
         return @"YTKACE.Preference.Tabs.Hidden.Music";
@@ -439,6 +454,7 @@ static NSString *YTKACEHideKeyForToken(NSString *token) {
 }
 
 static NSString *YTKACECanonicalTabToken(NSString *token) {
+    if (YTKACEIsCustomPlaylistToken(token)) return @"customplaylist";
     if ([token containsString:@"uc-9-kytw8zkzndhqj6fgpwq"] ||
         [token containsString:@"music_home"]) {
         return @"music";
@@ -710,7 +726,7 @@ static void YTKACESetPivotRenderer(id receiver, SEL selector, id renderer) {
                 [filtered addObject:candidate];
             }
 
-            NSArray<NSDictionary *> *extraTabs = @[
+            NSMutableArray<NSDictionary *> *extraTabs = [@[
                 @{@"token": @"music", @"id": @"UC-9-kyTW8ZkZNDHQJ6FgpwQ",
                   @"title": @"Music", @"key": @"YTKACE.Preference.Tabs.Hidden.Music", @"icon": @1001},
                 @{@"token": @"live", @"id": @"UC4R8DWoMoI7CAwX8_LjQHig",
@@ -739,7 +755,12 @@ static void YTKACESetPivotRenderer(id receiver, SEL selector, id renderer) {
                   @"title": YTKACELocalized(@"Subscriptions"),
                   @"key": @"YTKACE.Preference.Tabs.Hidden.Subscriptions",
                   @"icon": @(YTKACESubscriptionsIconType() > 0 ? YTKACESubscriptionsIconType() : 1013)}
-            ];
+            ] mutableCopy];
+            NSString *playlistBrowseID = YTKACECustomPlaylistBrowseID();
+            if (playlistBrowseID != nil) {
+                [extraTabs addObject:@{@"token": @"customplaylist", @"id": playlistBrowseID,
+                    @"title": @"Playlist", @"key": @"YTKACE.Preference.Tabs.Hidden.CustomPlaylist", @"icon": @1014}];
+            }
             NSMutableSet<NSString *> *present = [NSMutableSet set];
             for (id item in filtered) {
                 [present addObject:YTKACECanonicalTabToken(YTKACETabToken(item))];
@@ -1267,6 +1288,8 @@ static NSDictionary *YTKACEExtraTabIcon(NSString *token) {
             @"notifications": @[@"ic_notifications_none_3x_Normal",
                                  @"ic_notifications_3x_Normal",
                                  @"bell", @"bell.fill"],
+            @"customplaylist": @[@"playlist", @"playlist_fill",
+                                  @"list.bullet.rectangle", @"list.bullet.rectangle.fill"],
             @"watchlater": @[@"clock_24pt_3x_Normal",
                               @"yt_fill_clock_24pt_3x_Normal",
                               @"clock", @"clock.fill"],
