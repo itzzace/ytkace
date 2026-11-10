@@ -15,6 +15,7 @@ YTKACE_FILES = \
 	Tweak/UI/Assets.mm \
 	Tweak/UI/Notice.mm \
 	Tweak/UI/OverlayButtonHost.mm \
+	Tweak/UI/OverlayButtonLayout.mm \
 	Tweak/Features/Ads/AdsHooks.mm \
 	Tweak/Features/Ads/PromoHooks.mm \
 	Tweak/Features/SponsorBlock/SponsorClient.mm \
@@ -48,6 +49,8 @@ YTKACE_FILES = \
 	Tweak/Features/Playback/ChallengeSolver.mm \
 	Tweak/Features/Playback/SpeedControls.mm \
 	Tweak/Features/Playback/LoopControls.mm \
+	Tweak/Features/Playback/QualityButton.mm \
+	Tweak/Features/Playback/FullscreenControls.mm \
 	Tweak/Features/Playback/AutoplayControls.mm \
 	Tweak/Features/Playback/CaptionControls.mm \
 	Tweak/Features/Playback/TranscriptExport.mm \
@@ -99,6 +102,7 @@ YTKACE_FILES = \
 	Tweak/Settings/YTKACESettingsPages.mm \
 	Tweak/Settings/YTKACESettingsSearch.mm \
 	Tweak/Settings/YTKACETabEditorController.mm \
+	Tweak/Settings/YTKACEButtonLayoutView.mm \
 	Tweak/Settings/YTKACEDownloadsController.mm
 
 YTKACE_CFLAGS = -fobjc-arc -Wall -Wextra -Werror=return-type

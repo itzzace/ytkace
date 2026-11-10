@@ -36,7 +36,6 @@ static id YTKACEQueueSentinelCommand(NSString *action, NSString *videoID);
 static void YTKACEQueueRefreshPanel(void);
 static void YTKACEQueueRebuildWatchPage(void);
 static void YTKACEQueueRestoreLoopMode(id controller);
-static BOOL YTKACEQueueVideoIsLive(NSString *videoID, id player);
 static long long YTKACEQueueSavedLoopMode(void);
 static void YTKACEQueueStoreLoopMode(long long mode);
 static void YTKACEQueueApplyLoopMode(id controller, long long mode);
@@ -2033,7 +2032,7 @@ static BOOL YTKACEQueueHasContents(id receiver, SEL selector) {
 
 // Whether the player is on a live stream. At the live edge the playback time
 // equals the length, which would otherwise look like the end of the video.
-static BOOL YTKACEQueueVideoIsLive(NSString *videoID, id player) {
+BOOL YTKACEQueueVideoIsLive(NSString *videoID, id player) {
     id single = YTKACEQueueValue(player, @[@"activeVideo"]);
     SEL pegged = NSSelectorFromString(@"isPeggedToLive");
     if ([single respondsToSelector:pegged] &&

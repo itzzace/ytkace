@@ -162,7 +162,7 @@ static NSString *YTKACESpeedText(double rate) {
     return [NSString stringWithFormat:@"%.2fx", rate];
 }
 
-static UIImage *YTKACESpeedButtonImage(BOOL plus) {
+UIImage *YTKACESpeedButtonImage(BOOL plus) {
     CGSize size = CGSizeMake(22.0, 22.0);
     UIGraphicsBeginImageContextWithOptions(size, NO, 0.0);
     CGContextRef context = UIGraphicsGetCurrentContext();
@@ -439,7 +439,8 @@ static UIImage *YTKACESpeedButtonImage(BOOL plus) {
         return;
     }
     SEL open = NSSelectorFromString(@"didPressVarispeed:");
-    for (UIResponder *responder = self.overlay; responder != nil;
+    // start from the tapped button: the last laid out overlay can be another player's
+    for (UIResponder *responder = sender.window != nil ? (UIResponder *)sender : self.overlay; responder != nil;
          responder = responder.nextResponder) {
         if ([responder respondsToSelector:open]) {
             ((void (*)(id, SEL, id))objc_msgSend)(responder, open, sender);

@@ -46,7 +46,8 @@ static void YTKACERefreshPlaybackTimePreferenceState(void) {
         YTKACEFeatureEnabled(@"autoSkipShorts") ||
         YTKACEFeatureEnabled(YTKACESpeedKey) ||
         YTKACEFeatureEnabled(YTKACESleepTimerKey) ||
-        YTKACEFeatureEnabled(@"YTKACE.Preference.Playback.LocalQueue");
+        YTKACEFeatureEnabled(@"YTKACE.Preference.Playback.LocalQueue") ||
+        YTKACEFeatureEnabled(@"YTKACE.Preference.Player.ExitFullscreenAtEnd");
 }
 
 static void YTKACEPublishPlaybackTime(id receiver, double time) {
@@ -538,6 +539,7 @@ static void YTKACEDidActivateVideo(id receiver,
     }
 
     YTKACEOpenPausedVideoActivated(receiver);
+    YTKACEFullscreenVideoActivated(receiver);
     YTKACELastPlayerController = receiver;
 
     if (!YTKACESponsorBlockEnabled()) {

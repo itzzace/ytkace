@@ -4,6 +4,7 @@
 #import "../Features/Downloads/SABRDownloader.h"
 #import "YTKACERootOptionsController.h"
 #import "YTKACETabEditorController.h"
+#import "YTKACEButtonLayoutView.h"
 #import "../Runtime/Preferences.h"
 #import "../YTKACE.h"
 #import "DuoKit.h"
@@ -592,6 +593,7 @@ NSString *YTKACEPickerSummary(NSString *key,
     NSURL *_pendingBackupURL;
     BOOL _backupRunning;
     BOOL _restoreRunning;
+    YTKACEButtonLayoutView *_layoutView;
 }
 
 - (instancetype)initWithTitle:(NSString *)title
@@ -664,10 +666,41 @@ NSString *YTKACEPickerSummary(NSString *key,
     return title.length == 0 ? 18.0 : 38.0;
 }
 
+- (YTKACEButtonLayoutView *)layoutView {
+    if (_layoutView != nil) return _layoutView;
+    _layoutView = [YTKACEButtonLayoutView new];
+    __weak YTKACEOptionsController *weakSelf = self;
+    _layoutView.changeHandler = ^{
+        YTKACEOptionsController *strongSelf = weakSelf;
+        if (strongSelf == nil) return;
+        // the hidden tray can grow a line, and the button toggles follow along
+        UITableView *table = strongSelf.tableView;
+        NSMutableArray *paths = [NSMutableArray array];
+        for (NSIndexPath *path in table.indexPathsForVisibleRows) {
+            if (![strongSelf->_sections[(NSUInteger)path.section][(NSUInteger)path.row][@"type"] isEqualToString:@"layout"]) {
+                [paths addObject:path];
+            }
+        }
+        [UIView performWithoutAnimation:^{
+            [table reloadRowsAtIndexPaths:paths withRowAnimation:UITableViewRowAnimationNone];
+        }];
+        [table beginUpdates];
+        [table endUpdates];
+    };
+    _layoutView.heightHandler = ^{
+        UITableView *table = weakSelf.tableView;
+        [table beginUpdates];
+        [table endUpdates];
+    };
+    return _layoutView;
+}
+
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
-    (void)tableView;
     NSDictionary *item = _sections[(NSUInteger)indexPath.section][(NSUInteger)indexPath.row];
     NSString *type = item[@"type"];
+    if ([type isEqualToString:@"layout"]) {
+        return [[self layoutView] heightForWidth:CGRectGetWidth(tableView.bounds)];
+    }
     if ([type isEqualToString:@"text"]) {
         return 92.0;
     }
@@ -696,6 +729,19 @@ willDisplayHeaderView:(UIView *)view
          cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     NSDictionary *item = _sections[(NSUInteger)indexPath.section][(NSUInteger)indexPath.row];
     NSString *type = item[@"type"];
+    if ([type isEqualToString:@"layout"]) {
+        UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"YTKACELayout"];
+        if (cell == nil) {
+            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"YTKACELayout"];
+            cell.selectionStyle = UITableViewCellSelectionStyleNone;
+        }
+        cell.backgroundColor = YTKACESettingsCellBackground();
+        YTKACEButtonLayoutView *view = [self layoutView];
+        view.frame = cell.contentView.bounds;
+        view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        [cell.contentView addSubview:view];
+        return cell;
+    }
     UITableViewCellStyle style;
     if ([type isEqualToString:@"picker"]) {
         style = [item[@"subtitle"] length] == 0
@@ -1531,10 +1577,12 @@ static NSDictionary *YTKACESponsorBlockDefinition(void) {
 static NSDictionary *YTKACEPlayerDefinition(void) {
     return YTKACEPageDefinition(@"player", @"Player", @[
         @[
+            @{@"type": @"layout", @"title": YTKACELocalized(@"Button Layout"), @"en": @"Button Layout", @"subtitle": @""},
             YTKACEToggleDetail(@"PiP Button", @"Add a button that opens the video in picture in picture.", YTKACEPiPKey),
             YTKACEToggleDetail(@"iPhone Duo Laptop Layout", @"Half open like a laptop, full-screen video plays above the crease with the controls below.", @"YTKACE.Preference.Player.DuoDeskSplit"),
             YTKACEToggleDetail(@"iPhone Duo Status Bar Over Video", @"Hide the clock and status icons while the watch page's video is under them.", @"YTKACE.Preference.Player.DuoStatusBarHidden"),
             YTKACEToggle(@"Loop Button", YTKACELoopKey, @"", @""),
+            YTKACEToggleDetail(@"Quality Button", @"Add a button that opens the quality menu.", @"YTKACE.Preference.Player.QualityButton"),
             YTKACEToggle(@"Sleep Timer Button", YTKACESleepTimerKey, @"", @""),
             YTKACEToggle(@"Speed Button", YTKACESpeedKey, @"", @""),
             YTKACEPickerDetail(@"Speed Button Style",
@@ -1568,6 +1616,12 @@ static NSDictionary *YTKACEPlayerDefinition(void) {
             YTKACEToggleDetail(@"Open Videos Paused",
                                @"Videos load without starting playback.",
                                @"YTKACE.Preference.Playback.OpenPaused"),
+            YTKACEToggleDetail(@"Auto Fullscreen",
+                               @"Videos open in fullscreen.",
+                               @"YTKACE.Preference.Player.AutoFullscreen"),
+            YTKACEToggleDetail(@"Exit Fullscreen at End",
+                               @"Leave fullscreen when a video ends.",
+                               @"YTKACE.Preference.Player.ExitFullscreenAtEnd"),
             YTKACEToggleDetail(@"Local Queue",
                                @"Play next and play last without Premium.",
                                @"YTKACE.Preference.Playback.LocalQueue"),
@@ -2066,6 +2120,8 @@ static NSDictionary *YTKACEGestureOptionsDefinition(void) {
             YTKACESlider(@"Seek Step", @"YTKACE.Preference.Gestures.HoldSeekSeconds", 1.0, 60.0, 1.0, 10.0),
             YTKACEToggleDetail(@"Tap to Seek", @"Tap the progress bar to jump to that point.",
                                @"YTKACE.Preference.Playback.TapToSeek"),
+            YTKACEToggleDetail(@"Swipe to Seek", @"Swipe left or right on the video to rewind or fast-forward.",
+                               @"YTKACE.Preference.Gestures.SwipeToSeek"),
             YTKACEToggleDetail(@"Two-Finger Tap to Pause",
                                @"Tap the video with two fingers to pause or play.",
                                @"YTKACE.Preference.Gestures.TwoFingerTap")

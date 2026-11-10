@@ -1,4 +1,6 @@
 #import "OverlayButtonHost.h"
+#import "OverlayButtonLayout.h"
+#import "../Features/Downloads/DownloadLog.h"
 #import "../YTKACE.h"
 #import "../Runtime/Hooking.h"
 #import "../Runtime/Preferences.h"
@@ -13,9 +15,18 @@ static IMP OriginalControlsSetControlsVisible;
 static IMP OriginalVideoSetOverlayVisible;
 static IMP OriginalVideoSetControlsVisible;
 static IMP OriginalControlsSetHidden;
+static IMP OriginalPlayerBarHitTest;
+static NSHashTable<UIStackView *> *YTKACEBottomStacks;
 static const void *YTKACEOverlayStackAssociation = &YTKACEOverlayStackAssociation;
 static const void *YTKACEOverlayTrailingAssociation = &YTKACEOverlayTrailingAssociation;
 static const void *YTKACEOverlayAlignmentAssociation = &YTKACEOverlayAlignmentAssociation;
+static const void *YTKACEOverlayZoneStacksAssociation = &YTKACEOverlayZoneStacksAssociation;
+static const void *YTKACEOverlayGroupAssociation = &YTKACEOverlayGroupAssociation;
+static const void *YTKACEOverlayPlacedAssociation = &YTKACEOverlayPlacedAssociation;
+static const void *YTKACEOverlayAnchorAssociation = &YTKACEOverlayAnchorAssociation;
+static const void *YTKACEOverlayOwnerAssociation = &YTKACEOverlayOwnerAssociation;
+static const void *YTKACEOverlayRetryAssociation = &YTKACEOverlayRetryAssociation;
+static NSString *YTKACECurrentOverlayGroup;
 static NSMutableArray<NSDictionary *> *YTKACEOverlayConfigurators;
 static BOOL YTKACENativeControlsVisible = YES;
 
@@ -270,14 +281,251 @@ static UIStackView *YTKACEStackForOverlay(UIView *overlay) {
     return stack;
 }
 
+static UIView *YTKACEPlayerBarHitTest(UIView *receiver, SEL selector, CGPoint point, UIEvent *event);
+
+static UIStackView *YTKACENewZoneStack(UIView *overlay) {
+    UIStackView *stack = [UIStackView new];
+    stack.axis = UILayoutConstraintAxisHorizontal;
+    stack.alignment = UIStackViewAlignmentCenter;
+    stack.distribution = UIStackViewDistributionFill;
+    stack.spacing = 7.0;
+    stack.backgroundColor = UIColor.clearColor;
+    stack.alpha = YTKACENativeControlsVisible ? 1.0 : 0.0;
+    stack.userInteractionEnabled = YTKACENativeControlsVisible;
+    stack.translatesAutoresizingMaskIntoConstraints = YES;
+    stack.accessibilityIdentifier = @"YTKACEOverlayControls";
+    stack.hidden = YES;
+    [overlay addSubview:stack];
+    return stack;
+}
+
+// One row per zone: the old row under YouTube's buttons, plus one placed in
+// YouTube's top row and one next to the fullscreen button.
+static NSDictionary<NSString *, UIStackView *> *YTKACEZoneStacks(UIView *overlay) {
+    NSDictionary *stacks = objc_getAssociatedObject(overlay, YTKACEOverlayZoneStacksAssociation);
+    if (stacks != nil) return stacks;
+    stacks = @{
+        YTKACEOverlayZoneBelow: YTKACEStackForOverlay(overlay),
+        YTKACEOverlayZoneTop: YTKACENewZoneStack(overlay),
+        YTKACEOverlayZoneBottom: YTKACENewZoneStack(overlay)
+    };
+    if (YTKACEBottomStacks == nil) {
+        YTKACEBottomStacks = [NSHashTable weakObjectsHashTable];
+        YTKACEInstallInstanceHook(@"YTInlinePlayerBarContainerView", @"hitTest:withEvent:",
+                                  (IMP)YTKACEPlayerBarHitTest, &OriginalPlayerBarHitTest);
+    }
+    [YTKACEBottomStacks addObject:stacks[YTKACEOverlayZoneBottom]];
+    objc_setAssociatedObject(overlay, YTKACEOverlayZoneStacksAssociation, stacks,
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    for (UIStackView *row in stacks.allValues) {
+        objc_setAssociatedObject(row, YTKACEOverlayOwnerAssociation, overlay, OBJC_ASSOCIATION_ASSIGN);
+    }
+    return stacks;
+}
+
+// YouTube's player bar sits over the controls overlay and takes touches
+// there; hand taps on our bottom row back to our buttons.
+static UIView *YTKACEPlayerBarHitTest(UIView *receiver, SEL selector, CGPoint point, UIEvent *event) {
+    for (UIStackView *stack in YTKACEBottomStacks.allObjects) {
+        if (stack.hidden || stack.alpha < 0.05 || !stack.userInteractionEnabled || stack.window != receiver.window) continue;
+        UIView *hit = [stack hitTest:[receiver convertPoint:point toView:stack] withEvent:event];
+        if (hit != nil && hit != stack) return hit;
+    }
+    return ((UIView *(*)(id, SEL, CGPoint, UIEvent *))OriginalPlayerBarHitTest)(receiver, selector, point, event);
+}
+
+static BOOL YTKACEStackHasVisibleButton(UIStackView *stack) {
+    for (UIView *view in stack.arrangedSubviews) {
+        if (!view.hidden) return YES;
+    }
+    return NO;
+}
+
+// Keep each row in the saved left-to-right order. A group can have more than
+// one button (speed has three); those keep their own order.
+static void YTKACESortZoneStack(UIStackView *stack, NSString *zone) {
+    NSArray<NSString *> *order = YTKACEOverlayZoneOrder(zone);
+    NSArray<UIView *> *current = stack.arrangedSubviews;
+    NSArray<UIView *> *sorted = [current sortedArrayWithOptions:NSSortStable
+                                                usingComparator:^NSComparisonResult(UIView *a, UIView *b) {
+        NSUInteger left = [order indexOfObject:objc_getAssociatedObject(a, YTKACEOverlayGroupAssociation) ?: @""];
+        NSUInteger right = [order indexOfObject:objc_getAssociatedObject(b, YTKACEOverlayGroupAssociation) ?: @""];
+        if (left == right) return NSOrderedSame;
+        return left < right ? NSOrderedAscending : NSOrderedDescending;
+    }];
+    if ([sorted isEqualToArray:current]) return;
+    for (NSUInteger index = 0; index < sorted.count; index++) {
+        [stack removeArrangedSubview:sorted[index]];
+        [stack insertArrangedSubview:sorted[index] atIndex:index];
+    }
+}
+
+static BOOL YTKACEViewShown(UIView *view) {
+    for (UIView *current = view; current != nil; current = current.superview) {
+        if (current.hidden || current.alpha < 0.05) return NO;
+    }
+    return !CGRectIsEmpty(view.bounds);
+}
+
+// Leftmost of YouTube's buttons in the top row, found from the gear.
+static void YTKACEFindTopRowEdge(UIView *view, UIView *overlay, NSArray<UIView *> *excluded,
+                                 CGFloat rowY, CGFloat *minX) {
+    if (view.hidden || view.alpha < 0.05 || [excluded containsObject:view]) return;
+    NSString *name = NSStringFromClass(view.class);
+    if ([view isKindOfClass:UIControl.class] || [name containsString:@"Button"] ||
+        [name containsString:@"Switch"] || [name containsString:@"Toggle"]) {
+        CGRect frame = [view convertRect:view.bounds toView:overlay];
+        if (CGRectGetWidth(frame) > 4.0 && CGRectGetWidth(frame) < 120.0 &&
+            fabs(CGRectGetMidY(frame) - rowY) < 14.0 &&
+            CGRectGetMidX(frame) > CGRectGetWidth(overlay.bounds) * 0.4 &&
+            YTKACEViewShown(view)) {
+            *minX = MIN(*minX, CGRectGetMinX(frame));
+        }
+    }
+    for (UIView *subview in view.subviews) {
+        YTKACEFindTopRowEdge(subview, overlay, excluded, rowY, minX);
+    }
+}
+
+// The enter or exit fullscreen button. Its YTEnterExitFullscreenButtonView
+// wrapper can sit at alpha 0 while the button inside is shown, and there can
+// be more than one; prefer the one on screen, else one that is fading in.
+static void YTKACECollectFullscreenButtons(UIView *view, NSMutableArray<UIView *> *found) {
+    if (view.hidden) return;
+    NSString *identifier = view.accessibilityIdentifier;
+    if ([identifier isEqualToString:@"id.player.watch.fullscreen.button"] ||
+        [identifier isEqualToString:@"id.player.watch.exit_fullscreen.button"]) {
+        [found addObject:view];
+        return;
+    }
+    for (UIView *subview in view.subviews) YTKACECollectFullscreenButtons(subview, found);
+}
+
+static UIView *YTKACEFullscreenAnchor(UIView *root) {
+    NSMutableArray<UIView *> *found = [NSMutableArray array];
+    YTKACECollectFullscreenButtons(root, found);
+    for (UIView *view in found) if (YTKACEViewShown(view)) return view;
+    for (UIView *view in found) {
+        BOOL hidden = NO;
+        for (UIView *current = view; current != nil; current = current.superview) hidden = hidden || current.hidden;
+        if (!hidden && view.window != nil && !CGRectIsEmpty(view.bounds)) return view;
+    }
+    return nil;
+}
+
+// right and centerY are in the coordinates of the row's own superview.
+static void YTKACEPlaceZoneStack(UIStackView *stack, UIView *overlay, CGFloat right, CGFloat centerY) {
+    CGSize size = [stack systemLayoutSizeFittingSize:UILayoutFittingCompressedSize];
+    size.height = 40.0;
+    const CGFloat minimum = stack.superview == overlay
+        ? CGRectGetMinX(overlay.safeAreaLayoutGuide.layoutFrame) + 8.0 : 8.0;
+    const CGFloat left = MAX(minimum, right - size.width);
+    CGRect frame = CGRectMake(left, round(centerY - size.height * 0.5), right - left, size.height);
+    if (!CGRectEqualToRect(stack.frame, frame)) {
+        [UIView performWithoutAnimation:^{
+            stack.frame = frame;
+            [stack layoutIfNeeded];
+        }];
+    }
+    objc_setAssociatedObject(stack, YTKACEOverlayPlacedAssociation,
+                             [NSValue valueWithCGSize:overlay.bounds.size], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+// YouTube's buttons can't be found while they fade out; keep the last spot
+// so our row fades with them instead of vanishing first. A spot from another
+// player size (rotation, fullscreen) is stale.
+static BOOL YTKACEZoneStackWasPlaced(UIStackView *stack, UIView *overlay) {
+    NSValue *size = objc_getAssociatedObject(stack, YTKACEOverlayPlacedAssociation);
+    return size != nil && CGSizeEqualToSize(size.CGSizeValue, overlay.bounds.size);
+}
+
+static BOOL YTKACELayoutTopStack(UIView *overlay, NSDictionary<NSString *, UIStackView *> *stacks) {
+    UIStackView *stack = stacks[YTKACEOverlayZoneTop];
+    UIView *gear = YTKACEOverflowControl(overlay) ?:
+        YTKACEFindSettingsControl(overlay, stacks[YTKACEOverlayZoneBelow]);
+    if (gear == nil) return YTKACEZoneStackWasPlaced(stack, overlay);
+    CGRect gearFrame = [gear convertRect:gear.bounds toView:overlay];
+    CGFloat minX = CGRectGetMinX(gearFrame);
+    YTKACEFindTopRowEdge(overlay, overlay, stacks.allValues, CGRectGetMidY(gearFrame), &minX);
+    YTKACEPlaceZoneStack(stack, overlay, minX - 6.0, CGRectGetMidY(gearFrame));
+    return YES;
+}
+
+static BOOL YTKACELayoutBottomStack(UIView *overlay, NSDictionary<NSString *, UIStackView *> *stacks) {
+    UIStackView *stack = stacks[YTKACEOverlayZoneBottom];
+    UIView *fullscreen = YTKACEFullscreenAnchor(overlay.superview ?: overlay);
+    if (fullscreen == nil) {
+        // the bar may still be loading; look again shortly
+        NSUInteger tries = [objc_getAssociatedObject(stack, YTKACEOverlayRetryAssociation) unsignedIntegerValue];
+        if (tries < 6) {
+            objc_setAssociatedObject(stack, YTKACEOverlayRetryAssociation, @(tries + 1), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            __weak UIView *weakOverlay = overlay;
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [weakOverlay setNeedsLayout];
+            });
+        }
+        return YTKACEZoneStackWasPlaced(stack, overlay);
+    }
+    objc_setAssociatedObject(stack, YTKACEOverlayRetryAssociation, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    CGRect frame = [fullscreen convertRect:fullscreen.bounds toView:overlay];
+    if (!CGRectEqualToRect(frame, [objc_getAssociatedObject(stack, YTKACEOverlayAnchorAssociation) CGRectValue])) {
+        objc_setAssociatedObject(stack, YTKACEOverlayAnchorAssociation, [NSValue valueWithCGRect:frame],
+                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        YTKACEDebugLog(@"layout", @"bottom anchor %@ in %@ overlay=%@", NSStringFromCGRect(frame),
+                       NSStringFromClass(fullscreen.superview.class), NSStringFromCGSize(overlay.bounds.size));
+    }
+    YTKACEPlaceZoneStack(stack, overlay, CGRectGetMinX(frame) - 4.0, CGRectGetMidY(frame));
+    return YES;
+}
+
+// Features remember the last overlay that laid out, which can be another
+// player's. Laying out the tapped button's overlay on touch down points them
+// at the right player before the tap's action runs.
+@interface YTKACEOverlayTapRouter : NSObject
++ (instancetype)sharedRouter;
+- (void)buttonTouched:(UIButton *)button;
+@end
+
+@implementation YTKACEOverlayTapRouter
+
++ (instancetype)sharedRouter {
+    static YTKACEOverlayTapRouter *router;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{ router = [YTKACEOverlayTapRouter new]; });
+    return router;
+}
+
+- (void)buttonTouched:(UIButton *)button {
+    UIView *owner = objc_getAssociatedObject(button.superview, YTKACEOverlayOwnerAssociation);
+    if (owner == nil) return;
+    [owner setNeedsLayout];
+    [owner layoutIfNeeded];
+}
+
+@end
+
 UIButton *YTKACEOverlayButton(UIStackView *stack,
                               NSString *identifier,
                               NSString *symbolName,
                               id target,
                               SEL action) {
-    for (UIView *view in stack.arrangedSubviews) {
-        if ([view.accessibilityIdentifier isEqualToString:identifier] &&
-            [view isKindOfClass:UIButton.class]) {
+    // the button may be in another zone's row after a layout change
+    UIView *owner = objc_getAssociatedObject(stack, YTKACEOverlayOwnerAssociation) ?: stack.superview;
+    NSDictionary<NSString *, UIStackView *> *stacks = owner != nil
+        ? objc_getAssociatedObject(owner, YTKACEOverlayZoneStacksAssociation) : nil;
+    for (UIStackView *row in stacks.allValues ?: @[stack]) {
+        for (UIView *view in row.arrangedSubviews) {
+            if (![view.accessibilityIdentifier isEqualToString:identifier] ||
+                ![view isKindOfClass:UIButton.class]) continue;
+            if (row != stack) {
+                [row removeArrangedSubview:view];
+                [view removeFromSuperview];
+                [stack addArrangedSubview:view];
+            }
+            if (YTKACECurrentOverlayGroup != nil) {
+                objc_setAssociatedObject(view, YTKACEOverlayGroupAssociation, YTKACECurrentOverlayGroup,
+                                         OBJC_ASSOCIATION_COPY_NONATOMIC);
+            }
             return (UIButton *)view;
         }
     }
@@ -297,9 +545,15 @@ UIButton *YTKACEOverlayButton(UIStackView *stack,
                 forState:UIControlStateNormal];
     }
     button.imageView.contentMode = UIViewContentModeScaleAspectFit;
+    [button addTarget:YTKACEOverlayTapRouter.sharedRouter action:@selector(buttonTouched:)
+     forControlEvents:UIControlEventTouchDown];
     [button addTarget:target action:action forControlEvents:UIControlEventTouchUpInside];
     [button.widthAnchor constraintEqualToConstant:40.0].active = YES;
     [button.heightAnchor constraintEqualToConstant:40.0].active = YES;
+    if (YTKACECurrentOverlayGroup != nil) {
+        objc_setAssociatedObject(button, YTKACEOverlayGroupAssociation, YTKACECurrentOverlayGroup,
+                                 OBJC_ASSOCIATION_COPY_NONATOMIC);
+    }
     [stack addArrangedSubview:button];
     return button;
 }
@@ -311,25 +565,27 @@ static void YTKACEControlsOverlayLayout(UIView *receiver, SEL selector) {
         ((void (*)(id, SEL))OriginalControlsOverlayLayout)(receiver, selector);
     }
 
-    UIStackView *stack = YTKACEStackForOverlay(receiver);
+    NSDictionary<NSString *, UIStackView *> *stacks = YTKACEZoneStacks(receiver);
+    UIStackView *stack = stacks[YTKACEOverlayZoneBelow];
     NSArray<NSDictionary *> *configurators = nil;
     @synchronized (YTKACEOverlayConfigurators) {
         configurators = [YTKACEOverlayConfigurators copy];
     }
     for (NSDictionary *entry in configurators) {
         YTKACEOverlayConfigurator configurator = entry[@"block"];
-        configurator(receiver, stack);
+        NSString *identifier = entry[@"identifier"];
+        YTKACECurrentOverlayGroup = identifier;
+        configurator(receiver, stacks[YTKACEOverlayButtonZone(identifier)] ?: stack);
     }
+    YTKACECurrentOverlayGroup = nil;
+    for (NSString *zone in stacks) YTKACESortZoneStack(stacks[zone], zone);
     BOOL aligned = YTKACEAlignOverlayStack(receiver, stack);
+    stack.hidden = !YTKACEStackHasVisibleButton(stack) || !aligned;
 
-    BOOL visible = NO;
-    for (UIView *view in stack.arrangedSubviews) {
-        if (!view.hidden) {
-            visible = YES;
-            break;
-        }
-    }
-    stack.hidden = !visible || !aligned;
+    UIStackView *top = stacks[YTKACEOverlayZoneTop];
+    top.hidden = !YTKACEStackHasVisibleButton(top) || !YTKACELayoutTopStack(receiver, stacks);
+    UIStackView *bottom = stacks[YTKACEOverlayZoneBottom];
+    bottom.hidden = !YTKACEStackHasVisibleButton(bottom) || !YTKACELayoutBottomStack(receiver, stacks);
     // Last, so the laptop-posture split moves the final positions.
     YTKACEDuoDeskControlsLayout(receiver);
 }
