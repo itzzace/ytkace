@@ -2,15 +2,14 @@
 #import "../../Runtime/Hooking.h"
 #import "../../Runtime/Preferences.h"
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <stdint.h>
+#import <string.h>
 
 static IMP OriginalShouldBlockUpgradeDialog;
 static IMP OriginalAdShieldSignals;
 static IMP OriginalAdShieldSignalsWithoutIDFA;
-static IMP OriginalDataSignals;
-static IMP OriginalDataSignalsWithoutIDFA;
 static IMP OriginalAdsDecorateContext;
 static IMP OriginalAccountAdsDecorateContext;
 static IMP OriginalPlayerAdsArray;
@@ -21,30 +20,195 @@ static IMP OriginalAdNextParams;
 static IMP OriginalAdParams;
 static IMP OriginalEnableSkippableAd;
 static IMP OriginalMDXSessionImplAdPlaying;
-static IMP OriginalMDXSessionAdPlaying;
 static IMP OriginalIsPlayingAd;
 static IMP OriginalIsPlayingAdSurvey;
 static IMP OriginalIsPlayingAdIntro;
 static IMP OriginalCreateAdsPlaybackCoordinator;
 static IMP OriginalReelContentModel;
-static IMP OriginalInfiniteReelContentModel;
 static IMP OriginalReelShouldDisplay;
 static IMP OriginalCompanionAd;
 static IMP OriginalHasCompanionAdRenderer;
 static IMP OriginalHasAppPromoCompanionAdRenderer;
 static IMP OriginalHasShoppingCompanionAdRenderer;
-static IMP OriginalElementContentsArray;
-static IMP OriginalItemSectionContentsArray;
-static IMP OriginalAdCellLayout;
-static IMP OriginalAdCellReuse;
-static NSMutableDictionary<NSString *, NSValue *> *YTKACEPromotedSizeOriginals;
-static IMP OriginalVideoNodeSetEntry;
-static IMP OriginalVideoNodeHeight;
-static IMP OriginalVideoNodeSize;
-static IMP OriginalVideoNodeShrink;
-static const void *YTKACEAdNodeAssociation = &YTKACEAdNodeAssociation;
-static const void *YTKACEAdMatchAssociation = &YTKACEAdMatchAssociation;
-static const void *YTKACEAdEmptyAssociation = &YTKACEAdEmptyAssociation;
+static const void *YTKACEAdObjectAssociation = &YTKACEAdObjectAssociation;
+static const void *YTKACESectionContentsAssociation =
+    &YTKACESectionContentsAssociation;
+static const void *YTKACESectionContentCountAssociation =
+    &YTKACESectionContentCountAssociation;
+static IMP OriginalURLSessionTaskResume;
+
+static const char * const YTKACEAdMarkers[] = {
+    "eml.ad",
+    "eml_ad",
+    "pagead/",
+    "doubleclick.net",
+    "yt-ads-web-view-id",
+    "compact_promoted",
+    "grid_promoted",
+    "promoted_sparkles",
+    "promoted_discovery",
+    "promoted_15_click",
+    "promoted_native_text",
+    ".promoted_video",
+    "_promoted_video",
+    "promoted_app_install",
+    "promoted_text_banner",
+    "shopping_ad_info_card",
+    ".display_ad",
+    "_display_ad",
+    ".infeed_ad",
+    "_infeed_ad",
+    ".ad_slot",
+    "_ad_slot",
+    ".ad_badge",
+    "_ad_badge",
+    ".native_ad_badge",
+    "_native_ad_badge",
+    ".simple_ad_badge",
+    "_simple_ad_badge",
+    "YTIReelNonVideoAdsCustomData",
+    "reelNonVideoAdsCustomData",
+    "YTIReelNonVideoAdsCustomData_reelNonVideoAdsCustomData",
+    "adsVideoWithContext",
+    "ads_video_with_context",
+    "shorts_ad",
+    "shortsAd",
+    "reel_ad",
+    "reelAd"
+};
+
+typedef struct {
+    int16_t next[128];
+    int16_t fail;
+    BOOL terminal;
+} YTKACEAdTrieNode;
+
+static YTKACEAdTrieNode YTKACEAdTrie[512];
+static int32_t YTKACEAdTrieCount;
+
+static void YTKACEAdTrieReset(int32_t node) {
+    for (NSUInteger byte = 0; byte < 128; byte++) {
+        YTKACEAdTrie[node].next[byte] = -1;
+    }
+    YTKACEAdTrie[node].fail = 0;
+    YTKACEAdTrie[node].terminal = NO;
+}
+
+static void YTKACEAdTrieInsert(const char *marker) {
+    int32_t state = 0;
+    for (const unsigned char *byte = (const unsigned char *)marker;
+         *byte != '\0'; byte++) {
+        if (*byte >= 128) return;
+        if (YTKACEAdTrie[state].next[*byte] < 0) {
+            const int32_t capacity =
+                (int32_t)(sizeof(YTKACEAdTrie) / sizeof(YTKACEAdTrie[0]));
+            // Out of room: skip the rest of this marker instead of writing
+            // past the table.
+            if (YTKACEAdTrieCount + 1 >= capacity) return;
+            int32_t node = ++YTKACEAdTrieCount;
+            YTKACEAdTrieReset(node);
+            YTKACEAdTrie[state].next[*byte] = (int16_t)node;
+        }
+        state = YTKACEAdTrie[state].next[*byte];
+    }
+    YTKACEAdTrie[state].terminal = YES;
+}
+
+static void YTKACEAdTrieBuild(void) {
+    YTKACEAdTrieCount = 0;
+    YTKACEAdTrieReset(0);
+    NSUInteger markerCount = sizeof(YTKACEAdMarkers) / sizeof(YTKACEAdMarkers[0]);
+    for (NSUInteger marker = 0; marker < markerCount; marker++) {
+        YTKACEAdTrieInsert(YTKACEAdMarkers[marker]);
+    }
+
+    int16_t queue[512];
+    int32_t head = 0;
+    int32_t tail = 0;
+    for (NSUInteger byte = 0; byte < 128; byte++) {
+        int16_t next = YTKACEAdTrie[0].next[byte];
+        if (next < 0) {
+            YTKACEAdTrie[0].next[byte] = 0;
+        } else {
+            queue[tail++] = next;
+        }
+    }
+    while (head < tail) {
+        int16_t state = queue[head++];
+        int16_t failure = YTKACEAdTrie[state].fail;
+        YTKACEAdTrie[state].terminal =
+            YTKACEAdTrie[state].terminal || YTKACEAdTrie[failure].terminal;
+        for (NSUInteger byte = 0; byte < 128; byte++) {
+            int16_t next = YTKACEAdTrie[state].next[byte];
+            if (next < 0) {
+                YTKACEAdTrie[state].next[byte] =
+                    YTKACEAdTrie[failure].next[byte];
+            } else {
+                YTKACEAdTrie[next].fail =
+                    YTKACEAdTrie[failure].next[byte];
+                queue[tail++] = next;
+            }
+        }
+    }
+}
+
+static BOOL YTKACEAdBytes(NSData *data) {
+    const uint8_t *bytes = (const uint8_t *)data.bytes;
+    NSUInteger length = data.length;
+    int32_t state = 0;
+    for (NSUInteger index = 0; index < length; index++) {
+        uint8_t byte = bytes[index];
+        if (byte >= 128) {
+            state = 0;
+            continue;
+        }
+        state = YTKACEAdTrie[state].next[byte];
+        if (YTKACEAdTrie[state].terminal) return YES;
+    }
+    return NO;
+}
+
+static BOOL YTKACEAdsHostMatches(NSString *host, NSString *suffix) {
+    NSUInteger hostLength = host.length;
+    NSUInteger suffixLength = suffix.length;
+    if (hostLength < suffixLength) return NO;
+    if (![host hasSuffix:suffix]) return NO;
+    if (hostLength == suffixLength) return YES;
+    return [host characterAtIndex:hostLength - suffixLength - 1] == '.';
+}
+
+static BOOL YTKACEAdsHostIsBlocked(NSString *host) {
+    if (host.length == 0) return NO;
+    return YTKACEAdsHostMatches(host, @"doubleclick.net") ||
+        YTKACEAdsHostMatches(host, @"googleadservices.com") ||
+        YTKACEAdsHostMatches(host, @"googlesyndication.com");
+}
+
+static BOOL YTKACEAdsURLIsBlocked(NSURL *URL) {
+    NSString *host = URL.host.lowercaseString;
+    if (YTKACEAdsHostIsBlocked(host)) return YES;
+    if (YTKACEAdsHostMatches(host, @"youtube.com") ||
+        YTKACEAdsHostMatches(host, @"google.com")) {
+        NSString *path = URL.path.lowercaseString;
+        return [path hasPrefix:@"/pagead/"] ||
+            [path hasPrefix:@"/ads/"] ||
+            [path hasPrefix:@"/api/stats/ads"];
+    }
+    return NO;
+}
+
+static void YTKACEURLSessionTaskResume(NSURLSessionTask *task, SEL selector) {
+    if (YTKACEFeatureEnabled(YTKACENoAdsKey)) {
+        NSURLRequest *request = task.currentRequest ?: task.originalRequest;
+        if (YTKACEAdsURLIsBlocked(request.URL)) {
+            [task cancel];
+            return;
+        }
+    }
+    if (OriginalURLSessionTaskResume != NULL) {
+        ((void (*)(id, SEL))OriginalURLSessionTaskResume)(task, selector);
+    }
+}
 
 static id YTKACECallObjectGetter(IMP implementation, id receiver, SEL selector) {
     return implementation == NULL
@@ -77,14 +241,6 @@ static id YTKACEAdShieldSignalsWithoutIDFA(id receiver, SEL selector) {
     return YTKACEEmptyDictionary(OriginalAdShieldSignalsWithoutIDFA, receiver, selector);
 }
 
-static id YTKACEDataSignals(id receiver, SEL selector) {
-    return YTKACEEmptyDictionary(OriginalDataSignals, receiver, selector);
-}
-
-static id YTKACEDataSignalsWithoutIDFA(id receiver, SEL selector) {
-    return YTKACEEmptyDictionary(OriginalDataSignalsWithoutIDFA, receiver, selector);
-}
-
 static void YTKACEAdsDecorateContext(id receiver, SEL selector, id context) {
     if (!YTKACEFeatureEnabled(YTKACENoAdsKey) && OriginalAdsDecorateContext != NULL) {
         ((void (*)(id, SEL, id))OriginalAdsDecorateContext)(receiver, selector, context);
@@ -103,11 +259,43 @@ static void YTKACEAccountAdsDecorateContext(id receiver, SEL selector, id contex
 }
 
 static IMP OriginalAccountAdsDecorateService;
+static IMP OriginalAdsDecorateService;
 
-static void YTKACEAccountAdsDecorateService(id receiver, SEL selector, id context, long long type) {
-    if (!YTKACEFeatureEnabled(YTKACENoAdsKey) && OriginalAccountAdsDecorateService != NULL) {
-        ((void (*)(id, SEL, id, long long))OriginalAccountAdsDecorateService)(receiver, selector, context, type);
+static void YTKACECallAdsDecorateService(IMP original,
+                                         id receiver,
+                                         SEL selector,
+                                         id context,
+                                         long long type) {
+    if (!YTKACEFeatureEnabled(YTKACENoAdsKey) && original != NULL) {
+        ((void (*)(id, SEL, id, long long))original)(
+            receiver,
+            selector,
+            context,
+            type
+        );
     }
+}
+
+static void YTKACEAccountAdsDecorateService(id receiver,
+                                            SEL selector,
+                                            id context,
+                                            long long type) {
+    YTKACECallAdsDecorateService(OriginalAccountAdsDecorateService,
+                                 receiver,
+                                 selector,
+                                 context,
+                                 type);
+}
+
+static void YTKACEAdsDecorateService(id receiver,
+                                     SEL selector,
+                                     id context,
+                                     long long type) {
+    YTKACECallAdsDecorateService(OriginalAdsDecorateService,
+                                 receiver,
+                                 selector,
+                                 context,
+                                 type);
 }
 
 static id YTKACEPlayerAdsArray(id receiver, SEL selector) {
@@ -165,18 +353,6 @@ static void YTKACEMDXSessionImplAdPlaying(id receiver,
     }
 }
 
-static void YTKACEMDXSessionAdPlaying(id receiver,
-                                      SEL selector,
-                                      uintptr_t value) {
-    if (!YTKACEFeatureEnabled(YTKACENoAdsKey) && OriginalMDXSessionAdPlaying != NULL) {
-        ((void (*)(id, SEL, uintptr_t))OriginalMDXSessionAdPlaying)(
-            receiver,
-            selector,
-            value
-        );
-    }
-}
-
 static BOOL YTKACENotPlayingAd(IMP original, id receiver, SEL selector) {
     return YTKACEFeatureEnabled(YTKACENoAdsKey)
         ? NO
@@ -204,46 +380,6 @@ static id YTKACENoAdsPlaybackCoordinator(id receiver, SEL selector) {
     return YTKACEFeatureEnabled(YTKACENoAdsKey) ? nil : coordinator;
 }
 
-static id YTKACEFilterReelModel(IMP original,
-                                id receiver,
-                                SEL selector,
-                                id entry) {
-    if (original == NULL) {
-        return nil;
-    }
-    id model = ((id (*)(id, SEL, id))original)(receiver, selector, entry);
-    if (!YTKACEFeatureEnabled(YTKACENoAdsKey) || model == nil) {
-        return model;
-    }
-    SEL videoTypeSelector = NSSelectorFromString(@"videoType");
-    if (![model respondsToSelector:videoTypeSelector]) {
-        return model;
-    }
-    NSInteger videoType = ((NSInteger (*)(id, SEL))objc_msgSend)(
-        model,
-        videoTypeSelector
-    );
-    return videoType == 3 ? nil : model;
-}
-
-static id YTKACEReelContentModel(id receiver, SEL selector, id entry) {
-    return YTKACEFilterReelModel(
-        OriginalReelContentModel,
-        receiver,
-        selector,
-        entry
-    );
-}
-
-static id YTKACEInfiniteReelContentModel(id receiver, SEL selector, id entry) {
-    return YTKACEFilterReelModel(
-        OriginalInfiniteReelContentModel,
-        receiver,
-        selector,
-        entry
-    );
-}
-
 static id YTKACEObjectValue(id object, NSString *selectorName) {
     if (object == nil) return nil;
     SEL selector = NSSelectorFromString(selectorName);
@@ -253,6 +389,20 @@ static id YTKACEObjectValue(id object, NSString *selectorName) {
     } @catch (__unused NSException *exception) {
         return nil;
     }
+}
+
+static BOOL YTKACEObjectHasAd(id object) {
+    if (object == nil) return NO;
+    NSNumber *cached = objc_getAssociatedObject(object, YTKACEAdObjectAssociation);
+    if (cached != nil) return cached.boolValue;
+    SEL dataSelector = @selector(data);
+    if (![object respondsToSelector:dataSelector]) return NO;
+    id value = ((id (*)(id, SEL))objc_msgSend)(object, dataSelector);
+    if (![value isKindOfClass:NSData.class]) return NO;
+    BOOL ad = YTKACEAdBytes(value);
+    objc_setAssociatedObject(object, YTKACEAdObjectAssociation, @(ad),
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    return ad;
 }
 
 static BOOL YTKACEObjectBool(id object, NSString *selectorName) {
@@ -325,250 +475,42 @@ static BOOL YTKACEReelShouldDisplay(id receiver, SEL selector) {
     return !YTKACEReelObjectLooksLikeAd(receiver, 0);
 }
 
-static BOOL YTKACEIsAdLayoutIdentifier(NSString *identifier) {
-    if (identifier.length == 0) return NO;
-    NSString *normalized = [[identifier lowercaseString]
-        stringByReplacingOccurrencesOfString:@"." withString:@"_"];
-    normalized = [normalized stringByReplacingOccurrencesOfString:@"-"
-                                                        withString:@"_"];
-    return [normalized hasPrefix:@"eml_ad_"];
-}
-
-static BOOL YTKACEObjectLooksLikeAd(id object) {
-    if (object == nil) return NO;
-    if ([objc_getAssociatedObject(object, YTKACEAdMatchAssociation) boolValue]) {
-        return YES;
-    }
-    BOOL matched = NO;
-    NSString *className = NSStringFromClass([object class]).lowercaseString;
-    if ([className containsString:@"adrenderer"] ||
-        ([className containsString:@"promoted"] &&
-         [className containsString:@"renderer"]) ||
-        [className containsString:@"promorenderer"] ||
-        [className containsString:@"adslotrenderer"] ||
-        [className containsString:@"companionadrenderer"] ||
-        [className containsString:@"shoppingadinfocardcontentrenderer"] ||
-        [className containsString:@"infeedad"] ||
-        [className containsString:@"displayad"]) {
-        matched = YES;
-    }
-    for (NSString *selectorName in @[@"isAdRenderer", @"isAd",
-                                      @"hasAdLoggingData",
-                                      @"hasAdBadgeRenderer",
-                                      @"hasNativeAdBadgeRenderer",
-                                      @"hasSimpleAdBadgeRenderer",
-                                      @"hasAdSlotRenderer",
-                                      @"hasCompanionAdRenderer",
-                                      @"hasCompactCompanionAdRenderer",
-                                      @"hasMultiItemCompanionAdRenderer",
-                                      @"hasAppPromoCompanionAdRenderer",
-                                      @"hasShoppingCompanionAdRenderer",
-                                      @"hasSuggestedVideosCompanionAdRenderer",
-                                      @"hasCompactPromotedBannerRenderer",
-                                      @"hasCompactPromotedItemRenderer",
-                                      @"hasCompactPromotedVideoRenderer",
-                                      @"hasGridPromotedBannerRenderer",
-                                      @"hasGridPromotedVideoRenderer",
-                                      @"hasPromoted15ClickPtTextCtdWatchRenderer",
-                                      @"hasPromoted15ClickPtTextWatchRenderer",
-                                      @"hasPromoted15ClickTextCtdWatchRenderer",
-                                      @"hasPromoted15ClickTextWatchRenderer",
-                                      @"hasPromotedAppInstallRenderer",
-                                      @"hasPromotedDiscoveryAppPromoCompactFormRenderer",
-                                      @"hasPromotedSparklesTextCtdHomeCompactFormRenderer",
-                                      @"hasPromotedSparklesTextCtdHomeRenderer",
-                                      @"hasPromotedSparklesTextCtdWatch15ClickRenderer",
-                                      @"hasPromotedSparklesTextCtdWatchGridFormRenderer",
-                                      @"hasPromotedSparklesTextCtdWatchWideFormRenderer",
-                                      @"hasPromotedSparklesTextHomeRenderer",
-                                      @"hasPromotedSparklesTextProductHomeRenderer",
-                                      @"hasPromotedSparklesTextProductWatchRenderer",
-                                      @"hasPromotedSparklesTextSearchRenderer",
-                                      @"hasPromotedSparklesTextWatch15ClickRenderer",
-                                      @"hasPromotedSparklesTextWatchGridFormRenderer",
-                                      @"hasPromotedSparklesTextWatchWideFormRenderer",
-                                      @"hasPromotedTextBannerRenderer",
-                                      @"hasPromotedVideoInlineMutedRenderer",
-                                      @"hasPromotedVideoRenderer",
-                                      @"hasShoppingAdInfoCardContentRenderer"]) {
-        if (matched) break;
-        SEL selector = NSSelectorFromString(selectorName);
-        if ([object respondsToSelector:selector] &&
-            ((BOOL (*)(id, SEL))objc_msgSend)(object, selector)) {
-            matched = YES;
+static BOOL YTKACEShortsAdBytes(NSData *data) {
+    const uint8_t *bytes = (const uint8_t *)data.bytes;
+    NSUInteger length = data.length;
+    for (NSUInteger index = 0; index + 3 < length; index++) {
+        if (bytes[index] != 0x82 || bytes[index + 1] != 0x01) continue;
+        NSUInteger cursor = index + 2;
+        NSUInteger size = 0;
+        NSUInteger shift = 0;
+        while (cursor < length && shift < 28) {
+            uint8_t byte = bytes[cursor++];
+            size |= (NSUInteger)(byte & 0x7f) << shift;
+            if ((byte & 0x80) == 0) break;
+            shift += 7;
+        }
+        if (size < 2 || cursor + size > length) continue;
+        for (NSUInteger end = cursor + size; cursor + 1 < end; cursor++) {
+            if (bytes[cursor] == 0x08 && bytes[cursor + 1] == 0x01) {
+                return YES;
+            }
         }
     }
-    if (!matched && YTKACEObjectValue(object, @"adLoggingData") != nil) {
-        matched = YES;
-    }
-    for (NSString *selectorName in @[
-        @"adBadgeRenderer", @"nativeAdBadgeRenderer",
-        @"simpleAdBadgeRenderer"
-    ]) {
-        if (matched) break;
-        id value = YTKACEObjectValue(object, selectorName);
-        if (value != nil) {
-            matched = YES;
+    return NO;
+}
+
+static id YTKACEReelContentModel(id receiver, SEL selector, id entry) {
+    if (YTKACEFeatureEnabled(YTKACENoAdsKey)) {
+        NSData *data = ((id (*)(id, SEL))objc_msgSend)(entry, @selector(data));
+        if (YTKACEAdBytes(data) || YTKACEShortsAdBytes(data)) {
+            return nil;
         }
     }
-    for (NSString *selectorName in @[
-        @"identifier", @"layoutIdentifier", @"elementIdentifier",
-        @"accessibilityIdentifier", @"templateIdentifier"
-    ]) {
-        if (matched) break;
-        id value = YTKACEObjectValue(object, selectorName);
-        if ([value isKindOfClass:NSString.class] &&
-            YTKACEIsAdLayoutIdentifier(value)) {
-            matched = YES;
-        }
-    }
-    if (!matched) {
-        id options = YTKACEObjectValue(object, @"compatibilityOptions");
-        SEL loggingSelector = NSSelectorFromString(@"hasAdLoggingData");
-        matched = [options respondsToSelector:loggingSelector] &&
-            ((BOOL (*)(id, SEL))objc_msgSend)(options, loggingSelector);
-    }
-    if (matched) {
-        objc_setAssociatedObject(object, YTKACEAdMatchAssociation, @YES,
-                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    }
-    return matched;
-}
-
-static const void *YTKACEAdCellAssociation = &YTKACEAdCellAssociation;
-
-typedef struct {
-    NSUInteger unit;
-    CGFloat value;
-} YTKACEASDimension;
-
-static void YTKACECollapseCellNode(id node) {
-    SEL styleSelector = NSSelectorFromString(@"style");
-    if ([node respondsToSelector:styleSelector]) {
-        id style = ((id (*)(id, SEL))objc_msgSend)(node, styleSelector);
-        YTKACEASDimension zero = {1, 0.0};
-        for (NSString *name in @[@"setHeight:", @"setMaxHeight:"]) {
-            SEL selector = NSSelectorFromString(name);
-            if (![style respondsToSelector:selector]) continue;
-            ((void (*)(id, SEL, YTKACEASDimension))objc_msgSend)(
-                style, selector, zero);
-        }
-    }
-    for (NSString *name in @[@"invalidateCalculatedLayout", @"setNeedsLayout"]) {
-        SEL selector = NSSelectorFromString(name);
-        if ([node respondsToSelector:selector]) {
-            ((void (*)(id, SEL))objc_msgSend)(node, selector);
-        }
-    }
-}
-
-static void YTKACECollapseAdCell(UIView *cell) {
-    CGRect frame = cell.frame;
-    if (frame.size.height == 0.0 && cell.hidden) return;
-    frame.size.height = 0.0;
-    cell.frame = frame;
-    cell.hidden = YES;
-    cell.userInteractionEnabled = NO;
-    for (UIView *ancestor = cell.superview; ancestor != nil;
-         ancestor = ancestor.superview) {
-        if ([ancestor isKindOfClass:UICollectionView.class]) {
-            [((UICollectionView *)ancestor).collectionViewLayout invalidateLayout];
-            break;
-        }
-    }
-}
-
-void YTKACEHandleAdCellLayout(UIView *cell) {
-    if (![objc_getAssociatedObject(cell, YTKACEAdCellAssociation) boolValue]) return;
-    YTKACECollapseAdCell(cell);
-}
-
-void YTKACEHandleAdCellReuse(UIView *cell) {
-    if (![objc_getAssociatedObject(cell, YTKACEAdCellAssociation) boolValue]) return;
-    objc_setAssociatedObject(cell, YTKACEAdCellAssociation, nil,
-                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    cell.hidden = NO;
-    cell.userInteractionEnabled = YES;
-}
-
-void YTKACECollapseHostCell(UIView *view) {
-    if (view == nil) return;
-    UIView *cell = nil;
-    for (UIView *ancestor = view; ancestor != nil;
-         ancestor = ancestor.superview) {
-        if ([ancestor isKindOfClass:UICollectionViewCell.class] ||
-            [NSStringFromClass([ancestor class]) hasSuffix:@"CollectionViewCell"]) {
-            cell = ancestor;
-            break;
-        }
-    }
-    view.hidden = YES;
-    if (cell == nil) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [view removeFromSuperview];
-        });
-        return;
-    }
-    objc_setAssociatedObject(cell, YTKACEAdCellAssociation, @YES,
-                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    YTKACECollapseAdCell(cell);
-    SEL nodeSelector = NSSelectorFromString(@"node");
-    if ([cell respondsToSelector:nodeSelector]) {
-        id node = ((id (*)(id, SEL))objc_msgSend)(cell, nodeSelector);
-        if (node != nil) {
-            objc_setAssociatedObject(node, YTKACEAdNodeAssociation, @YES,
-                                     OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-            YTKACECollapseCellNode(node);
-        }
-    }
-}
-
-void YTKACEHandleAdDisplayView(UIView *view) {
-    if (!YTKACEFeatureEnabled(YTKACENoAdsKey) || view.window == nil) return;
-    if (!YTKACEIsAdLayoutIdentifier(view.accessibilityIdentifier)) return;
-    YTKACECollapseHostCell(view);
-}
-
-static id YTKACEElementRenderer(id object) {
-    SEL selector = NSSelectorFromString(@"elementRenderer");
-    return [object respondsToSelector:selector]
-        ? ((id (*)(id, SEL))objc_msgSend)(object, selector)
-        : nil;
-}
-
-static NSArray *YTKACEFilterAdContents(NSArray *contents, id owner) {
-    if (!YTKACEFeatureEnabled(YTKACENoAdsKey) ||
-        ![contents isKindOfClass:NSArray.class] || contents.count == 0) {
-        return contents;
-    }
-    NSMutableArray *filtered = [NSMutableArray arrayWithCapacity:contents.count];
-    for (id content in contents) {
-        id renderer = YTKACEElementRenderer(content);
-        BOOL contentAd = YTKACEObjectLooksLikeAd(content);
-        BOOL rendererAd = YTKACEObjectLooksLikeAd(renderer);
-        if (!contentAd && !rendererAd) {
-            [filtered addObject:content];
-        }
-    }
-    NSUInteger removed = contents.count - filtered.count;
-    if (removed == 0) return contents;
-    if (filtered.count == 0 && owner != nil) {
-        objc_setAssociatedObject(owner, YTKACEAdEmptyAssociation, @YES,
-                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    }
-    return filtered;
-}
-
-static NSArray *YTKACEElementContentsArray(id receiver, SEL selector) {
-    NSArray *contents = OriginalElementContentsArray == NULL ? nil :
-        ((id (*)(id, SEL))OriginalElementContentsArray)(receiver, selector);
-    return YTKACEFilterAdContents(contents, receiver);
-}
-
-static NSArray *YTKACEItemSectionContentsArray(id receiver, SEL selector) {
-    NSArray *contents = OriginalItemSectionContentsArray == NULL ? nil :
-        ((id (*)(id, SEL))OriginalItemSectionContentsArray)(receiver, selector);
-    return YTKACEFilterAdContents(contents, receiver);
+    return ((id (*)(id, SEL, id))OriginalReelContentModel)(
+        receiver,
+        selector,
+        entry
+    );
 }
 
 NSArray *YTKACEFilterAdSections(NSArray *sections) {
@@ -576,21 +518,76 @@ NSArray *YTKACEFilterAdSections(NSArray *sections) {
         ![sections isKindOfClass:NSArray.class] || sections.count == 0) {
         return sections;
     }
-    NSMutableArray *filtered = [NSMutableArray arrayWithCapacity:sections.count];
-    for (id section in sections) {
-        if (YTKACEObjectLooksLikeAd(section) ||
-            YTKACEObjectLooksLikeAd(YTKACEElementRenderer(section))) {
+    NSMutableIndexSet *drop = [NSMutableIndexSet indexSet];
+    for (NSUInteger index = 0; index < sections.count; index++) {
+        id section = sections[index];
+        SEL contentsSelector = @selector(contentsArray);
+        NSArray *contents = [section respondsToSelector:contentsSelector]
+            ? ((id (*)(id, SEL))objc_msgSend)(section, contentsSelector)
+            : nil;
+        if (![contents isKindOfClass:NSArray.class]) contents = nil;
+        if (contents.count == 0) {
+            if (YTKACEObjectHasAd(section)) {
+                [drop addIndex:index];
+            }
             continue;
         }
-        NSArray *contents = YTKACEObjectValue(section, @"contentsArray");
-        if ([objc_getAssociatedObject(section, YTKACEAdEmptyAssociation) boolValue] ||
-            ([contents isKindOfClass:NSArray.class] && contents.count != 0 &&
-             YTKACEFilterAdContents(contents, section).count == 0)) {
-            continue;
+        NSArray *processedContents = objc_getAssociatedObject(
+            section, YTKACESectionContentsAssociation);
+        NSNumber *processedCount = objc_getAssociatedObject(
+            section, YTKACESectionContentCountAssociation);
+        NSUInteger contentCount = contents.count;
+        NSUInteger startIndex = 0;
+        if (processedContents == contents && processedCount != nil) {
+            NSUInteger previousCount = processedCount.unsignedIntegerValue;
+            if (previousCount == contentCount) continue;
+            if (previousCount < contentCount) startIndex = previousCount;
         }
-        [filtered addObject:section];
+        NSMutableIndexSet *contentDrop = nil;
+        for (NSUInteger contentIndex = startIndex;
+             contentIndex < contentCount; contentIndex++) {
+            if (YTKACEObjectHasAd(contents[contentIndex])) {
+                if (contentDrop == nil) {
+                    contentDrop = [NSMutableIndexSet indexSet];
+                }
+                [contentDrop addIndex:contentIndex];
+            }
+        }
+        if (contentDrop.count != 0) {
+            if (![contents isKindOfClass:NSMutableArray.class]) {
+                if (contentDrop.count == contentCount) {
+                    [drop addIndex:index];
+                }
+                objc_setAssociatedObject(section,
+                                         YTKACESectionContentsAssociation,
+                                         contents,
+                                         OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                objc_setAssociatedObject(section,
+                                         YTKACESectionContentCountAssociation,
+                                         @(contentCount),
+                                         OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                continue;
+            }
+            [(NSMutableArray *)contents removeObjectsAtIndexes:contentDrop];
+        }
+        objc_setAssociatedObject(section,
+                                 YTKACESectionContentsAssociation,
+                                 contents,
+                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        objc_setAssociatedObject(section,
+                                 YTKACESectionContentCountAssociation,
+                                 @(contents.count),
+                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        if (contents.count == 0) {
+            [drop addIndex:index];
+        }
     }
-    return filtered.count == sections.count ? sections : filtered;
+    if (drop.count == 0) {
+        return sections;
+    }
+    NSMutableArray *filtered = [sections mutableCopy];
+    [filtered removeObjectsAtIndexes:drop];
+    return filtered;
 }
 
 static id YTKACENoCompanionAd(id receiver, SEL selector) {
@@ -629,195 +626,35 @@ static BOOL YTKACEHasShoppingCompanionAdRenderer(id receiver, SEL selector) {
     );
 }
 
-static void YTKACEInstallObjectHookOrMethod(NSString *className,
-                                            NSString *selectorName,
-                                            IMP replacement,
-                                            IMP *originalStorage) {
-    if (!YTKACEInstallInstanceHook(
-            className,
-            selectorName,
-            replacement,
-            originalStorage
-        )) {
-        YTKACEAddInstanceMethod(className, selectorName, replacement, "@@:");
+static void YTKACEInstallAdsDecorateServiceHook(NSString *className,
+                                                IMP replacement,
+                                                IMP *originalStorage) {
+    Class cls = NSClassFromString(className);
+    if (cls == Nil) return;
+
+    Method method = class_getInstanceMethod(
+        cls,
+        NSSelectorFromString(@"decorateContext:serviceType:")
+    );
+    if (method == NULL) return;
+
+    const char *types = method_getTypeEncoding(method);
+    if (types == NULL || strcmp(types, "v32@0:8@16q24") != 0) {
+        return;
     }
-}
 
-static void YTKACEInstallBooleanHookOrMethod(NSString *className,
-                                             NSString *selectorName,
-                                             IMP replacement,
-                                             IMP *originalStorage) {
-    if (!YTKACEInstallInstanceHook(
-            className,
-            selectorName,
-            replacement,
-            originalStorage
-        )) {
-        YTKACEAddInstanceMethod(className, selectorName, replacement, "B@:");
-    }
-}
-
-static void YTKACEAdCellLayoutSubviews(UIView *receiver, SEL selector) {
-    if (OriginalAdCellLayout != NULL) {
-        ((void (*)(id, SEL))OriginalAdCellLayout)(receiver, selector);
-    }
-    YTKACEHandleAdCellLayout(receiver);
-}
-
-static void YTKACEAdCellPrepareForReuse(UIView *receiver, SEL selector) {
-    YTKACEHandleAdCellReuse(receiver);
-    if (OriginalAdCellReuse != NULL) {
-        ((void (*)(id, SEL))OriginalAdCellReuse)(receiver, selector);
-    }
-}
-
-static IMP YTKACEPromotedSizeOriginal(id receiver, SEL selector) {
-    NSString *key = [NSString stringWithFormat:@"%@|%@",
-        NSStringFromClass([receiver class]), NSStringFromSelector(selector)];
-    @synchronized (YTKACEPromotedSizeOriginals) {
-        return (IMP)[YTKACEPromotedSizeOriginals[key] pointerValue];
-    }
-}
-
-static CGSize YTKACEPromotedCellSize(id receiver, SEL selector, CGSize size) {
-    IMP original = YTKACEPromotedSizeOriginal(receiver, selector);
-    CGSize resolved = original == NULL
-        ? size
-        : ((CGSize (*)(id, SEL, CGSize))original)(receiver, selector, size);
-    if (!YTKACEFeatureEnabled(YTKACENoAdsKey)) return resolved;
-    return CGSizeMake(resolved.width, 0.0);
-}
-
-static CGSize YTKACEPromotedCellSizeInsets(id receiver, SEL selector,
-                                           CGSize size, UIEdgeInsets insets) {
-    IMP original = YTKACEPromotedSizeOriginal(receiver, selector);
-    CGSize resolved = original == NULL
-        ? size
-        : ((CGSize (*)(id, SEL, CGSize, UIEdgeInsets))original)(
-            receiver, selector, size, insets);
-    if (!YTKACEFeatureEnabled(YTKACENoAdsKey)) return resolved;
-    return CGSizeMake(resolved.width, 0.0);
-}
-
-static BOOL YTKACEShouldShowPromotedItems(id receiver, SEL selector) {
-    if (YTKACEFeatureEnabled(YTKACENoAdsKey)) return NO;
-    IMP original = YTKACEPromotedSizeOriginal(receiver, selector);
-    return original != NULL && ((BOOL (*)(id, SEL))original)(receiver, selector);
-}
-
-static void YTKACEInstallPromotedCellHooks(void) {
-    YTKACEPromotedSizeOriginals = [NSMutableDictionary dictionary];
-    NSArray<NSString *> *classes = @[@"YTCompactPromotedItemCellController",
-                                     @"YTCompactPromotedVideoCellController",
-                                     @"YTPromotedVideoCellController"];
-    NSDictionary<NSString *, NSValue *> *replacements = @{
-        @"cellSizeWithSize:": [NSValue valueWithPointer:(void *)YTKACEPromotedCellSize],
-        @"cellSizeWithSize:safeAreaInsets:":
-            [NSValue valueWithPointer:(void *)YTKACEPromotedCellSizeInsets],
-        @"shouldShowPromotedItems":
-            [NSValue valueWithPointer:(void *)YTKACEShouldShowPromotedItems]
-    };
-    for (NSString *className in classes) {
-        for (NSString *selectorName in replacements) {
-            IMP original = NULL;
-            if (!YTKACEInstallInstanceHook(className, selectorName,
-                    (IMP)replacements[selectorName].pointerValue, &original)) {
-                continue;
-            }
-            NSString *key = [NSString stringWithFormat:@"%@|%@",
-                className, selectorName];
-            @synchronized (YTKACEPromotedSizeOriginals) {
-                YTKACEPromotedSizeOriginals[key] =
-                    [NSValue valueWithPointer:(void *)original];
-            }
-        }
-    }
-}
-
-static BOOL YTKACEIsAdNode(id node) {
-    return [objc_getAssociatedObject(node, YTKACEAdNodeAssociation) boolValue];
-}
-
-static void YTKACEVideoNodeSetEntry(id receiver, SEL selector, id entry) {
-    if (OriginalVideoNodeSetEntry != NULL) {
-        ((void (*)(id, SEL, id))OriginalVideoNodeSetEntry)(receiver, selector, entry);
-    }
-    if (!YTKACEFeatureEnabled(YTKACENoAdsKey)) return;
-    BOOL isAd = YTKACEObjectLooksLikeAd(entry) ||
-        YTKACEObjectLooksLikeAd(YTKACEElementRenderer(entry));
-    objc_setAssociatedObject(receiver, YTKACEAdNodeAssociation,
-                             isAd ? @YES : nil,
-                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    if (!isAd) return;
-    YTKACECollapseCellNode(receiver);
-    SEL overlay = NSSelectorFromString(@"dismissedCellOverlayView");
-    SEL setOverlay = NSSelectorFromString(@"setDismissedCellOverlayView:");
-    SEL resize = NSSelectorFromString(@"resizeDismissedView");
-    if ([receiver respondsToSelector:overlay] &&
-        [receiver respondsToSelector:setOverlay] &&
-        ((id (*)(id, SEL))objc_msgSend)(receiver, overlay) == nil) {
-        UIView *placeholder = [[UIView alloc] initWithFrame:CGRectZero];
-        placeholder.hidden = YES;
-        ((void (*)(id, SEL, id))objc_msgSend)(receiver, setOverlay, placeholder);
-    }
-    if (![receiver respondsToSelector:resize]) return;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (!YTKACEIsAdNode(receiver)) return;
-        ((void (*)(id, SEL))objc_msgSend)(receiver, resize);
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
-                                     (int64_t)(0.6 * NSEC_PER_SEC)),
-                       dispatch_get_main_queue(), ^{
-        });
-    });
-}
-
-static BOOL YTKACEVideoNodeShouldShrink(id receiver, SEL selector) {
-    if (YTKACEIsAdNode(receiver)) {
-        return YES;
-    }
-    return OriginalVideoNodeShrink != NULL &&
-        ((BOOL (*)(id, SEL))OriginalVideoNodeShrink)(receiver, selector);
-}
-
-static double YTKACEVideoNodeHeight(id receiver, SEL selector) {
-    double height = OriginalVideoNodeHeight == NULL
-        ? 0.0
-        : ((double (*)(id, SEL))OriginalVideoNodeHeight)(receiver, selector);
-    if (!YTKACEIsAdNode(receiver)) return height;
-    return 0.0;
-}
-
-static CGSize YTKACEVideoNodeSize(id receiver, SEL selector) {
-    CGSize size = OriginalVideoNodeSize == NULL
-        ? CGSizeZero
-        : ((CGSize (*)(id, SEL))OriginalVideoNodeSize)(receiver, selector);
-    if (!YTKACEIsAdNode(receiver)) return size;
-    return CGSizeMake(size.width, 0.0);
+    YTKACEInstallInstanceHook(className,
+                              @"decorateContext:serviceType:",
+                              replacement,
+                              originalStorage);
 }
 
 void YTKACEInstallAdsHooks(void) {
-    YTKACEInstallInstanceHook(@"YTVideoWithContextNode", @"setEntry:",
-                              (IMP)YTKACEVideoNodeSetEntry,
-                              &OriginalVideoNodeSetEntry);
-    YTKACEInstallInstanceHook(@"YTVideoWithContextNode", @"yt_height",
-                              (IMP)YTKACEVideoNodeHeight,
-                              &OriginalVideoNodeHeight);
-    YTKACEInstallInstanceHook(@"YTVideoWithContextNode", @"yt_size",
-                              (IMP)YTKACEVideoNodeSize,
-                              &OriginalVideoNodeSize);
-    YTKACEInstallInstanceHook(@"YTVideoWithContextNode",
-                              @"shouldShrinkDismissalView",
-                              (IMP)YTKACEVideoNodeShouldShrink,
-                              &OriginalVideoNodeShrink);
-    YTKACEInstallPromotedCellHooks();
-    YTKACEInstallInstanceHook(@"_ASCollectionViewCell",
-                              @"layoutSubviews",
-                              (IMP)YTKACEAdCellLayoutSubviews,
-                              &OriginalAdCellLayout);
-    YTKACEInstallInstanceHook(@"_ASCollectionViewCell",
-                              @"prepareForReuse",
-                              (IMP)YTKACEAdCellPrepareForReuse,
-                              &OriginalAdCellReuse);
+    YTKACEAdTrieBuild();
+    YTKACEInstallInstanceHook(@"NSURLSessionTask",
+                              @"resume",
+                              (IMP)YTKACEURLSessionTaskResume,
+                              &OriginalURLSessionTaskResume);
     YTKACEInstallInstanceHook(@"YTGlobalConfig",
                               @"shouldBlockUpgradeDialog",
                               (IMP)YTKACEShouldBlockUpgradeDialog,
@@ -830,14 +667,6 @@ void YTKACEInstallAdsHooks(void) {
                            @"spamSignalsDictionaryWithoutIDFA",
                            (IMP)YTKACEAdShieldSignalsWithoutIDFA,
                            &OriginalAdShieldSignalsWithoutIDFA);
-    YTKACEInstallClassHook(@"YTDataUtils",
-                           @"spamSignalsDictionary",
-                           (IMP)YTKACEDataSignals,
-                           &OriginalDataSignals);
-    YTKACEInstallClassHook(@"YTDataUtils",
-                           @"spamSignalsDictionaryWithoutIDFA",
-                           (IMP)YTKACEDataSignalsWithoutIDFA,
-                           &OriginalDataSignalsWithoutIDFA);
     YTKACEInstallInstanceHook(@"YTAdsInnerTubeContextDecorator",
                               @"decorateContext:",
                               (IMP)YTKACEAdsDecorateContext,
@@ -846,28 +675,29 @@ void YTKACEInstallAdsHooks(void) {
                               @"decorateContext:",
                               (IMP)YTKACEAccountAdsDecorateContext,
                               &OriginalAccountAdsDecorateContext);
-    Method serviceMethod = class_getInstanceMethod(NSClassFromString(@"YTAccountScopedAdsInnerTubeContextDecorator"),
-                                                   NSSelectorFromString(@"decorateContext:serviceType:"));
-    const char *serviceTypes = serviceMethod != NULL ? method_getTypeEncoding(serviceMethod) : NULL;
-    if (serviceTypes != NULL && strncmp(serviceTypes, "v32@0:8@16q24", 13) == 0) {
-        YTKACEInstallInstanceHook(@"YTAccountScopedAdsInnerTubeContextDecorator",
-                                  @"decorateContext:serviceType:",
-                                  (IMP)YTKACEAccountAdsDecorateService,
-                                  &OriginalAccountAdsDecorateService);
-    }
+    YTKACEInstallAdsDecorateServiceHook(
+        @"YTAccountScopedAdsInnerTubeContextDecorator",
+        (IMP)YTKACEAccountAdsDecorateService,
+        &OriginalAccountAdsDecorateService
+    );
+    YTKACEInstallAdsDecorateServiceHook(
+        @"YTAdsInnerTubeContextDecoratorImpl",
+        (IMP)YTKACEAdsDecorateService,
+        &OriginalAdsDecorateService
+    );
 
-    YTKACEInstallObjectHookOrMethod(@"YTIPlayerResponse",
-                                    @"playerAdsArray",
-                                    (IMP)YTKACEPlayerAdsArray,
-                                    &OriginalPlayerAdsArray);
-    YTKACEInstallObjectHookOrMethod(@"YTIPlayerResponse",
-                                    @"adSlotsArray",
-                                    (IMP)YTKACEAdSlotsArray,
-                                    &OriginalAdSlotsArray);
-    YTKACEInstallObjectHookOrMethod(@"YTIPlayerResponse",
-                                    @"adPlacementsArray",
-                                    (IMP)YTKACEAdPlacementsArray,
-                                    &OriginalAdPlacementsArray);
+    YTKACEInstallInstanceHook(@"YTIPlayerResponse",
+                              @"playerAdsArray",
+                              (IMP)YTKACEPlayerAdsArray,
+                              &OriginalPlayerAdsArray);
+    YTKACEInstallInstanceHook(@"YTIPlayerResponse",
+                              @"adSlotsArray",
+                              (IMP)YTKACEAdSlotsArray,
+                              &OriginalAdSlotsArray);
+    YTKACEInstallInstanceHook(@"YTIPlayerResponse",
+                              @"adPlacementsArray",
+                              (IMP)YTKACEAdPlacementsArray,
+                              &OriginalAdPlacementsArray);
     YTKACEInstallInstanceHook(@"YTIPlayerResponse",
                               @"adBreakParams",
                               (IMP)YTKACEAdBreakParams,
@@ -880,19 +710,14 @@ void YTKACEInstallAdsHooks(void) {
                               @"adParams",
                               (IMP)YTKACEAdParams,
                               &OriginalAdParams);
-    YTKACEInstallBooleanHookOrMethod(@"YTIClientMdxGlobalConfig",
-                                     @"enableSkippableAd",
-                                     (IMP)YTKACEEnableSkippableAd,
-                                     &OriginalEnableSkippableAd);
-
+    YTKACEInstallInstanceHook(@"YTIClientMdxGlobalConfig",
+                              @"enableSkippableAd",
+                              (IMP)YTKACEEnableSkippableAd,
+                              &OriginalEnableSkippableAd);
     YTKACEInstallInstanceHook(@"MDXSessionImpl",
                               @"adPlaying:",
                               (IMP)YTKACEMDXSessionImplAdPlaying,
                               &OriginalMDXSessionImplAdPlaying);
-    YTKACEInstallInstanceHook(@"MDXSession",
-                              @"adPlaying:",
-                              (IMP)YTKACEMDXSessionAdPlaying,
-                              &OriginalMDXSessionAdPlaying);
     YTKACEInstallInstanceHook(@"YTLocalPlaybackController",
                               @"isPlayingAd",
                               (IMP)YTKACEIsPlayingAd,
@@ -909,15 +734,10 @@ void YTKACEInstallAdsHooks(void) {
                               @"createAdsPlaybackCoordinator",
                               (IMP)YTKACENoAdsPlaybackCoordinator,
                               &OriginalCreateAdsPlaybackCoordinator);
-
     YTKACEInstallInstanceHook(@"YTReelDataSource",
                               @"makeContentModelForEntry:",
                               (IMP)YTKACEReelContentModel,
                               &OriginalReelContentModel);
-    YTKACEInstallInstanceHook(@"YTReelInfinitePlaybackDataSource",
-                              @"makeContentModelForEntry:",
-                              (IMP)YTKACEInfiniteReelContentModel,
-                              &OriginalInfiniteReelContentModel);
     YTKACEInstallInstanceHook(@"YTReelContentModel",
                               @"shouldDisplay",
                               (IMP)YTKACEReelShouldDisplay,
@@ -938,12 +758,4 @@ void YTKACEInstallAdsHooks(void) {
                               @"hasShoppingCompanionAdRenderer",
                               (IMP)YTKACEHasShoppingCompanionAdRenderer,
                               &OriginalHasShoppingCompanionAdRenderer);
-    YTKACEInstallInstanceHook(@"YTIElementRenderer",
-                              @"contentsArray",
-                              (IMP)YTKACEElementContentsArray,
-                              &OriginalElementContentsArray);
-    YTKACEInstallInstanceHook(@"YTIItemSectionRenderer",
-                              @"contentsArray",
-                              (IMP)YTKACEItemSectionContentsArray,
-                              &OriginalItemSectionContentsArray);
 }

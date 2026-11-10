@@ -62,7 +62,10 @@ static IMP OriginalActionCellControllerInit;
 static IMP OriginalActionCellSize;
 static IMP OriginalActionCellSizeWithInsets;
 static IMP OriginalASCollectionViewLayout;
+static IMP OriginalContentHostCellLayout;
 static const void *YTKACEContentHiddenAssociation = &YTKACEContentHiddenAssociation;
+static const void *YTKACEHostCellAssociation = &YTKACEHostCellAssociation;
+static _Atomic NSUInteger YTKACEHostCellCount;
 static NSString *YTKACENormalizedDescription(id object);
 static const void *YTKACEActionCellPreferenceAssociation =
     &YTKACEActionCellPreferenceAssociation;
@@ -718,6 +721,55 @@ static NSArray<NSString *> *YTKACEActionButtonIdentifiers(UIView *view) {
     return found.array;
 }
 
+static void YTKACEHostCellCollapse(UIView *cell) {
+    CGRect frame = cell.frame;
+    if (frame.size.height == 0.0 && cell.hidden) return;
+    frame.size.height = 0.0;
+    cell.frame = frame;
+    cell.hidden = YES;
+    cell.userInteractionEnabled = NO;
+    for (UIView *ancestor = cell.superview; ancestor != nil;
+         ancestor = ancestor.superview) {
+        if ([ancestor isKindOfClass:UICollectionView.class]) {
+            [((UICollectionView *)ancestor).collectionViewLayout invalidateLayout];
+            break;
+        }
+    }
+}
+
+static void YTKACECollapseHostCell(UIView *view) {
+    if (view == nil) return;
+    UIView *cell = view;
+    while (cell != nil &&
+           ![cell isKindOfClass:UICollectionViewCell.class] &&
+           ![NSStringFromClass([cell class]) hasSuffix:@"CollectionViewCell"]) {
+        cell = cell.superview;
+    }
+    view.hidden = YES;
+    if (cell == nil) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [view removeFromSuperview];
+        });
+        return;
+    }
+    BOOL associated = [objc_getAssociatedObject(
+        cell, YTKACEHostCellAssociation) boolValue];
+    objc_setAssociatedObject(cell, YTKACEHostCellAssociation, @YES,
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    if (!associated) atomic_fetch_add(&YTKACEHostCellCount, 1);
+    YTKACEHostCellCollapse(cell);
+}
+
+static void YTKACEHostCellLayout(UIView *receiver, SEL selector) {
+    if (OriginalContentHostCellLayout != NULL) {
+        ((void (*)(id, SEL))OriginalContentHostCellLayout)(receiver, selector);
+    }
+    if (atomic_load(&YTKACEHostCellCount) == 0) return;
+    if ([objc_getAssociatedObject(receiver, YTKACEHostCellAssociation) boolValue]) {
+        YTKACEHostCellCollapse(receiver);
+    }
+}
+
 static void YTKACERestoreHiddenView(UIView *view) {
     NSNumber *baseline = objc_getAssociatedObject(
         view, YTKACEContentHiddenAssociation);
@@ -743,6 +795,13 @@ static NSUInteger YTKACESizableChildCount(UIView *view) {
 }
 
 static void YTKACEActionCellPrepareForReuse(UIView *receiver, SEL selector) {
+    if ([objc_getAssociatedObject(receiver, YTKACEHostCellAssociation) boolValue]) {
+        objc_setAssociatedObject(receiver, YTKACEHostCellAssociation, nil,
+                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        atomic_fetch_sub(&YTKACEHostCellCount, 1);
+        receiver.hidden = NO;
+        receiver.userInteractionEnabled = YES;
+    }
     NSNumber *baseline = objc_getAssociatedObject(
         receiver, YTKACEContentHiddenAssociation);
     if (baseline != nil) {
@@ -864,6 +923,12 @@ static void YTKACEEnsureActionCellReuseHook(void) {
     YTKACEEnsureFixedBarHook();
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
+        YTKACEInstallInstanceHook(
+            @"_ASCollectionViewCell",
+            @"layoutSubviews",
+            (IMP)YTKACEHostCellLayout,
+            &OriginalContentHostCellLayout
+        );
         YTKACEInstallInstanceHook(
             @"_ASCollectionViewCell",
             @"prepareForReuse",
@@ -2353,7 +2418,6 @@ static void YTKACEDisplayViewDidMove(UIView *receiver, SEL selector) {
         ((void (*)(id, SEL))OriginalDisplayViewDidMove)(receiver, selector);
     }
     YTKACEApplyContentVisibility(receiver);
-    YTKACEHandleAdDisplayView(receiver);
     YTKACEConsiderProductDisplayView(receiver, receiver.accessibilityIdentifier);
 }
 
@@ -2385,7 +2449,6 @@ static void YTKACEDisplayViewSetIdentifier(UIView *receiver,
         );
     }
     YTKACEApplyContentVisibility(receiver);
-    YTKACEHandleAdDisplayView(receiver);
     YTKACEConsiderProductDisplayView(receiver, identifier);
 }
 
