@@ -1078,3 +1078,13 @@ Licensed under CC BY-NC-SA 4.0.";
 "Still show Shorts on the Home feed when shelves are removed." = "Still show Shorts on the Home feed when shelves are removed.";
 "Still show Shorts in search results when shelves are removed." = "Still show Shorts in search results when shelves are removed.";
 "Still show Shorts on channel pages when shelves are removed." = "Still show Shorts on channel pages when shelves are removed.";
+
+"Remove Live Videos from Home" = "Remove Live Videos from Home";
+"Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Removes live streams from the Home feed. Subscriptions, search and channels keep them.";
+
+"iPhone Duo System Tab Bar" = "iPhone Duo System Tab Bar";
+"Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright." = "Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright.";
+"iPhone Duo Laptop Layout" = "iPhone Duo Laptop Layout";
+"Half open like a laptop, full-screen video plays above the crease with the controls below." = "Half open like a laptop, full-screen video plays above the crease with the controls below.";
+"iPhone Duo Status Bar Over Video" = "iPhone Duo Status Bar Over Video";
+"Hide the clock and status icons while the watch page's video is under them." = "Hide the clock and status icons while the watch page's video is under them.";

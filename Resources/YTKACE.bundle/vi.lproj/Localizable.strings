@@ -1068,3 +1068,13 @@ Cấp phép theo CC BY-NC-SA 4.0.";
 "Still show Shorts on the Home feed when shelves are removed." = "Vẫn hiện Shorts ở Trang chủ khi đã bỏ các kệ.";
 "Still show Shorts in search results when shelves are removed." = "Vẫn hiện Shorts trong kết quả tìm kiếm khi đã bỏ các kệ.";
 "Still show Shorts on channel pages when shelves are removed." = "Vẫn hiện Shorts trên trang kênh khi đã bỏ các kệ.";
+
+"Remove Live Videos from Home" = "Xóa video trực tiếp khỏi Trang chủ";
+"Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Xóa sự kiện phát trực tiếp khỏi nguồn cấp Trang chủ. Kênh đăng ký, tìm kiếm và kênh vẫn giữ chúng.";
+
+"iPhone Duo System Tab Bar" = "Thanh tab hệ thống của iPhone Duo";
+"Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright." = "Hiển thị các tab trên thanh tab riêng của iPhone Duo: thanh dọc mở rộng kèm nhãn khi nhấn giữ, hoặc thanh nổi ở dưới khi mở dựng đứng.";
+"iPhone Duo Laptop Layout" = "Bố cục máy tính xách tay của iPhone Duo";
+"Half open like a laptop, full-screen video plays above the crease with the controls below." = "Khi mở một nửa như máy tính xách tay, video toàn màn hình phát phía trên nếp gập và các nút điều khiển ở dưới.";
+"iPhone Duo Status Bar Over Video" = "Thanh trạng thái trên video của iPhone Duo";
+"Hide the clock and status icons while the watch page's video is under them." = "Ẩn đồng hồ và biểu tượng trạng thái khi video của trang xem nằm bên dưới.";

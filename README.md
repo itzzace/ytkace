@@ -13,6 +13,7 @@ An open-source YouTube enhancement for iOS.
 | Interface | OLED mode, overlay controls, navigation cleanup and native share sheets |
 | Liquid Glass | Glass tab bar, top bar buttons, menus, sheets, player buttons and YTKACE popups on iOS 26, with shrink on scroll and a selected tab color |
 | Tabs | Hide, reorder and add YouTube destinations |
+| iPhone Duo | System tab bar in every position, video above the crease with controls below when half open like a laptop, and the status bar hidden over the watch page video |
 | Library | Downloaded video, Shorts and audio players with resume support |
 | Settings | Searchable settings, 15 languages and a native YouTube settings section |
 
@@ -48,7 +49,7 @@ Rootless and roothide packages are both published. The repository page also has 
 
 Fork the repository, enable Actions, open the **IPA** workflow and provide a direct link to a decrypted YouTube IPA you are legally allowed to use. The completed workflow provides the injected IPA as an artifact. The **Deb** workflow builds the tweak package.
 
-To build both IPAs in one run, fill in the second URL field as well: the workflow takes an iOS 16 base (21.33.6) and an optional iOS 17+ base (21.44.4), and uploads them as separate artifacts. Leaving the second field empty builds a single IPA.
+To build both IPAs in one run, fill in the second URL field as well: the workflow takes an iOS 16 base (21.33.6) and an optional iOS 17+ base (21.45.4), and uploads them as separate artifacts. Leaving the second field empty builds a single IPA.
 
 ## Settings
 

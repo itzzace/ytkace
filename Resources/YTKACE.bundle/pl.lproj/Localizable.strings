@@ -1050,3 +1050,13 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE korzysta z danych SponsorBlock.\nLice
 "Still show Shorts on the Home feed when shelves are removed." = "Nadal pokazuj Shorts na stronie głównej, gdy półki są usunięte.";
 "Still show Shorts in search results when shelves are removed." = "Nadal pokazuj Shorts w wynikach wyszukiwania, gdy półki są usunięte.";
 "Still show Shorts on channel pages when shelves are removed." = "Nadal pokazuj Shorts na kanałach, gdy półki są usunięte.";
+
+"Remove Live Videos from Home" = "Usuń transmisje na żywo z głównej";
+"Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Usuwa transmisje na żywo z kanału głównego. Subskrypcje, wyszukiwanie i kanały je zachowują.";
+
+"iPhone Duo System Tab Bar" = "Systemowy pasek kart iPhone Duo";
+"Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright." = "Pokazuje karty na własnym pasku iPhone Duo: pionowym pasku, który po przytrzymaniu rozwija się z etykietami, lub pływającym pasku na dole po rozłożeniu w pionie.";
+"iPhone Duo Laptop Layout" = "Układ laptopa na iPhone Duo";
+"Half open like a laptop, full-screen video plays above the crease with the controls below." = "Po rozłożeniu do połowy jak laptop film na pełnym ekranie jest nad zgięciem, a sterowanie pod nim.";
+"iPhone Duo Status Bar Over Video" = "Pasek stanu nad filmem na iPhone Duo";
+"Hide the clock and status icons while the watch page's video is under them." = "Ukrywa zegar i ikony stanu, gdy film na stronie odtwarzania jest pod nimi.";

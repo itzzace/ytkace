@@ -1068,3 +1068,13 @@ CC BY-NC-SA 4.0 ile lisanslanmıştır.";
 "Still show Shorts on the Home feed when shelves are removed." = "Raflar kaldırıldığında Shorts'u ana sayfada göstermeye devam et.";
 "Still show Shorts in search results when shelves are removed." = "Raflar kaldırıldığında Shorts'u arama sonuçlarında göstermeye devam et.";
 "Still show Shorts on channel pages when shelves are removed." = "Raflar kaldırıldığında Shorts'u kanal sayfalarında göstermeye devam et.";
+
+"Remove Live Videos from Home" = "Ana sayfadan canlı videoları kaldır";
+"Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Ana sayfa akışından canlı yayınları kaldırır. Abonelikler, arama ve kanallar bunları gösterir.";
+
+"iPhone Duo System Tab Bar" = "iPhone Duo sistem sekme çubuğu";
+"Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright." = "Sekmeleri iPhone Duo’nun kendi sekme çubuğunda gösterir: basılı tutunca etiketlerle genişleyen dikey çubuk ya da dik açıkken alttaki yüzen çubuk.";
+"iPhone Duo Laptop Layout" = "iPhone Duo dizüstü düzeni";
+"Half open like a laptop, full-screen video plays above the crease with the controls below." = "Dizüstü gibi yarı açıkken tam ekran video katlama yerinin üstünde, kontroller altında oynar.";
+"iPhone Duo Status Bar Over Video" = "iPhone Duo’da video üzerindeki durum çubuğu";
+"Hide the clock and status icons while the watch page's video is under them." = "İzleme sayfasındaki video altlarındayken saati ve durum simgelerini gizler.";

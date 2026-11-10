@@ -8,6 +8,7 @@
 #import "../UI/Assets.h"
 #import "../UI/Notice.h"
 #import "../Features/Downloads/DownloadLog.h"
+#import "DuoKit.h"
 
 #import <objc/runtime.h>
 #import <stdlib.h>
@@ -222,6 +223,9 @@ UIViewController *YTKACEMakeDownloadLogController(void) {
 @property(nonatomic, assign) BOOL headerTopLocked;
 @property(nonatomic, strong) UIButton *closeButton;
 @property(nonatomic, strong) UIButton *applyButton;
+@property(nonatomic, strong) UILabel *titleLabel;
+@property(nonatomic, strong) UILabel *versionLabel;
+@property(nonatomic, assign) BOOL listUsesBarColumn;
 @property(nonatomic, strong) UIView *settingsHeader;
 @property(nonatomic, strong) UITextField *searchField;
 @property(nonatomic, strong) UIView *searchPill;
@@ -306,17 +310,45 @@ UIViewController *YTKACEMakeDownloadLogController(void) {
         if (self.headerTop > 0.0) self.headerTopLocked = YES;
     }
     const CGFloat top = self.headerTop;
+    // Keep the header inside the safe area: beside the iPhone Duo's vertical
+    // bar the right inset covers the clock and camera column.
+    const BOOL duo = DUOIsDuo();
+    const UIEdgeInsets safe = self.view.safeAreaInsets;
+    const CGFloat left = duo ? safe.left : 0.0;
+    const CGFloat right = duo ? safe.right : 0.0;
+    // With no status bar above it (the Duo's status bar is vertical) the header
+    // starts at the screen's top edge, so the buttons need more room from the
+    // rounded corners.
+    const CGFloat inset = duo && top < 1.0 ? 16.0 : 8.0;
     self.settingsHeader.frame = CGRectMake(0.0, top, width, 170.0);
-    self.closeButton.frame = CGRectMake(8.0, 8.0, 40.0, 40.0);
-    self.applyButton.frame = CGRectMake(width - 48.0, 8.0, 40.0, 40.0);
-    self.searchPill.frame = CGRectMake(20.0, 120.0,
-                                       MAX(0.0, width - 40.0), 38.0);
+    self.closeButton.frame = CGRectMake(left + inset, inset, 40.0, 40.0);
+    self.applyButton.frame = CGRectMake(width - right - inset - 40.0, inset, 40.0, 40.0);
+    const CGFloat textWidth = MAX(0.0, width - left - right - 112.0);
+    self.titleLabel.frame = CGRectMake(left + 56.0, 55.0, textWidth, 34.0);
+    self.versionLabel.frame = CGRectMake(left + 56.0, 89.0, textWidth, 20.0);
+    self.searchPill.frame = CGRectMake(left + 20.0, 120.0,
+                                       MAX(0.0, width - left - right - 40.0), 38.0);
     self.searchField.frame = CGRectMake(42.0, 0.0,
         MAX(0.0, CGRectGetWidth(self.searchPill.bounds) - 54.0), 38.0);
     const CGFloat contentTop = top + 170.0;
     const CGFloat contentHeight =
         MAX(0.0, CGRectGetHeight(self.view.bounds) - contentTop);
-    self.tableView.frame = CGRectMake(0.0, contentTop, width, contentHeight);
+    const CGFloat listTrailing = duo
+        ? DUOListTrailingInsetBesideVerticalBar(self.view, contentTop) : 0.0;
+    // Rows normally keep out of the safe area; when the list may use the
+    // vertical bar's column, its frame stops at the bar region instead.
+    self.tableView.frame = CGRectMake(0.0, contentTop,
+                                      width - listTrailing, contentHeight);
+    const BOOL usesColumn = listTrailing > 0.0;
+    if (usesColumn != self.listUsesBarColumn) {
+        self.listUsesBarColumn = usesColumn;
+        self.tableView.insetsContentViewsToSafeArea = !usesColumn;
+        // Rows take their margins from the list, which adds its safe area.
+        self.tableView.insetsLayoutMarginsFromSafeArea = !usesColumn;
+        for (UITableViewCell *cell in self.tableView.visibleCells) {
+            cell.insetsLayoutMarginsFromSafeArea = !usesColumn;
+        }
+    }
     [self layoutSearchResults];
 }
 
@@ -361,6 +393,7 @@ UIViewController *YTKACEMakeDownloadLogController(void) {
     title.textAlignment = NSTextAlignmentCenter;
     title.textColor = UIColor.labelColor;
     [header addSubview:title];
+    self.titleLabel = title;
 
     UILabel *version = [[UILabel alloc] initWithFrame:CGRectMake(56.0, 89.0, width - 112.0, 20.0)];
     version.autoresizingMask = UIViewAutoresizingFlexibleWidth;
@@ -369,6 +402,7 @@ UIViewController *YTKACEMakeDownloadLogController(void) {
     version.textAlignment = NSTextAlignmentCenter;
     version.textColor = UIColor.secondaryLabelColor;
     [header addSubview:version];
+    self.versionLabel = version;
 
     UIView *pill = [[UIView alloc]
         initWithFrame:CGRectMake(20.0, 120.0, MAX(0.0, width - 40.0), 38.0)];
@@ -542,6 +576,8 @@ UIViewController *YTKACEMakeDownloadLogController(void) {
         cell = [[UITableViewCell alloc] initWithStyle:style reuseIdentifier:identifier];
     }
     cell.backgroundColor = YTKACERootCellBackground();
+    // Rows place their arrows by their own safe area; see viewDidLayoutSubviews.
+    cell.insetsLayoutMarginsFromSafeArea = !self.listUsesBarColumn;
     cell.textLabel.text = nil;
     cell.detailTextLabel.text = nil;
     cell.textLabel.font = [UIFont systemFontOfSize:17.0];

@@ -1068,3 +1068,13 @@ CC BY-NC-SA 4.0 でライセンスされています。";
 "Still show Shorts on the Home feed when shelves are removed." = "棚を削除してもホームに Shorts を表示します。";
 "Still show Shorts in search results when shelves are removed." = "棚を削除しても検索結果に Shorts を表示します。";
 "Still show Shorts on channel pages when shelves are removed." = "棚を削除してもチャンネルページに Shorts を表示します。";
+
+"Remove Live Videos from Home" = "ホームからライブ動画を削除";
+"Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "ホームのフィードからライブ配信を削除します。登録チャンネル、検索、チャンネルには表示されます。";
+
+"iPhone Duo System Tab Bar" = "iPhone Duoのシステムタブバー";
+"Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright." = "タブをiPhone Duo独自のタブバーに表示します。長押しでラベル付きに広がる縦のバー、または縦向きで開いたときの下部のフローティングバーです。";
+"iPhone Duo Laptop Layout" = "iPhone Duoのノートパソコンレイアウト";
+"Half open like a laptop, full-screen video plays above the crease with the controls below." = "ノートパソコンのように半分開くと、フルスクリーン動画を折り目の上に、コントロールを下に表示します。";
+"iPhone Duo Status Bar Over Video" = "iPhone Duoの動画上のステータスバー";
+"Hide the clock and status icons while the watch page's video is under them." = "再生ページの動画が下にある間、時計とステータスアイコンを非表示にします。";
