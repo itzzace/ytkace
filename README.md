@@ -2,6 +2,8 @@
 
 An open-source YouTube enhancement for iOS.
 
+News, test builds and giveaways: [Telegram](https://t.me/ytkace)
+
 ## Features
 
 | Area | Included |
@@ -21,16 +23,16 @@ An open-source YouTube enhancement for iOS.
 
 - **iOS:** 15.0 and newer (tweak packages); the prebuilt IPAs follow their YouTube base
 - **Architecture:** arm64
-- **YTKACE:** 1.1.5
+- **YTKACE:** 1.1.6
 
-YouTube 21.44.4 requires iOS 17, so two IPAs are published:
+YouTube 21.45.4 requires iOS 17, so two IPAs are published:
 
 | IPA | YouTube base | iOS |
 | --- | --- | --- |
-| `YTKACE_1.1.5_YouTube_iOS16_21.33.6.ipa` | 21.33.6 | 16.0 and newer |
-| `YTKACE_1.1.5_YouTube_21.44.4.ipa` | 21.44.4 | 17.0 and newer |
+| `YTKACE_1.1.6_YouTube_iOS16_21.33.6.ipa` | 21.33.6 | 16.0 and newer |
+| `YTKACE_1.1.6_YouTube_21.45.4.ipa` | 21.45.4 | 17.0 and newer |
 
-Pick the 21.44.4 build unless you are on iOS 16. Either one installs with TrollStore or a developer-certificate sideloader.
+Pick the 21.45.4 build unless you are on iOS 16. Either one installs with TrollStore or a developer-certificate sideloader.
 
 ## Install
 
