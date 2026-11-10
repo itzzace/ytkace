@@ -54,10 +54,46 @@ static BOOL YTKACEShouldShowUpgradeDialog(id receiver, SEL selector) {
          ((BOOL (*)(id, SEL))OriginalShouldShowUpgradeDialog)(receiver, selector));
 }
 
+// "Video paused. Continue watching?" YouTube can ask through the controller
+// or a command from the server, so block every path.
+static BOOL YTKACEBlockYouThere(void) {
+    return YTKACEHidePromos() || YTKACEFeatureEnabled(@"YTKACE.Preference.Playback.YouThereDisabled");
+}
+
+static IMP OriginalShowYouThere;
+static IMP OriginalLegacyShouldShowYouThere;
+static IMP OriginalLegacyShowYouThere;
+static IMP OriginalYouThereCommands;
+
 static BOOL YTKACEShouldShowYouThere(id receiver, SEL selector) {
-    return YTKACEHidePromos() ? NO :
+    return YTKACEBlockYouThere() ? NO :
         (OriginalYouTherePrompt != NULL &&
          ((BOOL (*)(id, SEL))OriginalYouTherePrompt)(receiver, selector));
+}
+
+static void YTKACEShowYouThere(id receiver, SEL selector) {
+    if (YTKACEBlockYouThere()) {
+        YTKACEDebugLog(@"youthere", @"blocked prompt");
+        return;
+    }
+    if (OriginalShowYouThere != NULL) ((void (*)(id, SEL))OriginalShowYouThere)(receiver, selector);
+}
+
+static BOOL YTKACELegacyShouldShowYouThere(id receiver, SEL selector) {
+    return YTKACEBlockYouThere() ? NO :
+        (OriginalLegacyShouldShowYouThere != NULL &&
+         ((BOOL (*)(id, SEL))OriginalLegacyShouldShowYouThere)(receiver, selector));
+}
+
+static void YTKACELegacyShowYouThere(id receiver, SEL selector) {
+    if (YTKACEBlockYouThere()) return;
+    if (OriginalLegacyShowYouThere != NULL) ((void (*)(id, SEL))OriginalLegacyShowYouThere)(receiver, selector);
+}
+
+static BOOL YTKACEYouThereCommands(id receiver, SEL selector) {
+    return YTKACEBlockYouThere() ? NO :
+        (OriginalYouThereCommands != NULL &&
+         ((BOOL (*)(id, SEL))OriginalYouThereCommands)(receiver, selector));
 }
 
 static BOOL YTKACEInterstitialIsPromo(id command, NSString **outMatch) {
@@ -116,6 +152,14 @@ void YTKACEInstallPromoHooks(void) {
                               @"shouldShowYouTherePrompt",
                               (IMP)YTKACEShouldShowYouThere,
                               &OriginalYouTherePrompt);
+    YTKACEInstallInstanceHook(@"YTYouThereControllerImpl", @"showYouTherePrompt",
+                              (IMP)YTKACEShowYouThere, &OriginalShowYouThere);
+    YTKACEInstallInstanceHook(@"YTYouThereController", @"shouldShowYouTherePrompt",
+                              (IMP)YTKACELegacyShouldShowYouThere, &OriginalLegacyShouldShowYouThere);
+    YTKACEInstallInstanceHook(@"YTYouThereController", @"showYouTherePrompt",
+                              (IMP)YTKACELegacyShowYouThere, &OriginalLegacyShowYouThere);
+    YTKACEInstallInstanceHook(@"YTColdConfig", @"enableYouthereCommandsOnIos",
+                              (IMP)YTKACEYouThereCommands, &OriginalYouThereCommands);
     YTKACEInstallInstanceHook(@"YTIShowFullscreenInterstitialCommand",
                               @"shouldThrottleInterstitial",
                               (IMP)YTKACEShouldThrottleInterstitial,

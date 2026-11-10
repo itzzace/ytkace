@@ -1086,3 +1086,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE usa datos de SponsorBlock.\nCon licen
 "10 seconds" = "10 segundos";
 "15 seconds" = "15 segundos";
 "30 seconds" = "30 segundos";
+"Keep Playing" = "Seguir reproduciendo";
+"Don't stop to ask if you're still watching." = "No pausar para preguntar si sigues viendo.";

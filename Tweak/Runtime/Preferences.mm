@@ -65,6 +65,7 @@ void YTKACERegisterDefaults(void) {
         YTKACESpeedKey: @NO,
         YTKACELoopKey: @NO,
         @"YTKACE.Preference.Player.QualityButton": @NO,
+        @"YTKACE.Preference.Playback.YouThereDisabled": @NO,
         @"YTKACE.Preference.Player.AutoFullscreen": @NO,
         @"YTKACE.Preference.Player.ExitFullscreenAtEnd": @NO,
         @"YTKACE.Preference.Gestures.SwipeToSeek": @NO,
