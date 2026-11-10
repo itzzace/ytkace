@@ -1049,6 +1049,10 @@
 "Loop" = "Repetir";
 "Quality" = "Qualidade";
 "Speed" = "Velocidade";
+"Best" = "Melhor";
+"Default Track" = "Faixa padrão";
+"Skip the quality list and use the best at or below this." = "Pula a lista de qualidade e usa a melhor até esta.";
+"Skip the language list and use the video's default audio." = "Pula a lista de idiomas e usa o áudio padrão do vídeo.";
 "Previous/Next Skip" = "Pular com Anterior/Próximo";
 "Previous and next skip back and forward in the video instead." = "Anterior e Próximo voltam e avançam no vídeo.";
 "5 seconds" = "5 segundos";
