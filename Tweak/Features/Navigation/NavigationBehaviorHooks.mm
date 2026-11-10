@@ -111,6 +111,7 @@ void YTKACEInstallNavigationBehaviorHooks(void) {
     for (NSString *className in @[
         @"YTAppViewController",
         @"YTWatchViewController",
+        @"YTWatchLayerViewController",
         @"YTPlayerViewController",
         @"YTMainAppVideoPlayerOverlayViewController",
         @"YTShortsPlayerViewController"
