@@ -444,6 +444,39 @@ static void YTKACEStoreCompleted(NSURL *URL, NSTimeInterval duration,
     add(commands.togglePlayPauseCommand, ^(YTKACEDownloadPlaybackSession *session) { [session togglePlayback]; });
     add(commands.nextTrackCommand, ^(YTKACEDownloadPlaybackSession *session) { [session playNext]; });
     add(commands.previousTrackCommand, ^(YTKACEDownloadPlaybackSession *session) { [session playPrevious]; });
+    // The lock screen's scrubber and 15 second skips. Without these targets
+    // YouTube's own ones answer, which act on YouTube's player instead.
+    void (^addEvent)(MPRemoteCommand *, void (^)(YTKACEDownloadPlaybackSession *, MPRemoteCommandEvent *)) =
+        ^(MPRemoteCommand *command, void (^action)(YTKACEDownloadPlaybackSession *, MPRemoteCommandEvent *)) {
+        command.enabled = YES;
+        id target = [command addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent *event) {
+            YTKACEDownloadPlaybackSession *strongSelf = weakSelf;
+            if (strongSelf == nil || strongSelf.currentURL == nil) {
+                return MPRemoteCommandHandlerStatusNoActionableNowPlayingItem;
+            }
+            action(strongSelf, event);
+            return MPRemoteCommandHandlerStatusSuccess;
+        }];
+        [targets addObject:@[command, target]];
+    };
+    addEvent(commands.changePlaybackPositionCommand, ^(YTKACEDownloadPlaybackSession *session, MPRemoteCommandEvent *event) {
+        if (![event isKindOfClass:MPChangePlaybackPositionCommandEvent.class]) return;
+        [session seekToTime:((MPChangePlaybackPositionCommandEvent *)event).positionTime];
+    });
+    commands.skipForwardCommand.preferredIntervals = @[@15];
+    commands.skipBackwardCommand.preferredIntervals = @[@15];
+    addEvent(commands.skipForwardCommand, ^(YTKACEDownloadPlaybackSession *session, MPRemoteCommandEvent *event) {
+        NSTimeInterval interval = [event isKindOfClass:MPSkipIntervalCommandEvent.class]
+            ? ((MPSkipIntervalCommandEvent *)event).interval : 15.0;
+        [session seekBy:interval];
+        [session notifyChange];
+    });
+    addEvent(commands.skipBackwardCommand, ^(YTKACEDownloadPlaybackSession *session, MPRemoteCommandEvent *event) {
+        NSTimeInterval interval = [event isKindOfClass:MPSkipIntervalCommandEvent.class]
+            ? ((MPSkipIntervalCommandEvent *)event).interval : 15.0;
+        [session seekBy:-interval];
+        [session notifyChange];
+    });
     self.remoteTargets = targets;
     YTKACEDownloadLog(@"library", @"remote commands attached");
 }
@@ -588,9 +621,19 @@ static void YTKACEStoreCompleted(NSURL *URL, NSTimeInterval duration,
     NSTimeInterval duration = CMTimeGetSeconds(self.player.currentItem.duration);
     NSTimeInterval target = MAX(0.0, isfinite(seconds) ? seconds : 0.0);
     if (isfinite(duration) && duration > 0.0) target = MIN(target, duration);
-    [self.player seekToTime:CMTimeMakeWithSeconds(target, 600)
-            toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
+    [self seekPlayerTo:target];
     [self notifyChange];
+}
+
+// Seeks finish later; Now Playing is refreshed once the new time is in, or it
+// shows the old one.
+- (void)seekPlayerTo:(NSTimeInterval)target {
+    __weak YTKACEDownloadPlaybackSession *weakSelf = self;
+    [self.player seekToTime:CMTimeMakeWithSeconds(target, 600)
+            toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero
+          completionHandler:^(__unused BOOL finished) {
+        dispatch_async(dispatch_get_main_queue(), ^{ [weakSelf updateNowPlayingInfo]; });
+    }];
 }
 
 - (void)beginTrackingPosition {
@@ -655,8 +698,7 @@ static void YTKACEStoreCompleted(NSURL *URL, NSTimeInterval duration,
     if (isfinite(duration) && duration > 0.0) {
         target = MIN(target, duration);
     }
-    [self.player seekToTime:CMTimeMakeWithSeconds(target, 600)
-            toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
+    [self seekPlayerTo:target];
 }
 
 - (void)playNext {
@@ -742,6 +784,17 @@ static void YTKACEStoreCompleted(NSURL *URL, NSTimeInterval duration,
         self.currentURL.lastPathComponent.stringByDeletingPathExtension ?: @"YTKACE";
     NSTimeInterval duration = CMTimeGetSeconds(self.player.currentItem.duration);
     NSTimeInterval elapsed = CMTimeGetSeconds(self.player.currentTime);
+    if (!(isfinite(duration) && duration > 0.0) &&
+        self.player.currentItem.status != AVPlayerItemStatusFailed) {
+        // The item is still loading. Without a duration the lock screen
+        // shows --:-- and its scrubber can't be dragged, so try again.
+        NSURL *url = self.currentURL;
+        __weak YTKACEDownloadPlaybackSession *weakSelf = self;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            YTKACEDownloadPlaybackSession *strongSelf = weakSelf;
+            if ([strongSelf.currentURL isEqual:url]) [strongSelf updateNowPlayingInfo];
+        });
+    }
     if (isfinite(duration) && duration > 0.0) info[MPMediaItemPropertyPlaybackDuration] = @(duration);
     if (isfinite(elapsed) && elapsed >= 0.0) info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = @(elapsed);
     info[MPNowPlayingInfoPropertyPlaybackRate] = @(self.player.rate);
