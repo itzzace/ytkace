@@ -197,12 +197,11 @@ static BOOL YTKACEAdsURLIsBlocked(NSURL *URL) {
 }
 
 static void YTKACEURLSessionTaskResume(NSURLSessionTask *task, SEL selector) {
-    if (YTKACEFeatureEnabled(YTKACENoAdsKey)) {
-        NSURLRequest *request = task.currentRequest ?: task.originalRequest;
-        if (YTKACEAdsURLIsBlocked(request.URL)) {
-            [task cancel];
-            return;
-        }
+    NSURLRequest *request = task.currentRequest ?: task.originalRequest;
+    if (YTKACEShouldBlockPlaybackHeartbeat(request.URL) ||
+        (YTKACEFeatureEnabled(YTKACENoAdsKey) && YTKACEAdsURLIsBlocked(request.URL))) {
+        [task cancel];
+        return;
     }
     if (OriginalURLSessionTaskResume != NULL) {
         ((void (*)(id, SEL))OriginalURLSessionTaskResume)(task, selector);

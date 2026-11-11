@@ -151,6 +151,8 @@
 "Playback" = "Playback";
 "Playback Fix" = "Playback Fix";
 "Playback Fix (test)" = "Playback Fix (test)";
+"Bypass Premium Device Streaming Limit" = "Bypass Premium Device Streaming Limit";
+"Block the player heartbeat YouTube uses to count devices on your plan. Turn it off if playback misbehaves. Restart YouTube after changing." = "Block the player heartbeat YouTube uses to count devices on your plan. Turn it off if playback misbehaves. Restart YouTube after changing.";
 "Playback, feed and action buttons" = "Playback, feed and action buttons";
 "Player" = "Player";
 "Player buttons, captions and watch-page cleanup" = "Player buttons, captions and watch-page cleanup";
