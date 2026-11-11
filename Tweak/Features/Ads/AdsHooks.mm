@@ -196,9 +196,27 @@ static BOOL YTKACEAdsURLIsBlocked(NSURL *URL) {
     return NO;
 }
 
+// AVFoundation download tasks (YouTube's offline downloads) throw on
+// currentRequest, which crashed every launch while one was queued.
+static NSURLRequest *YTKACETaskRequest(NSURLSessionTask *task) {
+    static Class assetTask, aggregateTask;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        assetTask = NSClassFromString(@"AVAssetDownloadTask");
+        aggregateTask = NSClassFromString(@"AVAggregateAssetDownloadTask");
+    });
+    if ((assetTask != Nil && [task isKindOfClass:assetTask]) ||
+        (aggregateTask != Nil && [task isKindOfClass:aggregateTask])) return nil;
+    @try {
+        return task.currentRequest ?: task.originalRequest;
+    } @catch (__unused NSException *exception) {
+        return nil;
+    }
+}
+
 static void YTKACEURLSessionTaskResume(NSURLSessionTask *task, SEL selector) {
     if (YTKACEFeatureEnabled(YTKACENoAdsKey)) {
-        NSURLRequest *request = task.currentRequest ?: task.originalRequest;
+        NSURLRequest *request = YTKACETaskRequest(task);
         if (YTKACEAdsURLIsBlocked(request.URL)) {
             [task cancel];
             return;

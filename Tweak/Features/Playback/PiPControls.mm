@@ -11,6 +11,8 @@
 #import <AVKit/AVKit.h>
 #import <math.h>
 #import <objc/message.h>
+#import <objc/runtime.h>
+#import "../Downloads/DownloadLog.h"
 
 @interface YTKACEPiPCoordinator : NSObject <AVPictureInPictureControllerDelegate>
 + (instancetype)sharedCoordinator;
@@ -24,6 +26,7 @@
 @property(nonatomic, strong) id youtubePlayer;
 @property(nonatomic, assign) BOOL observingItem;
 @property(nonatomic, assign) BOOL polling;
+@property(nonatomic, weak) AVPictureInPictureController *nativeController;
 - (void)togglePiP;
 @end
 
@@ -246,8 +249,57 @@
     self.player = nil;
 }
 
+static id YTKACEPiPIvar(id object, const char *name) {
+    if (object == nil) return nil;
+    Ivar ivar = class_getInstanceVariable(object_getClass(object), name);
+    return ivar != NULL ? object_getIvar(object, ivar) : nil;
+}
+
+static BOOL YTKACEPiPCall(id object, NSString *name) {
+    SEL selector = NSSelectorFromString(name);
+    if (object == nil || ![object respondsToSelector:selector]) return NO;
+    ((void (*)(id, SEL))objc_msgSend)(object, selector);
+    return YES;
+}
+
+static BOOL YTKACEPiPBool(id object, NSString *name) {
+    SEL selector = NSSelectorFromString(name);
+    return object != nil && [object respondsToSelector:selector] &&
+        ((BOOL (*)(id, SEL))objc_msgSend)(object, selector);
+}
+
+// YouTube's own PiP, like YouPiP: instant, and keeps speed, audio track
+// and quality because it's the same playback.
+- (BOOL)startNativePiP {
+    id local = YTKACEPiPIvar([self activeYouTubePlayer], "_playbackController");
+    id pipController = YTKACEPiPIvar(local, "_playerPIPController");
+    id ml = YTKACEPiPIvar(pipController, "_pipController");
+    if (pipController == nil || ml == nil) {
+        YTKACEDebugLog(@"pip", @"native unavailable local=%@ pip=%@ ml=%@",
+            local != nil ? NSStringFromClass([local class]) : @"nil",
+            pipController != nil ? NSStringFromClass([pipController class]) : @"nil",
+            ml != nil ? NSStringFromClass([ml class]) : @"nil");
+        return NO;
+    }
+    if (!YTKACEPiPCall(pipController, @"maybeEnablePictureInPicture") &&
+        !YTKACEPiPCall(pipController, @"maybeInvokePictureInPicture") &&
+        (YTKACEPiPBool(pipController, @"canEnablePictureInPicture") ||
+         YTKACEPiPBool(pipController, @"canInvokePictureInPicture"))) {
+        if (!YTKACEPiPCall(ml, @"activatePiPController")) YTKACEPiPCall(ml, @"startPictureInPicture");
+    }
+    AVPictureInPictureController *avpip = YTKACEPiPIvar(ml, "_pictureInPictureController");
+    if (![avpip isKindOfClass:AVPictureInPictureController.class]) return NO;
+    self.nativeController = avpip;
+    if (avpip.isPictureInPicturePossible && !avpip.isPictureInPictureActive) [avpip startPictureInPicture];
+    return YES;
+}
+
 - (void)togglePiP {
     if (!YTKACEFeatureEnabled(YTKACEPiPKey)) {
+        return;
+    }
+    if (self.nativeController.isPictureInPictureActive) {
+        [self.nativeController stopPictureInPicture];
         return;
     }
     if (self.controller.isPictureInPictureActive) {
@@ -258,6 +310,25 @@
         [self showError:@"PiP is not supported on this device."];
         return;
     }
+    if ([self startNativePiP]) {
+        // fall back to our own player if YouTube's PiP didn't start
+        __weak YTKACEPiPCoordinator *weakSelf = self;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{
+            YTKACEPiPCoordinator *strongSelf = weakSelf;
+            AVPictureInPictureController *avpip = strongSelf.nativeController;
+            BOOL active = avpip.isPictureInPictureActive;
+            YTKACEDebugLog(@"pip", @"native active=%d possible=%d", active, avpip.isPictureInPicturePossible);
+            if (!active && UIApplication.sharedApplication.applicationState == UIApplicationStateActive) {
+                [strongSelf startFallbackPiP];
+            }
+        });
+        return;
+    }
+    [self startFallbackPiP];
+}
+
+- (void)startFallbackPiP {
     [self showLoading];
     [self resumeYouTubePlayer];
     [self clearPlayer];
