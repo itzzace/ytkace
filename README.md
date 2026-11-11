@@ -34,6 +34,8 @@ YouTube 21.45.4 requires iOS 17, so two IPAs are published:
 
 Pick the 21.45.4 build unless you are on iOS 16. Either one installs with TrollStore or a developer-certificate sideloader.
 
+Need a certificate? [FlareStore](https://flarestore.vip/p/ytkace)
+
 ## Install
 
 **Jailbroken.** Add the repository in Sileo, Zebra or Cydia:
