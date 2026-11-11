@@ -41,7 +41,6 @@ static const char * const YTKACEAdMarkers[] = {
     "eml.ad",
     "eml_ad",
     "pagead/",
-    "doubleclick.net",
     "yt-ads-web-view-id",
     "compact_promoted",
     "grid_promoted",
