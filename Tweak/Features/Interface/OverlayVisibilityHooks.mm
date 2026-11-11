@@ -326,6 +326,23 @@ static BOOL YTKACETimelyShelfShoppingPayloadMatches(id object) {
     return NO;
 }
 
+static id YTKACETimelyShelfElementsRenderer(id overlay) {
+    id controller =
+        YTKACEProductOverlayModelValue(overlay, @"elementsOverlayViewController");
+    return YTKACEProductOverlayModelValue(controller, @"renderer");
+}
+
+static BOOL YTKACETimelyShelfElementsShopping(id overlay) {
+    NSData *data = YTKACEProductOverlayModelValue(
+        YTKACETimelyShelfElementsRenderer(overlay), @"data");
+    if (![data isKindOfClass:NSData.class] || data.length == 0) return NO;
+    NSData *marker =
+        [@"shopping_timely_shelf" dataUsingEncoding:NSASCIIStringEncoding];
+    return [data rangeOfData:marker
+                     options:0
+                       range:NSMakeRange(0, data.length)].location != NSNotFound;
+}
+
 BOOL YTKACEProductOverlayMatches(id overlay) {
     if (overlay == nil) return NO;
     NSString *identifier =
@@ -354,7 +371,8 @@ BOOL YTKACEProductOverlayMatches(id overlay) {
          YTKACEIsTimelyShelfOverlayIdentifier(rendererIdentifier));
     if (timely &&
         (YTKACETimelyShelfShoppingPayloadMatches(overlay) ||
-         (renderer != nil && YTKACETimelyShelfShoppingPayloadMatches(renderer)))) {
+         (renderer != nil && YTKACETimelyShelfShoppingPayloadMatches(renderer)) ||
+         YTKACETimelyShelfElementsShopping(overlay))) {
         return YES;
     }
     return NO;
@@ -826,11 +844,13 @@ static void YTKACEUpdateTimelyShelfOverlay(id receiver, SEL selector,
 
 static BOOL YTKACETimelyShelfOverlayIsProduct(id overlay) {
     if (overlay == nil) return NO;
+    id renderer = YTKACETimelyShelfElementsRenderer(overlay);
+    if (renderer == nil) return YTKACEProductOverlayMatches(overlay);
     NSNumber *cached =
-        objc_getAssociatedObject(overlay, YTKACETimelyShelfProductAssociation);
+        objc_getAssociatedObject(renderer, YTKACETimelyShelfProductAssociation);
     if (cached == nil) {
         cached = @(YTKACEProductOverlayMatches(overlay));
-        objc_setAssociatedObject(overlay, YTKACETimelyShelfProductAssociation,
+        objc_setAssociatedObject(renderer, YTKACETimelyShelfProductAssociation,
                                  cached, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
     return cached.boolValue;
