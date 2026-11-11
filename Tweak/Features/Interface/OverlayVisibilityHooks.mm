@@ -907,7 +907,6 @@ static void YTKACETimelyShelfFrame(id receiver, SEL selector,
             YTKACEProductHiddenCounted(shelfView, YES);
             YTKACEProductSetHidden(shelfView, YES);
             shelfView.frame = CGRectZero;
-            [shelfView.superview setNeedsLayout];
         }
         return;
     }
