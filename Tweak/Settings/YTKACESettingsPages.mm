@@ -1584,6 +1584,8 @@ static NSDictionary *YTKACEPlayerDefinition(void) {
             YTKACEToggleDetail(@"iPhone Duo Status Bar Over Video", @"Hide the clock and status icons while the watch page's video is under them.", @"YTKACE.Preference.Player.DuoStatusBarHidden"),
             YTKACEToggle(@"Loop Button", YTKACELoopKey, @"", @""),
             YTKACEToggleDetail(@"Quality Button", @"Add a button that opens the quality menu.", @"YTKACE.Preference.Player.QualityButton"),
+            YTKACEPicker(@"Quality Button Style", @"YTKACE.Preference.Player.QualityButtonStyle",
+                         @[@"Standard", @"Compact"], @[@0, @1], 0, @"", @""),
             YTKACEToggle(@"Sleep Timer Button", YTKACESleepTimerKey, @"", @""),
             YTKACEToggle(@"Speed Button", YTKACESpeedKey, @"", @""),
             YTKACEPickerDetail(@"Speed Button Style",
@@ -1706,6 +1708,9 @@ static NSDictionary *YTKACEQualityDefinition(void) {
                            @"1080p60", @"1080p", @"720p60", @"720p", @"480p",
                            @"360p", @"240p", @"144p"];
     NSArray *values = @[@0, @1, @2, @3, @4, @5, @6, @7, @8, @9, @10, @11, @12];
+    // Off uses the Wi-Fi or Mobile Data quality.
+    NSArray *overrideQualities = [@[@"Off"] arrayByAddingObjectsFromArray:qualities];
+    NSArray *overrideValues = [@[@(-1)] arrayByAddingObjectsFromArray:values];
     return YTKACEPageDefinition(@"quality", @"Video Quality", @[
         @[
             YTKACEPicker(@"Wi-Fi Quality", @"YTKACE.Preference.Playback.WiFiQuality",
@@ -1714,6 +1719,14 @@ static NSDictionary *YTKACEQualityDefinition(void) {
                          qualities, values, 0, @"", @""),
             YTKACEToggleDetail(@"HD on Mobile Data", @"Remove YouTube's quality limit on mobile data.",
                                @"YTKACE.Preference.Playback.HDOnCellular")
+        ],
+        @[
+            YTKACEPicker(@"AirPlay on Wi-Fi", @"YTKACE.Preference.Playback.AirPlayWiFiQuality",
+                         overrideQualities, overrideValues, 0, @"", @""),
+            YTKACEPicker(@"AirPlay on Mobile Data", @"YTKACE.Preference.Playback.AirPlayCellularQuality",
+                         overrideQualities, overrideValues, 0, @"", @""),
+            YTKACEPicker(@"Low Power Mode", @"YTKACE.Preference.Playback.LowPowerQuality",
+                         overrideQualities, overrideValues, 0, @"", @"")
         ],
         @[
             YTKACEToggleDetail(@"Classic Quality Menu", @"Show the full resolution list instead of YouTube's simple menu.",
@@ -1725,7 +1738,7 @@ static NSDictionary *YTKACEQualityDefinition(void) {
                                @"Play videos in standard dynamic range.",
                                @"YTKACE.Preference.Playback.HDRDisabled")
         ]
-    ], @[YTKACELocalized(@"DEFAULT QUALITY"), YTKACELocalized(@"QUALITY MENU")]);
+    ], @[YTKACELocalized(@"DEFAULT QUALITY"), YTKACELocalized(@"AIRPLAY & LOW POWER"), YTKACELocalized(@"QUALITY MENU")]);
 }
 
 static NSDictionary *YTKACECaptionsDefinition(void) {

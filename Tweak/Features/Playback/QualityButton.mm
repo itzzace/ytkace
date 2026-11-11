@@ -20,23 +20,60 @@ static id YTKACEQualityGet(id object, NSString *name) {
     return ((id (*)(id, SEL))objc_msgSend)(object, selector);
 }
 
-// "1080p60 HDR" -> "1080p60", "1080p Premium" -> "1080p+"
-static NSString *YTKACEShortQualityLabel(NSString *label) {
-    NSArray<NSString *> *words = [label componentsSeparatedByCharactersInSet:
-        NSCharacterSet.whitespaceCharacterSet];
-    NSString *first = words.firstObject;
-    if (first.length == 0) return nil;
-    return [label rangeOfString:@"Premium" options:NSCaseInsensitiveSearch].location != NSNotFound
-        ? [first stringByAppendingString:@"+"] : first;
+static BOOL YTKACEQualityCompact(void) {
+    return [YTKACEPreferenceObject(@"YTKACE.Preference.Player.QualityButtonStyle") integerValue] == 1;
 }
 
+static NSArray<NSString *> *YTKACEQualityWords(NSString *label) {
+    NSMutableArray<NSString *> *words = [NSMutableArray array];
+    for (NSString *word in [label componentsSeparatedByCharactersInSet:
+             NSCharacterSet.whitespaceCharacterSet]) {
+        if (word.length != 0) [words addObject:word];
+    }
+    return words;
+}
+
+static BOOL YTKACEQualityIsPremium(NSString *label) {
+    return [label rangeOfString:@"Premium" options:NSCaseInsensitiveSearch].location != NSNotFound;
+}
+
+// Standard: "1080p60 HDR" -> "1080p60", "1080p Premium" -> "1080p+"
+// Compact: "1080p60" -> "HD\n60", "2160p60 HDR" -> "4K\n60\nHDR", "1080p Premium" -> "HD+"
+static NSString *YTKACEShortQualityLabel(NSString *label) {
+    NSArray<NSString *> *words = YTKACEQualityWords(label);
+    NSString *first = words.firstObject;
+    if (first.length == 0) return nil;
+    if (!YTKACEQualityCompact()) {
+        return YTKACEQualityIsPremium(label) ? [first stringByAppendingString:@"+"] : first;
+    }
+    NSRange p = [first rangeOfString:@"p"];
+    NSString *resolution = p.location == NSNotFound ? first : [first substringToIndex:p.location];
+    NSString *fps = p.location == NSNotFound ? @"" : [first substringFromIndex:p.location + 1];
+    NSString *name = @{@"2160": @"4K", @"1440": @"2K", @"1080": @"HD"}[resolution]
+        ?: (p.location == NSNotFound ? first : [resolution stringByAppendingString:@"p"]);
+    if (YTKACEQualityIsPremium(label)) name = [name stringByAppendingString:@"+"];
+    NSMutableArray<NSString *> *lines = [NSMutableArray arrayWithObject:name];
+    if (fps.length != 0) [lines addObject:fps];
+    for (NSUInteger index = 1; index < words.count && lines.count < 3; index++) {
+        if (!YTKACEQualityIsPremium(words[index])) [lines addObject:words[index]];
+    }
+    return [lines componentsJoinedByString:@"\n"];
+}
+
+// The last label from the quality switch, which keeps "Premium".
+static NSString *YTKACEQualityLastLabel;
+
 // The quality of the stream that's playing right now.
-static NSString *YTKACECurrentQuality(UIView *overlay) {
+static NSString *YTKACECurrentQualityLabel(UIView *overlay) {
     for (UIResponder *responder = overlay; responder != nil; responder = responder.nextResponder) {
         if (![NSStringFromClass(responder.class) isEqualToString:@"YTPlayerViewController"]) continue;
         id format = YTKACEQualityGet(YTKACEQualityGet(responder, @"activeVideo"), @"selectedVideoFormat");
         id label = YTKACEQualityGet(format, @"qualityLabel");
-        return [label isKindOfClass:NSString.class] ? YTKACEShortQualityLabel(label) : nil;
+        if (![label isKindOfClass:NSString.class]) return nil;
+        NSString *last = YTKACEQualityLastLabel;
+        BOOL same = last.length != 0 &&
+            [YTKACEQualityWords(last).firstObject isEqualToString:YTKACEQualityWords(label).firstObject];
+        return same ? last : label;
     }
     return nil;
 }
@@ -71,17 +108,31 @@ static NSString *YTKACECurrentQuality(UIView *overlay) {
 
 @end
 
+static const void *YTKACEQualityMinWidthAssociation = &YTKACEQualityMinWidthAssociation;
+
 static void YTKACEStyleQualityButton(UIButton *button) {
-    if (objc_getAssociatedObject(button, YTKACEQualityStyledAssociation) != nil) return;
-    objc_setAssociatedObject(button, YTKACEQualityStyledAssociation, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    [button setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
-    button.titleLabel.font = [UIFont systemFontOfSize:17.0 weight:UIFontWeightSemibold];
-    button.titleLabel.adjustsFontSizeToFitWidth = NO;
-    button.titleLabel.lineBreakMode = NSLineBreakByClipping;
-    for (NSLayoutConstraint *constraint in button.constraints) {
-        if (constraint.firstAttribute == NSLayoutAttributeWidth) constraint.active = NO;
+    BOOL compact = YTKACEQualityCompact();
+    if (objc_getAssociatedObject(button, YTKACEQualityStyledAssociation) == nil) {
+        objc_setAssociatedObject(button, YTKACEQualityStyledAssociation, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        [button setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+        button.titleLabel.adjustsFontSizeToFitWidth = NO;
+        button.titleLabel.lineBreakMode = NSLineBreakByClipping;
+        button.titleLabel.textAlignment = NSTextAlignmentCenter;
+        // fit the text; the row used to squeeze it and cut "1080p+" to "1080"
+        for (NSLayoutConstraint *constraint in button.constraints) {
+            if (constraint.firstItem == button && constraint.firstAttribute == NSLayoutAttributeWidth &&
+                constraint.relation == NSLayoutRelationEqual) constraint.active = NO;
+        }
+        NSLayoutConstraint *minimum = [button.widthAnchor constraintGreaterThanOrEqualToConstant:40.0];
+        minimum.active = YES;
+        objc_setAssociatedObject(button, YTKACEQualityMinWidthAssociation, minimum, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        [button setContentCompressionResistancePriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];
+        [button setContentHuggingPriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];
     }
-    [button.widthAnchor constraintGreaterThanOrEqualToConstant:40.0].active = YES;
+    button.titleLabel.font = [UIFont systemFontOfSize:compact ? 10.0 : 17.0 weight:UIFontWeightSemibold];
+    button.titleLabel.numberOfLines = compact ? 3 : 1;
+    NSLayoutConstraint *minimum = objc_getAssociatedObject(button, YTKACEQualityMinWidthAssociation);
+    minimum.constant = compact ? 24.0 : 40.0;
 }
 
 static void YTKACESetQualityTitle(UIButton *button, NSString *quality) {
@@ -99,10 +150,14 @@ static void YTKACEQualityDidSelectFormat(id receiver, SEL selector, id video, id
     if (original != NULL) ((void (*)(id, SEL, id, id))original)(receiver, selector, video, format);
     id label = YTKACEQualityGet(format, @"qualityLabel");
     if (![label isKindOfClass:NSString.class] || !YTKACEFeatureEnabled(YTKACEQualityButtonKey)) return;
-    NSString *quality = YTKACEShortQualityLabel(label);
     dispatch_async(dispatch_get_main_queue(), ^{
+        YTKACEQualityLastLabel = [label copy];
+        NSString *quality = YTKACEShortQualityLabel(label);
         for (UIButton *button in YTKACEQualityButtons.allObjects) {
-            if (!button.hidden && button.window != nil) YTKACESetQualityTitle(button, quality);
+            if (!button.hidden && button.window != nil) {
+                YTKACEStyleQualityButton(button);
+                YTKACESetQualityTitle(button, quality);
+            }
         }
     });
 }
@@ -130,6 +185,7 @@ void YTKACEInstallQualityButtonHooks(void) {
         YTKACEStyleQualityButton(button);
         [YTKACEQualityButtons addObject:button];
         // shows the icon until the stream has a quality
-        YTKACESetQualityTitle(button, YTKACECurrentQuality(overlay));
+        NSString *label = YTKACECurrentQualityLabel(overlay);
+        YTKACESetQualityTitle(button, label != nil ? YTKACEShortQualityLabel(label) : nil);
     });
 }
