@@ -181,6 +181,15 @@ UIImage *YTKACESpeedButtonImage(BOOL plus) {
     return [image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 }
 
+// System buttons crossfade title changes, which made fast +/- taps feel laggy.
+static void YTKACESetSpeedTitle(UIButton *button, NSString *title) {
+    if (button == nil || [title isEqualToString:[button titleForState:UIControlStateNormal]]) return;
+    [UIView performWithoutAnimation:^{
+        [button setTitle:title forState:UIControlStateNormal];
+        [button layoutIfNeeded];
+    }];
+}
+
 @interface YTKACESpeedCoordinator : NSObject
 + (instancetype)sharedCoordinator;
 @property(nonatomic, weak) UIView *overlay;
@@ -193,6 +202,8 @@ UIImage *YTKACESpeedButtonImage(BOOL plus) {
 - (void)increase;
 - (void)reset;
 - (void)valueTapped:(UIButton *)sender;
+- (void)valueHeld:(UILongPressGestureRecognizer *)recognizer;
+- (BOOL)openSpeedMenuFrom:(UIButton *)sender;
 @end
 
 @implementation YTKACESpeedCoordinator
@@ -335,8 +346,7 @@ UIImage *YTKACESpeedButtonImage(BOOL plus) {
         [NSUserDefaults.standardUserDefaults setFloat:(float)rate
                                                forKey:YTKACELastRateKey];
     }
-    [self.valueButton setTitle:YTKACESpeedText(rate)
-                      forState:UIControlStateNormal];
+    YTKACESetSpeedTitle(self.valueButton, YTKACESpeedText(rate));
 }
 
 - (id)eventsDelegate {
@@ -417,8 +427,7 @@ UIImage *YTKACESpeedButtonImage(BOOL plus) {
                                                forKey:YTKACELastRateKey];
     }
     self.observedRate = rate;
-    [self.valueButton setTitle:YTKACESpeedText(rate)
-                      forState:UIControlStateNormal];
+    YTKACESetSpeedTitle(self.valueButton, YTKACESpeedText(rate));
 }
 
 - (void)decrease {
@@ -434,20 +443,32 @@ UIImage *YTKACESpeedButtonImage(BOOL plus) {
 }
 
 - (void)valueTapped:(UIButton *)sender {
-    if (!YTKACESpeedMenuStyle()) {
+    if (!YTKACESpeedMenuStyle() || ![self openSpeedMenuFrom:sender]) {
         [self reset];
-        return;
     }
+}
+
+// Holding the number opens YouTube's speed menu in either style.
+- (void)valueHeld:(UILongPressGestureRecognizer *)recognizer {
+    if (recognizer.state != UIGestureRecognizerStateBegan) return;
+    UIButton *button = [recognizer.view isKindOfClass:UIButton.class] ? (UIButton *)recognizer.view : nil;
+    button.highlighted = NO;
+    [button cancelTrackingWithEvent:nil];
+    [[UIImpactFeedbackGenerator.alloc initWithStyle:UIImpactFeedbackStyleLight] impactOccurred];
+    [self openSpeedMenuFrom:button];
+}
+
+- (BOOL)openSpeedMenuFrom:(UIButton *)sender {
     SEL open = NSSelectorFromString(@"didPressVarispeed:");
     // start from the tapped button: the last laid out overlay can be another player's
     for (UIResponder *responder = sender.window != nil ? (UIResponder *)sender : self.overlay; responder != nil;
          responder = responder.nextResponder) {
         if ([responder respondsToSelector:open]) {
             ((void (*)(id, SEL, id))objc_msgSend)(responder, open, sender);
-            return;
+            return YES;
         }
     }
-    [self reset];
+    return NO;
 }
 
 @end
@@ -569,6 +590,13 @@ static IMP OriginalSpeedmasterLongPress;
 static double YTKACEHoldPreviousRate;
 static BOOL YTKACEHoldOverrideActive;
 static BOOL YTKACEHoldPillActive;
+// Swiping up or down while holding changes the hold speed by 0.25x steps.
+static double YTKACEHoldCurrentRate;
+static CGFloat YTKACEHoldStartY;
+static __weak id YTKACEHoldPillNode;
+static NSDictionary *YTKACEHoldPillAttributes;
+static IMP OriginalTextNodeSetAttributedText;
+static const CGFloat YTKACEHoldStepDistance = 30.0;
 
 static void YTKACERestoreHoldRate(void);
 
@@ -584,14 +612,36 @@ static void YTKACEApplyHoldRate(NSString *source) {
             (base >= 0.25 && base <= 5.0) ? base : 1.0;
         YTKACEHoldOverrideActive = YES;
     }
+    YTKACEHoldCurrentRate = stored;
     dispatch_async(dispatch_get_main_queue(), ^{
         [[YTKACESpeedCoordinator sharedCoordinator] setRate:stored];
     });
 }
 
+static void YTKACEHoldSwipeChanged(UILongPressGestureRecognizer *recognizer) {
+    if (!YTKACEHoldOverrideActive || YTKACEHoldCurrentRate <= 0.0) return;
+    const double stored = [YTKACEPreferenceObject(YTKACEHoldSpeedRateKey) doubleValue];
+    const CGFloat rise = YTKACEHoldStartY - [recognizer locationInView:recognizer.view].y;
+    const double steps = rise >= 0 ? floor(rise / YTKACEHoldStepDistance) : ceil(rise / YTKACEHoldStepDistance);
+    const double rate = MIN(5.0, MAX(0.25, stored + steps * 0.25));
+    if (fabs(rate - YTKACEHoldCurrentRate) < 0.001) return;
+    YTKACEHoldCurrentRate = rate;
+    [[UISelectionFeedbackGenerator new] selectionChanged];
+    [[YTKACESpeedCoordinator sharedCoordinator] setRate:rate];
+    id node = YTKACEHoldPillNode;
+    if (node != nil && OriginalTextNodeSetAttributedText != NULL) {
+        NSAttributedString *text = [[NSAttributedString alloc]
+            initWithString:YTKACESpeedText(rate) attributes:YTKACEHoldPillAttributes ?: @{}];
+        ((void (*)(id, SEL, id))OriginalTextNodeSetAttributedText)(
+            node, NSSelectorFromString(@"setAttributedText:"), text);
+    }
+}
+
 static void YTKACERestoreHoldRate(void) {
     if (!YTKACEHoldOverrideActive) return;
     YTKACEHoldOverrideActive = NO;
+    YTKACEHoldCurrentRate = 0.0;
+    YTKACEHoldPillNode = nil;
     const double previous = YTKACEHoldPreviousRate;
     YTKACEHoldPreviousRate = 0.0;
     if (previous < 0.25 || previous > 5.0) return;
@@ -622,7 +672,12 @@ static void YTKACESpeedmasterLongPress(id receiver, SEL selector,
                                                               recognizer);
     }
     if (recognizer.state == UIGestureRecognizerStateBegan) {
+        YTKACEHoldStartY = [recognizer locationInView:recognizer.view].y;
         YTKACEApplyHoldRate(@"longpress");
+        return;
+    }
+    if (recognizer.state == UIGestureRecognizerStateChanged) {
+        YTKACEHoldSwipeChanged(recognizer);
         return;
     }
     if (recognizer.state == UIGestureRecognizerStateEnded ||
@@ -641,8 +696,6 @@ static BOOL YTKACELooksLikeSpeedPill(NSString *text) {
     return [number stringByTrimmingCharactersInSet:allowed].length == 0;
 }
 
-static IMP OriginalTextNodeSetAttributedText;
-
 static void YTKACETextNodeSetAttributedText(id receiver, SEL selector,
                                             NSAttributedString *value) {
     NSAttributedString *replacement = value;
@@ -650,12 +703,14 @@ static void YTKACETextNodeSetAttributedText(id receiver, SEL selector,
         ? value.string : nil;
     if (text.length != 0 && YTKACEHoldPillActive &&
         YTKACEFeatureEnabled(YTKACEHoldSpeedKey) && YTKACELooksLikeSpeedPill(text)) {
-        const double stored =
+        const double stored = YTKACEHoldCurrentRate > 0.0 ? YTKACEHoldCurrentRate :
             [YTKACEPreferenceObject(YTKACEHoldSpeedRateKey) doubleValue];
         NSString *wanted = YTKACESpeedText(stored);
+        NSDictionary *attributes = value.length != 0
+            ? [value attributesAtIndex:0 effectiveRange:NULL] : @{};
+        YTKACEHoldPillNode = receiver;
+        YTKACEHoldPillAttributes = attributes;
         if (stored >= 0.25 && stored <= 5.0 && ![text isEqualToString:wanted]) {
-            NSDictionary *attributes = value.length != 0
-                ? [value attributesAtIndex:0 effectiveRange:NULL] : @{};
             replacement = [[NSAttributedString alloc] initWithString:wanted
                                                           attributes:attributes];
         }
@@ -791,8 +846,17 @@ void YTKACEInstallSpeedHooks(void) {
         [minus setImage:YTKACESpeedButtonImage(NO) forState:UIControlStateNormal];
         [plus setImage:YTKACESpeedButtonImage(YES) forState:UIControlStateNormal];
         coordinator.valueButton = value;
-        [value setTitle:YTKACESpeedText(coordinator.currentRate)
-               forState:UIControlStateNormal];
+        YTKACESetSpeedTitle(value, YTKACESpeedText(coordinator.currentRate));
+        BOOL hasHold = NO;
+        for (UIGestureRecognizer *recognizer in value.gestureRecognizers) {
+            if ([recognizer isKindOfClass:UILongPressGestureRecognizer.class]) hasHold = YES;
+        }
+        if (!hasHold) {
+            UILongPressGestureRecognizer *hold = [[UILongPressGestureRecognizer alloc]
+                initWithTarget:coordinator action:@selector(valueHeld:)];
+            hold.minimumPressDuration = 0.4;
+            [value addGestureRecognizer:hold];
+        }
         [value setImage:nil forState:UIControlStateNormal];
         [value setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
         value.titleLabel.font = [UIFont systemFontOfSize:17.0 weight:UIFontWeightSemibold];

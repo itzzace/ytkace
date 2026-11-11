@@ -70,6 +70,7 @@ void YTKACERegisterDefaults(void) {
         @"YTKACE.Preference.Player.AutoFullscreen": @NO,
         @"YTKACE.Preference.Player.ExitFullscreenAtEnd": @NO,
         @"YTKACE.Preference.Gestures.SwipeToSeek": @NO,
+        @"YTKACE.Preference.Gestures.SwipeSeekRange": @90,
         @"YTKACE.Preference.Playback.CustomDoubleTap": @NO,
         @"YTKACE.Preference.Playback.TapToSeek": @NO,
         @"YTKACE.Preference.Sharing.NativeSheet": @NO,
