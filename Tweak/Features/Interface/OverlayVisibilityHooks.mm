@@ -15,6 +15,8 @@ static const void *YTKACEOverlayTransformAssociation = &YTKACEOverlayTransformAs
 static const void *YTKACEDoubleTapAssociation = &YTKACEDoubleTapAssociation;
 static const void *YTKACEPrevNextParentAssociation = &YTKACEPrevNextParentAssociation;
 static const void *YTKACEProductHiddenAssociation = &YTKACEProductHiddenAssociation;
+static const void *YTKACETimelyShelfProductAssociation = &YTKACETimelyShelfProductAssociation;
+static const NSInteger YTKACETimelyShelfStateHidden = 2;
 static IMP OriginalVideoOverlayLayout;
 static IMP OriginalShouldHidePreviousButton;
 static IMP OriginalShouldHideNextButton;
@@ -28,7 +30,6 @@ static IMP OriginalProductPillControlsDidAddSubview;
 static IMP OriginalTimelyShelfDidInsert;
 static IMP OriginalTimelyShelfDidUpdate;
 static IMP OriginalUpdateTimelyShelfOverlay;
-static IMP OriginalUpdateTimelyShelfState;
 static IMP OriginalUpdateTimelyShelfStateWith;
 static IMP OriginalTimelyShelfFrame;
 static IMP OriginalTimelyShelfHeightVC;
@@ -823,20 +824,52 @@ static void YTKACEUpdateTimelyShelfOverlay(id receiver, SEL selector,
     }
 }
 
-static void YTKACEUpdateTimelyShelfState(id receiver, SEL selector) {
-    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden")) {
-        return;
+static BOOL YTKACETimelyShelfOverlayIsProduct(id overlay) {
+    if (overlay == nil) return NO;
+    NSNumber *cached =
+        objc_getAssociatedObject(overlay, YTKACETimelyShelfProductAssociation);
+    if (cached == nil) {
+        cached = @(YTKACEProductOverlayMatches(overlay));
+        objc_setAssociatedObject(overlay, YTKACETimelyShelfProductAssociation,
+                                 cached, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
-    if (OriginalUpdateTimelyShelfState != NULL) {
-        ((void (*)(id, SEL))OriginalUpdateTimelyShelfState)(
-            receiver, selector);
+    return cached.boolValue;
+}
+
+static BOOL YTKACETimelyShelfShowsProduct(id manager) {
+    if (manager == nil) return NO;
+    id active =
+        YTKACEProductOverlayModelValue(manager, @"activeTimelyShelfOverlay");
+    if (active != nil) return YTKACETimelyShelfOverlayIsProduct(active);
+    if (YTKACEProductOverlayBoolValue(manager,
+                                      @"isIosMultipleTimelyShelvesEnabled")) {
+        return NO;
     }
+    NSDictionary *shelves =
+        YTKACEProductOverlayModelValue(manager, @"timelyShelfDictionary");
+    if (![shelves isKindOfClass:NSDictionary.class]) return NO;
+    for (id overlay in shelves.allValues) {
+        if (YTKACETimelyShelfOverlayIsProduct(overlay)) return YES;
+    }
+    return NO;
+}
+
+static id YTKACETimelyShelfManagerForOwner(id owner) {
+    SEL managerSelector = NSSelectorFromString(@"timelyShelfStateManager");
+    if (![owner respondsToSelector:managerSelector] &&
+        [owner respondsToSelector:@selector(delegate)]) {
+        owner = ((id (*)(id, SEL))objc_msgSend)(owner, @selector(delegate));
+    }
+    if (![owner respondsToSelector:managerSelector]) return nil;
+    return ((id (*)(id, SEL))objc_msgSend)(owner, managerSelector);
 }
 
 static void YTKACEUpdateTimelyShelfStateWith(id receiver, SEL selector,
                                               NSInteger state) {
-    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden")) {
-        return;
+    if (state != YTKACETimelyShelfStateHidden &&
+        YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden") &&
+        YTKACETimelyShelfShowsProduct(receiver)) {
+        state = YTKACETimelyShelfStateHidden;
     }
     if (OriginalUpdateTimelyShelfStateWith != NULL) {
         ((void (*)(id, SEL, NSInteger))OriginalUpdateTimelyShelfStateWith)(
@@ -846,9 +879,11 @@ static void YTKACEUpdateTimelyShelfStateWith(id receiver, SEL selector,
 
 static void YTKACETimelyShelfFrame(id receiver, SEL selector,
                                     id shelf, CGRect overlayBounds) {
-    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden")) {
-        if ([shelf isKindOfClass:UIView.class]) {
-            UIView *shelfView = (UIView *)shelf;
+    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden") &&
+        YTKACETimelyShelfOverlayIsProduct(shelf)) {
+        id view = YTKACEProductOverlayModelValue(shelf, @"overlayView");
+        if ([view isKindOfClass:UIView.class]) {
+            UIView *shelfView = (UIView *)view;
             YTKACEProductHiddenCounted(shelfView, YES);
             YTKACEProductSetHidden(shelfView, YES);
             shelfView.frame = CGRectZero;
@@ -863,7 +898,9 @@ static void YTKACETimelyShelfFrame(id receiver, SEL selector,
 }
 
 static CGFloat YTKACETimelyShelfHeightHook(id receiver, SEL selector) {
-    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden")) {
+    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden") &&
+        YTKACETimelyShelfShowsProduct(
+            YTKACETimelyShelfManagerForOwner(receiver))) {
         return 0.0;
     }
     static Class barClass;
@@ -1086,10 +1123,6 @@ void YTKACEInstallOverlayVisibilityHooks(void) {
                               @"updateTimelyShelfOverlay:",
                               (IMP)YTKACEUpdateTimelyShelfOverlay,
                               &OriginalUpdateTimelyShelfOverlay);
-    YTKACEInstallInstanceHook(@"YTTimelyShelfStateManager",
-                              @"updateTimelyShelfState",
-                              (IMP)YTKACEUpdateTimelyShelfState,
-                              &OriginalUpdateTimelyShelfState);
     YTKACEInstallInstanceHook(@"YTTimelyShelfStateManager",
                               @"updateTimelyShelfState:",
                               (IMP)YTKACEUpdateTimelyShelfStateWith,
