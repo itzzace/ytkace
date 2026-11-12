@@ -619,7 +619,8 @@ static void YTKACEApplyHoldRate(NSString *source) {
 }
 
 static void YTKACEHoldSwipeChanged(UILongPressGestureRecognizer *recognizer) {
-    if (!YTKACEHoldOverrideActive || YTKACEHoldCurrentRate <= 0.0) return;
+    if (!YTKACEHoldOverrideActive || YTKACEHoldCurrentRate <= 0.0 ||
+        !YTKACEFeatureEnabled(@"YTKACE.Preference.Player.HoldSpeedSwipe")) return;
     const double stored = [YTKACEPreferenceObject(YTKACEHoldSpeedRateKey) doubleValue];
     const CGFloat rise = YTKACEHoldStartY - [recognizer locationInView:recognizer.view].y;
     const double steps = rise >= 0 ? floor(rise / YTKACEHoldStepDistance) : ceil(rise / YTKACEHoldStepDistance);

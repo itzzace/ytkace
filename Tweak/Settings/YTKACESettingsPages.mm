@@ -1696,7 +1696,10 @@ static NSDictionary *YTKACEPlayerDefinition(void) {
                                @"YTKACE.Preference.Player.HoldSpeedEnabled"),
             YTKACEStackedSlider(@"Hold speed",
                                 @"YTKACE.Preference.Player.HoldSpeedRate",
-                                0.25, 5.0, 0.25, 2.0, @"speed")
+                                0.25, 5.0, 0.25, 2.0, @"speed"),
+            YTKACEToggleDetail(@"Swipe to Change Speed",
+                               @"While holding, swipe up or down to change the speed.",
+                               @"YTKACE.Preference.Player.HoldSpeedSwipe")
         ],
         @[
             YTKACEToggleDetail(@"Background Audio",
@@ -1966,6 +1969,9 @@ static NSDictionary *YTKACEShortsOptionsDefinition(void) {
             YTKACEPicker(@"Auto-Scroll Delay", @"YTKACE.Preference.Shorts.AutoScrollDelay",
                          @[@"Off", @"0.5s", @"1s", @"2s", @"3s"],
                          @[@0, @0.5, @1, @2, @3], 0, @"", @""),
+            YTKACEToggleDetail(@"Wait While Reading Comments",
+                               @"Don't auto-scroll while comments are open.",
+                               @"YTKACE.Preference.Shorts.AutoScrollWaitForComments"),
             YTKACEToggleDetail(@"Play Shorts Once",
                                @"Pause at the end instead of replaying.",
                                @"YTKACE.Preference.Shorts.LoopDisabled"),
