@@ -11,10 +11,17 @@ FOUNDATION_EXPORT NSString * const YTKACESponsorBlockKey;
 FOUNDATION_EXPORT NSString * const YTKACEDownloadKey;
 FOUNDATION_EXPORT NSString * const YTKACEBackgroundPlaybackKey;
 FOUNDATION_EXPORT NSString * const YTKACEPiPKey;
+FOUNDATION_EXPORT NSString * const YTKACEFullscreenOrientationKey;
 FOUNDATION_EXPORT NSString * const YTKACESpeedKey;
 FOUNDATION_EXPORT NSString * const YTKACELoopKey;
 FOUNDATION_EXPORT NSString * const YTKACESleepTimerKey;
 FOUNDATION_EXPORT NSString * const YTKACEPreferencesDidChangeNotification;
+
+typedef NS_ENUM(NSInteger, YTKACEFullscreenOrientation) {
+    YTKACEFullscreenOrientationNeither = 0,
+    YTKACEFullscreenOrientationLeft,
+    YTKACEFullscreenOrientationRight,
+};
 
 FOUNDATION_EXPORT void YTKACERegisterDefaults(void);
 FOUNDATION_EXPORT BOOL YTKACEMasterEnabled(void);
