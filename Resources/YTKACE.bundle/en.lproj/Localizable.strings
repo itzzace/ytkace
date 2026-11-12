@@ -151,6 +151,8 @@
 "Playback" = "Playback";
 "Playback Fix" = "Playback Fix";
 "Playback Fix (test)" = "Playback Fix (test)";
+"Bypass Premium Device Limit" = "Bypass Premium Device Limit";
+"Stop YouTube counting this device toward your plan's stream limit." = "Stop YouTube counting this device toward your plan's stream limit.";
 "Playback, feed and action buttons" = "Playback, feed and action buttons";
 "Player" = "Player";
 "Player buttons, captions and watch-page cleanup" = "Player buttons, captions and watch-page cleanup";

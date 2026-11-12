@@ -215,12 +215,11 @@ static NSURLRequest *YTKACETaskRequest(NSURLSessionTask *task) {
 }
 
 static void YTKACEURLSessionTaskResume(NSURLSessionTask *task, SEL selector) {
-    if (YTKACEFeatureEnabled(YTKACENoAdsKey)) {
-        NSURLRequest *request = YTKACETaskRequest(task);
-        if (YTKACEAdsURLIsBlocked(request.URL)) {
-            [task cancel];
-            return;
-        }
+    NSURLRequest *request = YTKACETaskRequest(task);
+    if (YTKACEShouldBlockPlaybackHeartbeat(request.URL) ||
+        (YTKACEFeatureEnabled(YTKACENoAdsKey) && YTKACEAdsURLIsBlocked(request.URL))) {
+        [task cancel];
+        return;
     }
     if (OriginalURLSessionTaskResume != NULL) {
         ((void (*)(id, SEL))OriginalURLSessionTaskResume)(task, selector);
