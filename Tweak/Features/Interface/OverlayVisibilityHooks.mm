@@ -15,6 +15,8 @@ static const void *YTKACEOverlayTransformAssociation = &YTKACEOverlayTransformAs
 static const void *YTKACEDoubleTapAssociation = &YTKACEDoubleTapAssociation;
 static const void *YTKACEPrevNextParentAssociation = &YTKACEPrevNextParentAssociation;
 static const void *YTKACEProductHiddenAssociation = &YTKACEProductHiddenAssociation;
+static const void *YTKACETimelyShelfProductAssociation = &YTKACETimelyShelfProductAssociation;
+static const NSInteger YTKACETimelyShelfStateHidden = 2;
 static IMP OriginalVideoOverlayLayout;
 static IMP OriginalShouldHidePreviousButton;
 static IMP OriginalShouldHideNextButton;
@@ -28,7 +30,6 @@ static IMP OriginalProductPillControlsDidAddSubview;
 static IMP OriginalTimelyShelfDidInsert;
 static IMP OriginalTimelyShelfDidUpdate;
 static IMP OriginalUpdateTimelyShelfOverlay;
-static IMP OriginalUpdateTimelyShelfState;
 static IMP OriginalUpdateTimelyShelfStateWith;
 static IMP OriginalTimelyShelfFrame;
 static IMP OriginalTimelyShelfHeightVC;
@@ -325,6 +326,23 @@ static BOOL YTKACETimelyShelfShoppingPayloadMatches(id object) {
     return NO;
 }
 
+static id YTKACETimelyShelfElementsRenderer(id overlay) {
+    id controller =
+        YTKACEProductOverlayModelValue(overlay, @"elementsOverlayViewController");
+    return YTKACEProductOverlayModelValue(controller, @"renderer");
+}
+
+static BOOL YTKACETimelyShelfElementsShopping(id overlay) {
+    NSData *data = YTKACEProductOverlayModelValue(
+        YTKACETimelyShelfElementsRenderer(overlay), @"data");
+    if (![data isKindOfClass:NSData.class] || data.length == 0) return NO;
+    NSData *marker =
+        [@"shopping_timely_shelf" dataUsingEncoding:NSASCIIStringEncoding];
+    return [data rangeOfData:marker
+                     options:0
+                       range:NSMakeRange(0, data.length)].location != NSNotFound;
+}
+
 BOOL YTKACEProductOverlayMatches(id overlay) {
     if (overlay == nil) return NO;
     NSString *identifier =
@@ -353,7 +371,8 @@ BOOL YTKACEProductOverlayMatches(id overlay) {
          YTKACEIsTimelyShelfOverlayIdentifier(rendererIdentifier));
     if (timely &&
         (YTKACETimelyShelfShoppingPayloadMatches(overlay) ||
-         (renderer != nil && YTKACETimelyShelfShoppingPayloadMatches(renderer)))) {
+         (renderer != nil && YTKACETimelyShelfShoppingPayloadMatches(renderer)) ||
+         YTKACETimelyShelfElementsShopping(overlay))) {
         return YES;
     }
     return NO;
@@ -749,6 +768,138 @@ BOOL YTKACEProductIdentifierMatches(NSString *identifier) {
     return YTKACEProductTokenInString(identifier);
 }
 
+static id YTKACEElementsValue(id object, NSString *selectorName) {
+    SEL selector = NSSelectorFromString(selectorName);
+    if (object == nil || ![object respondsToSelector:selector]) return nil;
+    return ((id (*)(id, SEL))objc_msgSend)(object, selector);
+}
+
+static BOOL YTKACENodeIsInVideoSubtitle(id node) {
+    id controller = YTKACEElementsValue(node, @"nodeController");
+    for (NSUInteger depth = 0; controller != nil && depth < 8; depth++) {
+        id component = YTKACEElementsValue(controller, @"owningComponent");
+        if (component != nil) {
+            NSString *uri = [YTKACEElementsValue(component, @"templateURI") description];
+            return [uri hasPrefix:@"video_subtitle.eml"];
+        }
+        controller = YTKACEElementsValue(controller, @"parent");
+    }
+    return NO;
+}
+
+static BOOL YTKACESubtitleSeparatorCharacter(unichar character, BOOL *bullet) {
+    if (character == 0x2022 || character == 0x00B7) {
+        *bullet = YES;
+        return YES;
+    }
+    return [NSCharacterSet.whitespaceCharacterSet characterIsMember:character];
+}
+
+static NSArray<NSValue *> *YTKACESubtitleSeparators(NSString *string) {
+    NSMutableArray<NSValue *> *separators = [NSMutableArray array];
+    NSUInteger length = string.length;
+    for (NSUInteger index = 0; index < length;) {
+        BOOL bullet = NO;
+        NSUInteger start = index;
+        while (index < length &&
+               YTKACESubtitleSeparatorCharacter([string characterAtIndex:index], &bullet)) {
+            index++;
+        }
+        if (index == start) {
+            index++;
+            continue;
+        }
+        if (index - start >= 2 || bullet) {
+            [separators addObject:[NSValue valueWithRange:NSMakeRange(start, index - start)]];
+        }
+    }
+    return separators;
+}
+
+static BOOL YTKACEIsProductCount(NSString *segment) {
+    NSString *text = [segment lowercaseString];
+    if (text.length == 0 ||
+        ![NSCharacterSet.decimalDigitCharacterSet characterIsMember:[text characterAtIndex:0]] ||
+        !YTKACEProductTokenHasBareProduct(text)) {
+        return NO;
+    }
+    NSArray<NSString *> *words = [text componentsSeparatedByCharactersInSet:
+        NSCharacterSet.whitespaceCharacterSet];
+    return words.count <= 2;
+}
+
+NSAttributedString *YTKACESubtitleWithoutProductCount(id node, NSAttributedString *text) {
+    if (![text isKindOfClass:NSAttributedString.class] || text.length == 0 ||
+        [text.string rangeOfString:@"product"
+                           options:NSCaseInsensitiveSearch].location == NSNotFound ||
+        !YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden")) {
+        return text;
+    }
+    NSString *string = text.string;
+    NSArray<NSValue *> *separators = YTKACESubtitleSeparators(string);
+    NSMutableArray<NSValue *> *pieces = [NSMutableArray array];
+    NSMutableIndexSet *counts = [NSMutableIndexSet indexSet];
+    NSMutableIndexSet *gaps = [NSMutableIndexSet indexSet];
+    NSUInteger start = 0;
+    for (NSUInteger slot = 0; slot <= separators.count; slot++) {
+        NSRange separator = slot < separators.count ? separators[slot].rangeValue
+                                                    : NSMakeRange(string.length, 0);
+        NSRange segment = NSMakeRange(start, separator.location - start);
+        if (segment.length != 0) {
+            if (YTKACEIsProductCount([string substringWithRange:segment])) {
+                [counts addIndex:pieces.count];
+            }
+            [pieces addObject:[NSValue valueWithRange:segment]];
+        }
+        if (separator.length != 0) {
+            [gaps addIndex:pieces.count];
+            [pieces addObject:[NSValue valueWithRange:separator]];
+        }
+        start = NSMaxRange(separator);
+    }
+    if (counts.count == 0 || !YTKACENodeIsInVideoSubtitle(node)) return text;
+
+    NSMutableAttributedString *filtered = [NSMutableAttributedString new];
+    BOOL leading = separators.count != 0 && separators.firstObject.rangeValue.location == 0;
+    BOOL kept = NO;
+    NSRange pending = NSMakeRange(NSNotFound, 0);
+    for (NSUInteger index = 0; index < pieces.count; index++) {
+        NSRange range = pieces[index].rangeValue;
+        if ([gaps containsIndex:index]) {
+            pending = range;
+            continue;
+        }
+        if ([counts containsIndex:index]) continue;
+        if (pending.location != NSNotFound && (kept || leading)) {
+            [filtered appendAttributedString:[text attributedSubstringFromRange:pending]];
+        }
+        [filtered appendAttributedString:[text attributedSubstringFromRange:range]];
+        kept = YES;
+        pending = NSMakeRange(NSNotFound, 0);
+    }
+    BOOL trailing = separators.count != 0 &&
+        NSMaxRange(separators.lastObject.rangeValue) == string.length;
+    if (trailing && pending.location != NSNotFound && (kept || leading)) {
+        [filtered appendAttributedString:[text attributedSubstringFromRange:pending]];
+    }
+    return filtered;
+}
+
+static IMP OriginalTextNodeSetNodeController;
+
+static void YTKACETextNodeSetNodeController(id receiver, SEL selector, id controller) {
+    if (OriginalTextNodeSetNodeController != NULL) {
+        ((void (*)(id, SEL, id))OriginalTextNodeSetNodeController)(receiver, selector,
+                                                                   controller);
+    }
+    NSAttributedString *text = YTKACEElementsValue(receiver, @"attributedText");
+    NSAttributedString *filtered = YTKACESubtitleWithoutProductCount(receiver, text);
+    if (filtered != text) {
+        ((void (*)(id, SEL, id))objc_msgSend)(
+            receiver, NSSelectorFromString(@"setAttributedText:"), filtered);
+    }
+}
+
 BOOL YTKACEViewIsInsidePlayerOverlay(UIView *view) {
     NSUInteger depth = 0;
     for (UIView *node = view; node != nil && depth < 12;
@@ -823,20 +974,54 @@ static void YTKACEUpdateTimelyShelfOverlay(id receiver, SEL selector,
     }
 }
 
-static void YTKACEUpdateTimelyShelfState(id receiver, SEL selector) {
-    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden")) {
-        return;
+static BOOL YTKACETimelyShelfOverlayIsProduct(id overlay) {
+    if (overlay == nil) return NO;
+    id renderer = YTKACETimelyShelfElementsRenderer(overlay);
+    if (renderer == nil) return YTKACEProductOverlayMatches(overlay);
+    NSNumber *cached =
+        objc_getAssociatedObject(renderer, YTKACETimelyShelfProductAssociation);
+    if (cached == nil) {
+        cached = @(YTKACEProductOverlayMatches(overlay));
+        objc_setAssociatedObject(renderer, YTKACETimelyShelfProductAssociation,
+                                 cached, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
-    if (OriginalUpdateTimelyShelfState != NULL) {
-        ((void (*)(id, SEL))OriginalUpdateTimelyShelfState)(
-            receiver, selector);
+    return cached.boolValue;
+}
+
+static BOOL YTKACETimelyShelfShowsProduct(id manager) {
+    if (manager == nil) return NO;
+    id active =
+        YTKACEProductOverlayModelValue(manager, @"activeTimelyShelfOverlay");
+    if (active != nil) return YTKACETimelyShelfOverlayIsProduct(active);
+    if (YTKACEProductOverlayBoolValue(manager,
+                                      @"isIosMultipleTimelyShelvesEnabled")) {
+        return NO;
     }
+    NSDictionary *shelves =
+        YTKACEProductOverlayModelValue(manager, @"timelyShelfDictionary");
+    if (![shelves isKindOfClass:NSDictionary.class]) return NO;
+    for (id overlay in shelves.allValues) {
+        if (YTKACETimelyShelfOverlayIsProduct(overlay)) return YES;
+    }
+    return NO;
+}
+
+static id YTKACETimelyShelfManagerForOwner(id owner) {
+    SEL managerSelector = NSSelectorFromString(@"timelyShelfStateManager");
+    if (![owner respondsToSelector:managerSelector] &&
+        [owner respondsToSelector:@selector(delegate)]) {
+        owner = ((id (*)(id, SEL))objc_msgSend)(owner, @selector(delegate));
+    }
+    if (![owner respondsToSelector:managerSelector]) return nil;
+    return ((id (*)(id, SEL))objc_msgSend)(owner, managerSelector);
 }
 
 static void YTKACEUpdateTimelyShelfStateWith(id receiver, SEL selector,
                                               NSInteger state) {
-    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden")) {
-        return;
+    if (state != YTKACETimelyShelfStateHidden &&
+        YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden") &&
+        YTKACETimelyShelfShowsProduct(receiver)) {
+        state = YTKACETimelyShelfStateHidden;
     }
     if (OriginalUpdateTimelyShelfStateWith != NULL) {
         ((void (*)(id, SEL, NSInteger))OriginalUpdateTimelyShelfStateWith)(
@@ -846,13 +1031,14 @@ static void YTKACEUpdateTimelyShelfStateWith(id receiver, SEL selector,
 
 static void YTKACETimelyShelfFrame(id receiver, SEL selector,
                                     id shelf, CGRect overlayBounds) {
-    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden")) {
-        if ([shelf isKindOfClass:UIView.class]) {
-            UIView *shelfView = (UIView *)shelf;
+    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden") &&
+        YTKACETimelyShelfOverlayIsProduct(shelf)) {
+        id view = YTKACEProductOverlayModelValue(shelf, @"overlayView");
+        if ([view isKindOfClass:UIView.class]) {
+            UIView *shelfView = (UIView *)view;
             YTKACEProductHiddenCounted(shelfView, YES);
             YTKACEProductSetHidden(shelfView, YES);
             shelfView.frame = CGRectZero;
-            [shelfView.superview setNeedsLayout];
         }
         return;
     }
@@ -863,7 +1049,9 @@ static void YTKACETimelyShelfFrame(id receiver, SEL selector,
 }
 
 static CGFloat YTKACETimelyShelfHeightHook(id receiver, SEL selector) {
-    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden")) {
+    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden") &&
+        YTKACETimelyShelfShowsProduct(
+            YTKACETimelyShelfManagerForOwner(receiver))) {
         return 0.0;
     }
     static Class barClass;
@@ -1022,6 +1210,9 @@ static CGSize YTKACEFullscreenActionsSizeThatFits(id receiver, SEL selector,
 }
 
 void YTKACEInstallOverlayVisibilityHooks(void) {
+    YTKACEInstallInstanceHook(@"ELMTextNode", @"__setNodeController:",
+                              (IMP)YTKACETextNodeSetNodeController,
+                              &OriginalTextNodeSetNodeController);
     YTKACEInstallInstanceHook(@"YTFullscreenActionsView", @"layoutSubviews",
                               (IMP)YTKACEFullscreenActionsLayout,
                               &OriginalFullscreenActionsLayout);
@@ -1086,10 +1277,6 @@ void YTKACEInstallOverlayVisibilityHooks(void) {
                               @"updateTimelyShelfOverlay:",
                               (IMP)YTKACEUpdateTimelyShelfOverlay,
                               &OriginalUpdateTimelyShelfOverlay);
-    YTKACEInstallInstanceHook(@"YTTimelyShelfStateManager",
-                              @"updateTimelyShelfState",
-                              (IMP)YTKACEUpdateTimelyShelfState,
-                              &OriginalUpdateTimelyShelfState);
     YTKACEInstallInstanceHook(@"YTTimelyShelfStateManager",
                               @"updateTimelyShelfState:",
                               (IMP)YTKACEUpdateTimelyShelfStateWith,

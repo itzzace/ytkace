@@ -6,6 +6,8 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <SystemConfiguration/SystemConfiguration.h>
+#import <AVFoundation/AVFoundation.h>
+#import <UIKit/UIKit.h>
 #import <dlfcn.h>
 #import <mach-o/dyld.h>
 #import <mach-o/loader.h>
@@ -61,6 +63,16 @@ static NSArray<NSString *> *YTKACEQualityLabels(void) {
              @"360p", @"240p", @"144p"];
 }
 
+// AirPlay video, AirPlay audio or a mirrored screen.
+static BOOL YTKACEExternalPlayback(void) {
+    if (UIScreen.screens.count > 1) return YES;
+    for (AVAudioSessionPortDescription *output in
+         AVAudioSession.sharedInstance.currentRoute.outputs) {
+        if ([output.portType isEqualToString:AVAudioSessionPortAirPlay]) return YES;
+    }
+    return NO;
+}
+
 static NSInteger YTKACEQualityIndex(void) {
     SCNetworkReachabilityRef reachability =
         SCNetworkReachabilityCreateWithName(NULL, "youtube.com");
@@ -74,10 +86,25 @@ static NSInteger YTKACEQualityIndex(void) {
         (flags & kSCNetworkReachabilityFlagsIsWWAN) != 0;
     BOOL onWiFi = !onCellular;
     NSString *key = onWiFi ? @"YTKACE.Preference.Playback.WiFiQuality" : @"YTKACE.Preference.Playback.CellularQuality";
-    id value = YTKACEPreferenceObject(key);
-    NSInteger index = [value respondsToSelector:@selector(integerValue)]
-        ? [value integerValue] : 0;
-    return index >= 0 && index < (NSInteger)YTKACEQualityLabels().count ? index : 0;
+    NSInteger count = (NSInteger)YTKACEQualityLabels().count;
+    // Low Power Mode, then AirPlay, then the network. -1 (Off) falls through.
+    NSMutableArray<NSString *> *keys = [NSMutableArray array];
+    if (NSProcessInfo.processInfo.lowPowerModeEnabled) {
+        [keys addObject:@"YTKACE.Preference.Playback.LowPowerQuality"];
+    }
+    if (YTKACEExternalPlayback()) {
+        [keys addObject:onWiFi ? @"YTKACE.Preference.Playback.AirPlayWiFiQuality"
+                               : @"YTKACE.Preference.Playback.AirPlayCellularQuality"];
+    }
+    [keys addObject:key];
+    for (NSString *candidate in keys) {
+        id value = YTKACEPreferenceObject(candidate);
+        NSInteger index = [value respondsToSelector:@selector(integerValue)]
+            ? [value integerValue] : (candidate == key ? 0 : -1);
+        if (index < 0 && candidate != key) continue;
+        return index >= 0 && index < count ? index : 0;
+    }
+    return 0;
 }
 
 static NSInteger YTKACEResolution(NSString *label) {
@@ -112,6 +139,8 @@ static NSString *YTKACETargetQualityLabel(NSArray *formats, NSString *target) {
     }
     return nearest;
 }
+
+static __weak id YTKACEQualityController;
 
 static void YTKACEApplyPreferredQuality(id controller) {
     NSInteger index = YTKACEQualityIndex();
@@ -173,11 +202,39 @@ static void YTKACEDidLoadContentPlaybackData(id receiver,
     if (YTKACEPlayerIsShorts(receiver)) {
         return;
     }
+    YTKACEQualityController = receiver;
     __weak id weakReceiver = receiver;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)NSEC_PER_SEC),
                    dispatch_get_main_queue(), ^{
         YTKACEApplyPreferredQuality(weakReceiver);
     });
+}
+
+// AirPlay or Low Power Mode changed during a video.
+static void YTKACEQualityScenarioChanged(void) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        static NSInteger lastIndex = -1;
+        NSInteger index = YTKACEQualityIndex();
+        if (index == lastIndex) return;
+        BOOL first = lastIndex == -1;
+        lastIndex = index;
+        id controller = YTKACEQualityController;
+        if (!first && index != 0 && controller != nil) YTKACEApplyPreferredQuality(controller);
+    });
+}
+
+static void YTKACEObserveQualityScenario(void) {
+    NSNotificationCenter *center = NSNotificationCenter.defaultCenter;
+    for (NSNotificationName name in @[AVAudioSessionRouteChangeNotification,
+                                      UIScreenDidConnectNotification,
+                                      UIScreenDidDisconnectNotification,
+                                      NSProcessInfoPowerStateDidChangeNotification]) {
+        [center addObserverForName:name object:nil queue:nil
+                        usingBlock:^(__unused NSNotification *note) {
+            YTKACEQualityScenarioChanged();
+        }];
+    }
+    YTKACEQualityScenarioChanged();
 }
 
 
@@ -491,6 +548,7 @@ void YTKACEInstallStreamingHooks(void) {
                               @"playbackController:didLoadContentPlaybackData:",
                               (IMP)YTKACEDidLoadContentPlaybackData,
                               &OriginalDidLoadContentPlaybackData);
+    YTKACEObserveQualityScenario();
     YTKACEInstallInstanceHook(@"ELMTouchCommandPropertiesHandler",
                               @"handleTap",
                               (IMP)YTKACEQualityHandleTap,

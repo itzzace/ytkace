@@ -744,6 +744,28 @@ void YTKACESaveVideoToPhotosFile(NSURL *url,
         [self showAlertWithTitle:@"YTKACE" message:YTKACELocalized(@"No active video was found.")];
         return;
     }
+    // With the HLS swap the player's response has no formats; fetch the
+    // video's own response like the menu's Download does.
+    NSString *videoID = [YTKACEStreamResolver videoIDFromPlayerResponse:self.playerResponse];
+    if (self.externalResponse == nil && videoID.length != 0 &&
+        [YTKACEStreamResolver optionsFromPlayerResponse:self.playerResponse].count == 0) {
+        YTKACEDownloadLog(@"resolver", @"player response has no formats, resolving video=%@", videoID);
+        YTKACEShowNotice(YTKACELocalized(@"Preparing download"));
+        __weak YTKACEDownloadCoordinator *weakSelf = self;
+        __weak UIView *weakAnchor = anchor;
+        YTKACEResolvePlayerResponse(videoID, ^(id response, NSError *error) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (response == nil) {
+                    YTKACEDownloadLog(@"resolver", @"resolve failed video=%@ error=%@",
+                        videoID, error.localizedDescription ?: @"unknown");
+                    YTKACEShowNotice(YTKACELocalized(@"Download unavailable"));
+                    return;
+                }
+                [weakSelf showDownloadMenuForResponse:response sourceView:weakAnchor];
+            });
+        });
+        return;
+    }
     self.downloadSourceView = anchor;
 
     __weak YTKACEDownloadCoordinator *weakSelf = self;
