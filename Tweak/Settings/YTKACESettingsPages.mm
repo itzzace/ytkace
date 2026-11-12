@@ -1395,14 +1395,19 @@ static NSArray *YTKACEQualityValues(void) {
     return @[@0, @1, @2, @3, @4, @5, @6, @7, @8, @9, @10, @11, @12];
 }
 
-// iPhone Duo options only show on a Duo.
-static NSArray *YTKACEWithoutDuoRows(NSArray *sections) {
-    if (DUOIsDuo()) return sections;
-    NSSet<NSString *> *duoKeys = [NSSet setWithArray:@[
-        @"YTKACE.Preference.Tabs.DuoNativeBar",
-        @"YTKACE.Preference.Player.DuoDeskSplit",
-        @"YTKACE.Preference.Player.DuoStatusBarHidden"
-    ]];
+static NSArray *YTKACEFilterDeviceRows(NSArray *sections) {
+    NSMutableSet<NSString *> *hiddenKeys = [NSMutableSet set];
+    if (!DUOIsDuo()) {
+        [hiddenKeys addObjectsFromArray:@[
+            @"YTKACE.Preference.Tabs.DuoNativeBar",
+            @"YTKACE.Preference.Player.DuoDeskSplit",
+            @"YTKACE.Preference.Player.DuoStatusBarHidden"
+        ]];
+    }
+    if (UIDevice.currentDevice.userInterfaceIdiom != UIUserInterfaceIdiomPhone) {
+        [hiddenKeys addObject:YTKACEFullscreenOrientationKey];
+    }
+    if (hiddenKeys.count == 0) return sections;
     NSMutableArray *filtered = [NSMutableArray arrayWithCapacity:sections.count];
     for (id section in sections) {
         if (![section isKindOfClass:NSArray.class]) {
@@ -1412,7 +1417,7 @@ static NSArray *YTKACEWithoutDuoRows(NSArray *sections) {
         NSMutableArray *rows = [NSMutableArray array];
         for (id row in (NSArray *)section) {
             if ([row isKindOfClass:NSDictionary.class] &&
-                [duoKeys containsObject:((NSDictionary *)row)[@"key"] ?: @""]) {
+                [hiddenKeys containsObject:((NSDictionary *)row)[@"key"] ?: @""]) {
                 continue;
             }
             [rows addObject:row];
@@ -1426,7 +1431,7 @@ static NSDictionary *YTKACEPageDefinition(NSString *pageID,
                                           NSString *title,
                                           NSArray *sections,
                                           NSArray *headers) {
-    sections = YTKACEWithoutDuoRows(sections);
+    sections = YTKACEFilterDeviceRows(sections);
     return @{
         @"id": pageID,
         @"title": title,
