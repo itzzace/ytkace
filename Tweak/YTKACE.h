@@ -120,6 +120,8 @@ BOOL YTKACEProductIdentifierMatches(NSString * _Nullable identifier);
 BOOL YTKACEViewIsInsidePlayerOverlay(UIView *view);
 void YTKACEHideProductSubtree(UIView *view);
 BOOL YTKACEProductOverlayMatches(id overlay);
+NSAttributedString * _Nullable YTKACESubtitleWithoutProductCount(id _Nullable node,
+    NSAttributedString * _Nullable text);
 void YTKACEInstallNativeShareHooks(void);
 void YTKACEProfileConsiderDisplayView(UIView *view, id node);
 void YTKACEScheduleFirstLaunch(void);

@@ -749,6 +749,138 @@ BOOL YTKACEProductIdentifierMatches(NSString *identifier) {
     return YTKACEProductTokenInString(identifier);
 }
 
+static id YTKACEElementsValue(id object, NSString *selectorName) {
+    SEL selector = NSSelectorFromString(selectorName);
+    if (object == nil || ![object respondsToSelector:selector]) return nil;
+    return ((id (*)(id, SEL))objc_msgSend)(object, selector);
+}
+
+static BOOL YTKACENodeIsInVideoSubtitle(id node) {
+    id controller = YTKACEElementsValue(node, @"nodeController");
+    for (NSUInteger depth = 0; controller != nil && depth < 8; depth++) {
+        id component = YTKACEElementsValue(controller, @"owningComponent");
+        if (component != nil) {
+            NSString *uri = [YTKACEElementsValue(component, @"templateURI") description];
+            return [uri hasPrefix:@"video_subtitle.eml"];
+        }
+        controller = YTKACEElementsValue(controller, @"parent");
+    }
+    return NO;
+}
+
+static BOOL YTKACESubtitleSeparatorCharacter(unichar character, BOOL *bullet) {
+    if (character == 0x2022 || character == 0x00B7) {
+        *bullet = YES;
+        return YES;
+    }
+    return [NSCharacterSet.whitespaceCharacterSet characterIsMember:character];
+}
+
+static NSArray<NSValue *> *YTKACESubtitleSeparators(NSString *string) {
+    NSMutableArray<NSValue *> *separators = [NSMutableArray array];
+    NSUInteger length = string.length;
+    for (NSUInteger index = 0; index < length;) {
+        BOOL bullet = NO;
+        NSUInteger start = index;
+        while (index < length &&
+               YTKACESubtitleSeparatorCharacter([string characterAtIndex:index], &bullet)) {
+            index++;
+        }
+        if (index == start) {
+            index++;
+            continue;
+        }
+        if (index - start >= 2 || bullet) {
+            [separators addObject:[NSValue valueWithRange:NSMakeRange(start, index - start)]];
+        }
+    }
+    return separators;
+}
+
+static BOOL YTKACEIsProductCount(NSString *segment) {
+    NSString *text = [segment lowercaseString];
+    if (text.length == 0 ||
+        ![NSCharacterSet.decimalDigitCharacterSet characterIsMember:[text characterAtIndex:0]] ||
+        !YTKACEProductTokenHasBareProduct(text)) {
+        return NO;
+    }
+    NSArray<NSString *> *words = [text componentsSeparatedByCharactersInSet:
+        NSCharacterSet.whitespaceCharacterSet];
+    return words.count <= 2;
+}
+
+NSAttributedString *YTKACESubtitleWithoutProductCount(id node, NSAttributedString *text) {
+    if (![text isKindOfClass:NSAttributedString.class] || text.length == 0 ||
+        [text.string rangeOfString:@"product"
+                           options:NSCaseInsensitiveSearch].location == NSNotFound ||
+        !YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden")) {
+        return text;
+    }
+    NSString *string = text.string;
+    NSArray<NSValue *> *separators = YTKACESubtitleSeparators(string);
+    NSMutableArray<NSValue *> *pieces = [NSMutableArray array];
+    NSMutableIndexSet *counts = [NSMutableIndexSet indexSet];
+    NSMutableIndexSet *gaps = [NSMutableIndexSet indexSet];
+    NSUInteger start = 0;
+    for (NSUInteger slot = 0; slot <= separators.count; slot++) {
+        NSRange separator = slot < separators.count ? separators[slot].rangeValue
+                                                    : NSMakeRange(string.length, 0);
+        NSRange segment = NSMakeRange(start, separator.location - start);
+        if (segment.length != 0) {
+            if (YTKACEIsProductCount([string substringWithRange:segment])) {
+                [counts addIndex:pieces.count];
+            }
+            [pieces addObject:[NSValue valueWithRange:segment]];
+        }
+        if (separator.length != 0) {
+            [gaps addIndex:pieces.count];
+            [pieces addObject:[NSValue valueWithRange:separator]];
+        }
+        start = NSMaxRange(separator);
+    }
+    if (counts.count == 0 || !YTKACENodeIsInVideoSubtitle(node)) return text;
+
+    NSMutableAttributedString *filtered = [NSMutableAttributedString new];
+    BOOL leading = separators.count != 0 && separators.firstObject.rangeValue.location == 0;
+    BOOL kept = NO;
+    NSRange pending = NSMakeRange(NSNotFound, 0);
+    for (NSUInteger index = 0; index < pieces.count; index++) {
+        NSRange range = pieces[index].rangeValue;
+        if ([gaps containsIndex:index]) {
+            pending = range;
+            continue;
+        }
+        if ([counts containsIndex:index]) continue;
+        if (pending.location != NSNotFound && (kept || leading)) {
+            [filtered appendAttributedString:[text attributedSubstringFromRange:pending]];
+        }
+        [filtered appendAttributedString:[text attributedSubstringFromRange:range]];
+        kept = YES;
+        pending = NSMakeRange(NSNotFound, 0);
+    }
+    BOOL trailing = separators.count != 0 &&
+        NSMaxRange(separators.lastObject.rangeValue) == string.length;
+    if (trailing && pending.location != NSNotFound && (kept || leading)) {
+        [filtered appendAttributedString:[text attributedSubstringFromRange:pending]];
+    }
+    return filtered;
+}
+
+static IMP OriginalTextNodeSetNodeController;
+
+static void YTKACETextNodeSetNodeController(id receiver, SEL selector, id controller) {
+    if (OriginalTextNodeSetNodeController != NULL) {
+        ((void (*)(id, SEL, id))OriginalTextNodeSetNodeController)(receiver, selector,
+                                                                   controller);
+    }
+    NSAttributedString *text = YTKACEElementsValue(receiver, @"attributedText");
+    NSAttributedString *filtered = YTKACESubtitleWithoutProductCount(receiver, text);
+    if (filtered != text) {
+        ((void (*)(id, SEL, id))objc_msgSend)(
+            receiver, NSSelectorFromString(@"setAttributedText:"), filtered);
+    }
+}
+
 BOOL YTKACEViewIsInsidePlayerOverlay(UIView *view) {
     NSUInteger depth = 0;
     for (UIView *node = view; node != nil && depth < 12;
@@ -1022,6 +1154,9 @@ static CGSize YTKACEFullscreenActionsSizeThatFits(id receiver, SEL selector,
 }
 
 void YTKACEInstallOverlayVisibilityHooks(void) {
+    YTKACEInstallInstanceHook(@"ELMTextNode", @"__setNodeController:",
+                              (IMP)YTKACETextNodeSetNodeController,
+                              &OriginalTextNodeSetNodeController);
     YTKACEInstallInstanceHook(@"YTFullscreenActionsView", @"layoutSubviews",
                               (IMP)YTKACEFullscreenActionsLayout,
                               &OriginalFullscreenActionsLayout);
