@@ -33,7 +33,7 @@ static IMP YTKACEHLSOrigScrubStart;
 static IMP YTKACEHLSOrigScrubEnd;
 
 static NSMutableDictionary<NSString *, NSDictionary *> *YTKACEHLSCache;
-static NSMutableSet<NSString *> *YTKACEHLSPending;
+static NSMutableDictionary<NSString *, NSMutableArray *> *YTKACEHLSPending;
 static NSMutableDictionary<NSString *, id> *YTKACEHLSOriginals;
 
 static NSMutableDictionary<NSString *, NSString *> *YTKACEHLSSources;
@@ -138,21 +138,19 @@ static void YTKACEHLSFetchVision(NSString *videoID) {
 
 static void YTKACEHLSFetchVisionThen(NSString *videoID, void (^done)(BOOL ready)) {
     @synchronized (YTKACEHLSCache) {
-        const BOOL cached = YTKACEHLSCache[videoID] != nil;
+        const BOOL cached = YTKACEHLSCachedURL(videoID) != nil;
         if (cached) {
             if (done != nil) done(YES);
             return;
         }
-        if ([YTKACEHLSPending containsObject:videoID]) {
-            if (done != nil) {
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
-                               dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-                    done(YTKACEHLSCachedURL(videoID) != nil);
-                });
-            }
+        NSMutableArray *waiters = YTKACEHLSPending[videoID];
+        if (waiters != nil) {
+            if (done != nil) [waiters addObject:[done copy]];
             return;
         }
-        [YTKACEHLSPending addObject:videoID];
+        waiters = [NSMutableArray array];
+        if (done != nil) [waiters addObject:[done copy]];
+        YTKACEHLSPending[videoID] = waiters;
     }
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
         NSString *visitor = YTKACEVisionVisitor();
@@ -171,8 +169,10 @@ static void YTKACEHLSFetchVisionThen(NSString *videoID, void (^done)(BOOL ready)
             NSDictionary *streaming = [root[@"streamingData"] isKindOfClass:NSDictionary.class]
                 ? root[@"streamingData"] : @{};
             NSString *hls = [streaming[@"hlsManifestUrl"] isKindOfClass:NSString.class] ? streaming[@"hlsManifestUrl"] : nil;
+            NSArray *waiters;
             @synchronized (YTKACEHLSCache) {
-                [YTKACEHLSPending removeObject:videoID];
+                waiters = [YTKACEHLSPending[videoID] copy];
+                [YTKACEHLSPending removeObjectForKey:videoID];
                 if (hls.length != 0) {
                     YTKACEHLSCache[videoID] = @{@"url": hls, @"time": @(NSDate.date.timeIntervalSince1970)};
                 }
@@ -181,7 +181,7 @@ static void YTKACEHLSFetchVisionThen(NSString *videoID, void (^done)(BOOL ready)
                 YTKACEDownloadLog(@"hls", @"vision video=%@ playability=%@ no manifest", videoID,
                                   playability[@"status"] ?: @"-");
             }
-            if (done != nil) done(hls.length != 0);
+            for (void (^waiter)(BOOL) in waiters) waiter(hls.length != 0);
         }] resume];
     });
 }
@@ -194,13 +194,17 @@ BOOL YTKACEHLSBeginFallback(NSString *videoID, void (^ready)(BOOL available)) {
         // the player has no video yet when the manifest fails on load
         if (videoID.length == 0) videoID = YTKACEHLSLastVideo;
         if (videoID.length == 0) return NO;
-        if (![YTKACEHLSSources[videoID] isEqualToString:@"ios"] || [YTKACEHLSFallbacks containsObject:videoID]) {
-            return NO;
-        }
+        if (![YTKACEHLSSources[videoID] isEqualToString:@"ios"]) return NO;
+        if ([YTKACEHLSFallbacks containsObject:videoID]) return YES;
         [YTKACEHLSFallbacks addObject:videoID];
     }
     YTKACEHLSFetchVisionThen(videoID, ^(BOOL available) {
-        dispatch_async(dispatch_get_main_queue(), ^{ ready(available); });
+        dispatch_async(dispatch_get_main_queue(), ^{
+            ready(available);
+            @synchronized (YTKACEHLSSources) {
+                [YTKACEHLSFallbacks removeObject:videoID];
+            }
+        });
     });
     return YES;
 }
@@ -394,7 +398,7 @@ void YTKACEInstallHLSPlaybackHooks(void) {
     if (!YTKACEHLSEnabled()) return;
     YTKACEDownloadLog(@"hls", @"enabled");
     YTKACEHLSCache = [NSMutableDictionary dictionary];
-    YTKACEHLSPending = [NSMutableSet set];
+    YTKACEHLSPending = [NSMutableDictionary dictionary];
     YTKACEHLSOriginals = [NSMutableDictionary dictionary];
     YTKACEHLSSources = [NSMutableDictionary dictionary];
     YTKACEHLSFallbacks = [NSMutableSet set];
