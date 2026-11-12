@@ -1703,6 +1703,7 @@ static NSArray<NSString *> *YTKACEProductsMarkers(void) {
     dispatch_once(&t, ^{ v = @[
         @"merchandise_shelf", @"merchandise_item",
         @"product_shelf", @"products_shelf", @"shopping_shelf",
+        @"shopping_description_shelf",
         @"promoted_sparkles_text_product_watch",
         @"product_in_video", @"products_in_video"
     ]; });
