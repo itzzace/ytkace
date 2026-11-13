@@ -1879,6 +1879,26 @@ static UIView *YTKACESelectedPivotItem(UIView *bar) {
     return nil;
 }
 
+static id YTKACEPivotControllerForView(UIView *view);
+
+// The highlighted item, but only if it is the tab YouTube is really showing.
+// With a tab hidden (like Shorts opened from a shelf), YouTube can be on that
+// tab while the bar still highlights Home. A tap on Home must then switch
+// tabs instead of being treated as a tap on the current tab (#231).
+static UIView *YTKACECurrentPivotItem(UIView *bar) {
+    UIView *selected = YTKACESelectedPivotItem(bar);
+    if (selected == nil) return nil;
+    id controller = YTKACEPivotControllerForView(bar);
+    SEL current = NSSelectorFromString(@"selectedPivotIdentifier");
+    if (![controller respondsToSelector:current]) return selected;
+    id identifier = ((id (*)(id, SEL))objc_msgSend)(controller, current);
+    NSString *itemIdentifier = YTKACEPivotItemIdentifier(selected);
+    if (![identifier isKindOfClass:NSString.class] || [identifier length] == 0 || itemIdentifier == nil) return selected;
+    if ([identifier caseInsensitiveCompare:itemIdentifier] == NSOrderedSame) return selected;
+    YTKACEDebugLog(@"tabbar", @"showing %@ but bar highlights %@", identifier, itemIdentifier);
+    return nil;
+}
+
 static NSArray<UIView *> *YTKACESortedPivotItems(UIView *bar) {
     NSMutableArray<UIView *> *items = [NSMutableArray array];
     YTKACECollectPivotItems(bar, items);
@@ -2711,7 +2731,7 @@ static UIView *YTKACEInlinePlayerBar(UIView *bar);
     if (scrub != nil && scrub != YTKACEInlinePlayerBar(bar)) return NO;
     UIView *touched = [self pivotItemNearX:point.x inView:bar bar:bar];
     if (touched != nil && YTKACEPivotItemIdentifier(touched) == nil) return NO;
-    gesture.cancelsTouchesInView = touched == nil || touched != YTKACESelectedPivotItem(bar);
+    gesture.cancelsTouchesInView = touched == nil || touched != YTKACECurrentPivotItem(bar);
     return YES;
 }
 
@@ -3021,13 +3041,13 @@ static UIView *YTKACEInlinePlayerBar(UIView *bar);
     self.heldButton = nil;
     if (!self.lifted) {
         BOOL bump = !dragging && gesture.state == UIGestureRecognizerStateEnded &&
-            self.touchedItem != nil && self.touchedItem == YTKACESelectedPivotItem(bar);
+            self.touchedItem != nil && self.touchedItem == YTKACECurrentPivotItem(bar);
         if (!bump) {
             objc_setAssociatedObject(lens, YTKACEPivotBarFadedAssociation, nil,
                                      OBJC_ASSOCIATION_RETAIN_NONATOMIC);
             UIView *tapped = self.touchedItem;
             if (gesture.state == UIGestureRecognizerStateEnded && tapped != nil &&
-                YTKACEPivotItemIdentifier(tapped) != nil && tapped != YTKACESelectedPivotItem(bar)) {
+                YTKACEPivotItemIdentifier(tapped) != nil && tapped != YTKACECurrentPivotItem(bar)) {
                 YTKACESelectPivotItem(tapped);
             }
             return;
@@ -3101,13 +3121,13 @@ static UIView *YTKACEInlinePlayerBar(UIView *bar);
         });
     });
     if (gesture.state == UIGestureRecognizerStateEnded && nearest != nil &&
-        nearest != YTKACESelectedPivotItem(bar)) {
+        nearest != YTKACECurrentPivotItem(bar)) {
         if (heldButton != nil) {
             __weak UIView *weakNearest = nearest;
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)),
                            dispatch_get_main_queue(), ^{
                 UIView *pick = weakNearest;
-                if (pick != nil && pick != YTKACESelectedPivotItem(bar)) YTKACESelectPivotItem(pick);
+                if (pick != nil && pick != YTKACECurrentPivotItem(bar)) YTKACESelectPivotItem(pick);
             });
         } else {
             YTKACESelectPivotItem(nearest);
