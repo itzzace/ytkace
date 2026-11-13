@@ -106,6 +106,8 @@ static void DUOReserveColumn(UIViewController *host, UIWindow *window, NSInteger
 @property (nonatomic, strong) UITabBarController *controller;
 @property (nonatomic, copy) void (^selectHandler)(NSUInteger index);
 @property (nonatomic, copy) NSArray<NSString *> *titles;
+@property (nonatomic) BOOL rebuildScheduled;
+@property (nonatomic) NSUInteger rebuilds;
 @end
 
 @implementation DUOMirroredTabBar
@@ -186,7 +188,41 @@ static void DUOReserveColumn(UIViewController *host, UIWindow *window, NSInteger
     DUOReserveColumn(controller, window, edge);
     if (!CGRectEqualToRect(controller.view.frame, root.view.bounds)) controller.view.frame = root.view.bounds;
     if (root.view.subviews.lastObject != controller.view) [root.view bringSubviewToFront:controller.view];
+    if (edge != 0) [self rebuildIfNoVerticalBar];
     return YES;
+}
+
+// Launched straight into a pose with the vertical bar (unfolded landscape),
+// the system leaves the tabs in a zero-height bottom bar until the screen size
+// changes (a rotation fixes it). Flipping the size class once does the same.
+- (void)rebuildIfNoVerticalBar {
+    if (self.rebuildScheduled) return;
+    self.rebuildScheduled = YES;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        self.rebuildScheduled = NO;
+        UITabBarController *controller = self.controller;
+        UIViewController *root = controller.parentViewController;
+        if (root == nil || controller.view.hidden || DUOVerticalBarEdge(controller.view.window) == 0) return;
+        for (UIView *outer in controller.view.subviews) {
+            for (UIView *view in outer.subviews) {
+                if ([NSStringFromClass(view.class) containsString:@"FloatingBarContainer"]) return;
+            }
+        }
+        if (self.rebuilds >= 3) return;
+        self.rebuilds++;
+        // A size class change makes the system choose the tab bar's place
+        // again, the way a rotation does.
+        if (@available(iOS 17.0, *)) {
+            controller.traitOverrides.horizontalSizeClass = UIUserInterfaceSizeClassCompact;
+            [controller.view layoutIfNeeded];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [controller.traitOverrides removeTrait:UITraitHorizontalSizeClass.class];
+                [controller.view setNeedsLayout];
+                [self rebuildIfNoVerticalBar];
+            });
+        }
+        NSLog(@"[DuoKit] rebuilt tab bar for the vertical bar (%lu)", (unsigned long)self.rebuilds);
+    });
 }
 
 - (void)hide {
