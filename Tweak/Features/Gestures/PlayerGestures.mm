@@ -27,6 +27,7 @@ static const void *YTKACEIndicatorTrackAssociation = &YTKACEIndicatorTrackAssoci
 static const void *YTKACEIndicatorFillAssociation = &YTKACEIndicatorFillAssociation;
 static const void *YTKACEIndicatorLabelAssociation = &YTKACEIndicatorLabelAssociation;
 static const void *YTKACEVolumeViewAssociation = &YTKACEVolumeViewAssociation;
+extern BOOL YTKACEHoldSpeedActive(void);
 static const int YTKACESwipeSeekSource = 0;
 static const void *YTKACESeekIndicatorAssociation = &YTKACESeekIndicatorAssociation;
 static const void *YTKACESeekIconAssociation = &YTKACESeekIconAssociation;
@@ -275,6 +276,7 @@ shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)other 
         if (CGRectIsEmpty(activeBounds) || CGRectIsNull(activeBounds)) return NO;
         if (fabs(velocity.y) <= fabs(velocity.x)) {
             if (!YTKACEFeatureEnabled(@"YTKACE.Preference.Gestures.SwipeToSeek")) return NO;
+            if (YTKACEHoldSpeedActive()) return NO;
             if ([self videoIsZoomedInView:view]) return NO;
             // keep the progress bar's own scrubbing and the miniplayer's drag
             if (location.y > CGRectGetHeight(activeBounds) * 0.75) return NO;

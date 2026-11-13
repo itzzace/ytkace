@@ -173,8 +173,11 @@ static BOOL YTKACESpeedChipIsMenu(void) {
 @property(nonatomic, strong) UIImageView *minus;
 @property(nonatomic, strong) UIImageView *plus;
 @property(nonatomic, assign) BOOL inTray;
+// In the left column speed stands up: + 1x - from the top.
+@property(nonatomic, assign) BOOL vertical;
 - (void)refreshContent;
 - (CGFloat)chipWidth;
+- (CGSize)chipSizeVertical:(BOOL)vertical;
 @end
 
 @implementation YTKACELayoutChip
@@ -231,6 +234,19 @@ static BOOL YTKACESpeedChipIsMenu(void) {
     return YTKACEChipHeight;
 }
 
+- (CGSize)chipSizeVertical:(BOOL)vertical {
+    if (vertical && self.minus != nil && !self.minus.hidden) {
+        return CGSizeMake(MAX(YTKACEChipHeight, [self labelWidth] + 14.0), 8.0 + 18.0 * 3.0 + 4.0 * 2.0 + 8.0);
+    }
+    return CGSizeMake([self chipWidth], YTKACEChipHeight);
+}
+
+- (void)setVertical:(BOOL)vertical {
+    if (_vertical == vertical) return;
+    _vertical = vertical;
+    [self setNeedsLayout];
+}
+
 - (void)setInTray:(BOOL)inTray {
     if (_inTray == inTray) return;
     _inTray = inTray;
@@ -265,7 +281,12 @@ static BOOL YTKACESpeedChipIsMenu(void) {
     [super layoutSubviews];
     const CGRect bounds = self.bounds;
     self.icon.frame = CGRectInset(bounds, 7.0, 7.0);
-    if (self.minus != nil && !self.minus.hidden) {
+    if (self.minus != nil && !self.minus.hidden && self.vertical) {
+        const CGFloat size = 18.0, x = (CGRectGetWidth(bounds) - size) * 0.5;
+        self.plus.frame = CGRectMake(x, 8.0, size, size);
+        self.minus.frame = CGRectMake(x, CGRectGetHeight(bounds) - 8.0 - size, size, size);
+        self.label.frame = CGRectMake(0.0, 8.0 + size, CGRectGetWidth(bounds), CGRectGetHeight(bounds) - 2.0 * (8.0 + size));
+    } else if (self.minus != nil && !self.minus.hidden) {
         const CGFloat size = 18.0, y = (CGRectGetHeight(bounds) - size) * 0.5;
         self.minus.frame = CGRectMake(8.0, y, size, size);
         self.plus.frame = CGRectMake(CGRectGetWidth(bounds) - 8.0 - size, y, size, size);
@@ -424,7 +445,7 @@ static BOOL YTKACESpeedChipIsMenu(void) {
 
 - (NSArray<NSString *> *)allZones {
     return @[YTKACEOverlayZoneTop, YTKACEOverlayZoneBelow, YTKACECenterZone, YTKACEOverlayZoneBottom,
-             YTKACEOverlayZoneFullscreen, YTKACEHiddenZone];
+             YTKACEOverlayZoneLeft, YTKACEOverlayZoneFullscreen, YTKACEHiddenZone];
 }
 
 - (void)loadModel {
@@ -624,12 +645,15 @@ static BOOL YTKACESpeedChipIsMenu(void) {
 // Room for every chip in the bar plus a drag gap, so it doesn't change
 // height while dragging.
 - (CGFloat)fullscreenHeightForWidth:(CGFloat)width {
-    NSArray *ids = self.zones[YTKACEOverlayZoneFullscreen] ?: @[];
+    // The bar shrinks to fit a dragged button too, so its height is just its
+    // own lines (with the dragged button when it's headed here).
+    NSMutableArray *ids = [NSMutableArray arrayWithArray:self.zones[YTKACEOverlayZoneFullscreen] ?: @[]];
+    if (self.dragging != nil && [self.targetZone isEqualToString:YTKACEOverlayZoneFullscreen]) {
+        [ids insertObject:self.dragging.identifier atIndex:MIN(self.targetIndex, ids.count)];
+    }
     CGFloat bottom = 10.0 + YTKACEChipHeight;
-    // The gap can open anywhere, which changes where lines wrap.
-    for (NSUInteger gap = 0; gap <= ids.count; gap++) {
-        NSArray *frames = [self flowFrames:ids gap:gap gapWidth:YTKACEChipHeight * 2.0 width:width top:10.0];
-        for (NSValue *frame in frames) bottom = MAX(bottom, CGRectGetMaxY(frame.CGRectValue));
+    for (NSValue *frame in [self barFrames:ids gap:NSNotFound gapWidth:0.0 width:width top:10.0]) {
+        bottom = MAX(bottom, CGRectGetMaxY(frame.CGRectValue));
     }
     return bottom + 10.0;
 }
@@ -721,7 +745,111 @@ static BOOL YTKACESpeedChipIsMenu(void) {
     return frames;
 }
 
+// The fullscreen bar: YouTube's pill buttons sit close together like the
+// real bar, More videos a little apart. On a narrow screen the whole bar
+// shrinks (to 70% at most) to stay on one line, like the real one.
+- (CGFloat)barScaleForWidth:(CGFloat)width {
+    NSMutableArray<NSString *> *ids = [NSMutableArray arrayWithArray:self.zones[YTKACEOverlayZoneFullscreen] ?: @[]];
+    if (self.dragging != nil && [self.targetZone isEqualToString:YTKACEOverlayZoneFullscreen] &&
+        ![ids containsObject:self.dragging.identifier]) [ids addObject:self.dragging.identifier];
+    // The 10pt side margins don't shrink.
+    CGFloat natural = 0.0;
+    for (NSUInteger index = 0; index < ids.count; index++) {
+        natural += [self widthOf:ids[index]];
+        if (index + 1 < ids.count) natural += [ids[index + 1] isEqualToString:@"yt.more"] ? 13.0 : 3.0;
+    }
+    return MIN(1.0, MAX(0.7, floor((width - 21.0) / MAX(1.0, natural) * 100.0) / 100.0));
+}
+
+- (NSArray<NSValue *> *)barFrames:(NSArray<NSString *> *)ids gap:(NSUInteger)gap
+                         gapWidth:(CGFloat)gapWidth width:(CGFloat)width top:(CGFloat)top {
+    const CGFloat scale = [self barScaleForWidth:width];
+    const CGFloat height = YTKACEChipHeight * scale;
+    NSMutableArray *frames = [NSMutableArray array];
+    const CGFloat start = 10.0;
+    const CGFloat limit = width - 10.0;
+    CGFloat x = start, y = top + (YTKACEChipHeight - height) * 0.5;
+    for (NSUInteger index = 0; index <= ids.count; index++) {
+        NSString *next = index < ids.count ? ids[index] : nil;
+        const CGFloat spacing = ([next isEqualToString:@"yt.more"] ? 8.0 : 3.0) * scale;
+        if (index == gap) {
+            if (x + gapWidth * scale > limit) { x = start; y += height + 8.0; }
+            x += gapWidth * scale + spacing;
+        }
+        if (next == nil) break;
+        const CGFloat chipWidth = [self widthOf:next] * scale;
+        if (x > start && [next isEqualToString:@"yt.more"]) x += 5.0 * scale;
+        if (x + chipWidth > limit + 0.5) { x = start; y += height + 8.0; }
+        [frames addObject:[NSValue valueWithCGRect:CGRectMake(x, y, chipWidth, height)]];
+        const CGFloat after = index + 1 < ids.count && [ids[index + 1] isEqualToString:@"yt.more"] ? 8.0 : 3.0;
+        x += chipWidth + after * scale;
+    }
+    return frames;
+}
+
+// The left column's room in player coordinates: between the top row and the
+// time, centered on the play button.
+- (CGFloat)leftTop { return 44.0; }
+- (CGFloat)leftBottom { return CGRectGetHeight(self.playerView.bounds) - 54.0; }
+
+// Top to bottom down the player's left edge, wrapping to a new column.
+- (NSArray<NSValue *> *)leftFrames:(NSArray<NSString *> *)ids gap:(NSUInteger)gap {
+    NSMutableArray<NSValue *> *sizes = [NSMutableArray array];
+    for (NSString *identifier in ids) {
+        [sizes addObject:[NSValue valueWithCGSize:[self.chips[identifier] chipSizeVertical:YES]]];
+    }
+    const CGSize gapSize = self.dragging != nil ? [self.dragging chipSizeVertical:YES] : CGSizeZero;
+    const CGFloat limit = [self leftBottom] - [self leftTop];
+    // Like the real column: each goes in the first column with room.
+    NSMutableArray<NSValue *> *items = [sizes mutableCopy];
+    if (gap != NSNotFound) [items insertObject:[NSValue valueWithCGSize:gapSize] atIndex:MIN(gap, items.count)];
+    NSMutableArray<NSNumber *> *used = [NSMutableArray array];
+    NSMutableArray<NSNumber *> *widths = [NSMutableArray array];
+    NSMutableArray<NSNumber *> *column = [NSMutableArray array];
+    NSMutableArray<NSNumber *> *tops = [NSMutableArray array];
+    for (NSValue *value in items) {
+        const CGSize size = value.CGSizeValue;
+        NSUInteger target = NSNotFound;
+        for (NSUInteger index = 0; index < used.count; index++) {
+            if (used[index].doubleValue + 8.0 + size.height <= limit) { target = index; break; }
+        }
+        if (target == NSNotFound) {
+            [used addObject:@(-8.0)];
+            [widths addObject:@0];
+            target = used.count - 1;
+        }
+        [tops addObject:@(used[target].doubleValue + 8.0)];
+        [column addObject:@(target)];
+        used[target] = @(used[target].doubleValue + 8.0 + size.height);
+        widths[target] = @(MAX(widths[target].doubleValue, size.width));
+    }
+    NSMutableArray<NSNumber *> *columnX = [NSMutableArray array];
+    CGFloat x = 10.0, height = 0.0;
+    for (NSUInteger index = 0; index < widths.count; index++) {
+        [columnX addObject:@(x)];
+        x += widths[index].doubleValue + 8.0;
+        height = MAX(height, used[index].doubleValue);
+    }
+    NSMutableArray<NSValue *> *local = [NSMutableArray array];
+    for (NSUInteger index = 0; index < items.count; index++) {
+        if (gap != NSNotFound && index == MIN(gap, sizes.count)) continue;
+        const CGSize size = items[index].CGSizeValue;
+        const NSUInteger c = column[index].unsignedIntegerValue;
+        const CGFloat cx = columnX[c].doubleValue + round((widths[c].doubleValue - size.width) * 0.5);
+        [local addObject:[NSValue valueWithCGRect:CGRectMake(cx, tops[index].doubleValue, size.width, size.height)]];
+    }
+    const CGFloat centerY = round(CGRectGetHeight(self.playerView.bounds) * 0.5) + 6.0;
+    const CGFloat top = MIN(MAX([self leftTop], round(centerY - height * 0.5)), MAX([self leftTop], [self leftBottom] - height));
+    NSMutableArray<NSValue *> *frames = [NSMutableArray array];
+    for (NSValue *value in local) {
+        CGRect frame = CGRectOffset(value.CGRectValue, 0.0, top);
+        [frames addObject:[NSValue valueWithCGRect:[self.playerView convertRect:frame toView:self]]];
+    }
+    return frames;
+}
+
 - (NSArray<NSValue *> *)framesForZone:(NSString *)zone gap:(NSUInteger)gap gapWidth:(CGFloat)gapWidth {
+    if ([zone isEqualToString:YTKACEOverlayZoneLeft]) return [self leftFrames:self.zones[zone] ?: @[] gap:gap];
     NSArray *ids = self.zones[zone] ?: @[];
     UIView *panel = nil;
     CGFloat top = 0.0;
@@ -735,13 +863,16 @@ static BOOL YTKACESpeedChipIsMenu(void) {
         return [self rowFrames:ids zone:zone gap:gap gapWidth:gapWidth];
     }
     NSMutableArray *frames = [NSMutableArray array];
-    for (NSValue *frame in [self flowFrames:ids gap:gap gapWidth:gapWidth width:CGRectGetWidth(panel.bounds) top:top]) {
+    NSArray<NSValue *> *local = panel == self.fullscreenView
+        ? [self barFrames:ids gap:gap gapWidth:gapWidth width:CGRectGetWidth(panel.bounds) top:top]
+        : [self flowFrames:ids gap:gap gapWidth:gapWidth width:CGRectGetWidth(panel.bounds) top:top];
+    for (NSValue *frame in local) {
         [frames addObject:[NSValue valueWithCGRect:[panel convertRect:frame.CGRectValue toView:self]]];
     }
     // More videos sits at the right end, like the real bar.
     if (panel == self.fullscreenView && [ids.lastObject isEqualToString:@"yt.more"] && frames.count == ids.count) {
         CGRect more = [frames.lastObject CGRectValue];
-        more.origin.x = CGRectGetMaxX([panel convertRect:panel.bounds toView:self]) - 14.0 - CGRectGetWidth(more);
+        more.origin.x = CGRectGetMaxX([panel convertRect:panel.bounds toView:self]) - 10.0 - CGRectGetWidth(more);
         frames[frames.count - 1] = [NSValue valueWithCGRect:more];
     }
     return frames;
@@ -754,10 +885,15 @@ static BOOL YTKACESpeedChipIsMenu(void) {
             NSArray<NSValue *> *frames = [self framesForZone:zone gap:target ? self.targetIndex : NSNotFound
                                                     gapWidth:target ? [self.dragging chipWidth] : 0.0];
             NSArray<NSString *> *ids = self.zones[zone];
+            const CGFloat scale = [zone isEqualToString:YTKACEOverlayZoneFullscreen]
+                ? [self barScaleForWidth:CGRectGetWidth(self.fullscreenView.bounds)] : 1.0;
             for (NSUInteger index = 0; index < ids.count && index < frames.count; index++) {
                 YTKACELayoutChip *chip = self.chips[ids[index]];
                 chip.inTray = [zone isEqualToString:YTKACEHiddenZone];
-                chip.bounds = (CGRect){CGPointZero, frames[index].CGRectValue.size};
+                chip.vertical = [zone isEqualToString:YTKACEOverlayZoneLeft];
+                const CGSize size = frames[index].CGRectValue.size;
+                chip.bounds = (CGRect){CGPointZero, CGSizeMake(size.width / scale, size.height / scale)};
+                if (chip != self.dragging) chip.transform = CGAffineTransformMakeScale(scale, scale);
                 chip.center = CGPointMake(CGRectGetMidX(frames[index].CGRectValue),
                                           CGRectGetMidY(frames[index].CGRectValue));
             }
@@ -782,7 +918,8 @@ static BOOL YTKACESpeedChipIsMenu(void) {
         if ([identifier isEqualToString:@"yt.more"]) continue;
         YTKACELayoutChip *chip = self.chips[identifier];
         if (chip == self.dragging) continue;
-        const CGSize size = chip.bounds.size;
+        const CGFloat scale = chip.transform.a > 0.0 ? chip.transform.a : 1.0;
+        const CGSize size = CGSizeMake(chip.bounds.size.width * scale, chip.bounds.size.height * scale);
         CGRect frame = [self convertRect:CGRectMake(chip.center.x - size.width * 0.5, chip.center.y - size.height * 0.5,
                                                     size.width, size.height)
                                   toView:self.fullscreenView];
@@ -792,7 +929,8 @@ static BOOL YTKACESpeedChipIsMenu(void) {
     }
     self.pillBackground.hidden = CGRectIsNull(pill);
     if (CGRectIsNull(pill)) return;
-    self.pillBackground.frame = CGRectInset(pill, -5.0, -4.0);
+    const CGFloat barScale = [self barScaleForWidth:CGRectGetWidth(self.fullscreenView.bounds)];
+    self.pillBackground.frame = CGRectInset(pill, -5.0 * barScale, -4.0 * barScale);
     self.pillBackground.layer.cornerRadius = CGRectGetHeight(self.pillBackground.frame) * 0.5;
 }
 
@@ -817,6 +955,7 @@ static BOOL YTKACESpeedChipIsMenu(void) {
         return YTKACEHiddenZone;
     }
     CGPoint local = [self convertPoint:point toView:self.playerView];
+    if (local.x < 58.0 && local.y > [self leftTop] - 4.0 && local.y < [self leftBottom] + 4.0) return YTKACEOverlayZoneLeft;
     NSString *best = YTKACEOverlayZoneBelow;
     CGFloat distance = CGFLOAT_MAX;
     for (NSString *zone in [self playerZones]) {
@@ -833,6 +972,14 @@ static BOOL YTKACESpeedChipIsMenu(void) {
     NSArray<NSValue *> *frames = [self framesForZone:zone gap:NSNotFound gapWidth:0.0];
     const BOOL flow = [zone isEqualToString:YTKACEHiddenZone] || [zone isEqualToString:YTKACEOverlayZoneFullscreen];
     NSUInteger index = 0;
+    if ([zone isEqualToString:YTKACEOverlayZoneLeft]) {
+        for (NSValue *value in frames) {
+            const CGRect frame = value.CGRectValue;
+            if (point.x > CGRectGetMaxX(frame) + 4.0 ||
+                (point.x >= CGRectGetMinX(frame) - 4.0 && point.y > CGRectGetMidY(frame))) index++;
+        }
+        return index;
+    }
     for (NSValue *value in frames) {
         CGRect frame = value.CGRectValue;
         const BOOL sameLine = point.y < CGRectGetMaxY(frame) + 4.0;
@@ -858,6 +1005,13 @@ static BOOL YTKACESpeedChipIsMenu(void) {
     const CGFloat centerY = [self rowCenterY:self.targetZone];
     CGRect frame = CGRectMake(6.0, centerY - YTKACEChipHeight * 0.5 - 4.0,
                               CGRectGetWidth(self.playerView.bounds) - 12.0, YTKACEChipHeight + 8.0);
+    if ([self.targetZone isEqualToString:YTKACEOverlayZoneLeft]) {
+        CGFloat right = 10.0 + YTKACEChipHeight;
+        for (NSValue *value in [self framesForZone:YTKACEOverlayZoneLeft gap:self.targetIndex gapWidth:0.0]) {
+            right = MAX(right, CGRectGetMaxX([self convertRect:value.CGRectValue toView:self.playerView]));
+        }
+        frame = CGRectMake(6.0, [self leftTop] - 4.0, right - 2.0, [self leftBottom] - [self leftTop] + 8.0);
+    }
     if ([self.targetZone isEqualToString:YTKACEOverlayZoneBottom]) {
         frame.size.width = [self rowRight:self.targetZone] - 2.0;
     }
@@ -910,6 +1064,15 @@ static BOOL YTKACESpeedChipIsMenu(void) {
                 self.targetZone = zone;
                 self.targetIndex = index;
                 chip.inTray = [zone isEqualToString:YTKACEHiddenZone];
+                const BOOL vertical = [zone isEqualToString:YTKACEOverlayZoneLeft];
+                if (chip.vertical != vertical) {
+                    chip.vertical = vertical;
+                    const CGSize size = [chip chipSizeVertical:vertical];
+                    [UIView animateWithDuration:0.2 animations:^{
+                        chip.bounds = (CGRect){CGPointZero, size};
+                        [chip layoutIfNeeded];
+                    }];
+                }
                 [self.selectionFeedback selectionChanged];
                 [self.selectionFeedback prepare];
                 [UIView animateWithDuration:0.2 animations:^{ [self updateZoneHighlight]; }];

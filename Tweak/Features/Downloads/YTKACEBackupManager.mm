@@ -129,6 +129,15 @@ static void YTKACEApplyBackupSettings(NSDictionary *settings) {
         return;
     }
     NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    // A restore replaces YTKACE's settings: ones the backup doesn't have go
+    // back to their defaults instead of staying as they were.
+    NSUInteger cleared = 0;
+    for (NSString *key in [defaults dictionaryRepresentation].allKeys) {
+        if ([key hasPrefix:@"YTKACE.Preference."] && settings[key] == nil) {
+            [defaults removeObjectForKey:key];
+            cleared++;
+        }
+    }
     __block NSUInteger applied = 0;
     [settings enumerateKeysAndObjectsUsingBlock:^(NSString *key, id value, BOOL *stop) {
         (void)stop;
@@ -138,8 +147,8 @@ static void YTKACEApplyBackupSettings(NSDictionary *settings) {
         }
     }];
     [defaults synchronize];
-    YTKACEDownloadLog(@"backup", @"restored %lu of %lu settings",
-                      (unsigned long)applied, (unsigned long)settings.count);
+    YTKACEDownloadLog(@"backup", @"restored %lu of %lu settings, cleared %lu",
+                      (unsigned long)applied, (unsigned long)settings.count, (unsigned long)cleared);
 }
 
 static uint32_t YTKACECRCAndSize(NSURL *URL, uint64_t *size, NSError **error) {

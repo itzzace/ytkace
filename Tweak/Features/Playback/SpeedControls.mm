@@ -591,6 +591,11 @@ static IMP OriginalSpeedmasterLongPress;
 static double YTKACEHoldPreviousRate;
 static BOOL YTKACEHoldOverrideActive;
 static BOOL YTKACEHoldPillActive;
+
+// Holding for speed: other player gestures (swipe to seek) stay off.
+BOOL YTKACEHoldSpeedActive(void) {
+    return YTKACEHoldPillActive;
+}
 // Swiping up or down while holding changes the hold speed by 0.25x steps.
 static double YTKACEHoldCurrentRate;
 static CGFloat YTKACEHoldStartY;
