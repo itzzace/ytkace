@@ -1774,15 +1774,23 @@ static NSDictionary *YTKACEPlayerDefinition(void) {
             YTKACEToggleDetail(@"Remove Autoplay Prompt",
                                @"Hides the Suggested video and Suggested music prompts at the end of a video.",
                                @"YTKACE.Preference.Overlay.AutoplayPromptHidden"),
-            YTKACEToggleDetail(@"Remove More Videos",
-                               @"Disable the edge swipe up in fullscreen that "
-                                "reveals the More videos row.",
-                               @"YTKACE.Preference.Overlay.MoreVideosHidden"),
-            YTKACEToggleDetail(@"Remove Fullscreen Actions",
-                               @"Hide the row of buttons under the progress bar in fullscreen.",
-                               @"YTKACE.Preference.Overlay.FullscreenActionsHidden"),
             YTKACEToggle(@"Remove Quick Actions", @"YTKACE.Preference.Overlay.QuickActionsHidden", @"", @""),
             YTKACEToggle(@"Remove Continue Watching", @"YTKACE.Preference.Overlay.ContinueWatchingDisabled", @"", @"")
+        ],
+        @[
+            YTKACEToggleDetail(@"Remove Fullscreen Actions",
+                               @"Hide the whole row under the progress bar in fullscreen.",
+                               @"YTKACE.Preference.Overlay.FullscreenActionsHidden"),
+            YTKACEToggleDetail(@"Remove More Videos",
+                               @"Hide the More videos button and the swipe up that opens it.",
+                               @"YTKACE.Preference.Overlay.MoreVideosHidden"),
+            YTKACEToggle(@"Remove Like", @"YTKACE.Preference.Fullscreen.LikeHidden", @"", @""),
+            YTKACEToggle(@"Remove Dislike", @"YTKACE.Preference.Fullscreen.DislikeHidden", @"", @""),
+            YTKACEToggle(@"Remove Comments", @"YTKACE.Preference.Fullscreen.CommentsHidden", @"", @""),
+            YTKACEToggle(@"Remove Save", @"YTKACE.Preference.Fullscreen.SaveHidden", @"", @""),
+            YTKACEToggle(@"Remove Share", @"YTKACE.Preference.Fullscreen.ShareHidden", @"", @""),
+            YTKACEToggle(@"Remove Ask Button", @"YTKACE.Preference.Fullscreen.AskHidden", @"", @""),
+            YTKACEToggle(@"Remove ⋯ Button", @"YTKACE.Preference.Fullscreen.OverflowHidden", @"", @"")
         ],
         @[
             YTKACESegmentedStacked(@"Progress bar style", @"YTKACE.Preference.Progress.Style",
@@ -1795,7 +1803,8 @@ static NSDictionary *YTKACEPlayerDefinition(void) {
         ]
     ], @[YTKACELocalized(@"BUTTONS"), YTKACELocalized(@"SPEED"), YTKACELocalized(@"PLAYBACK"),
          YTKACELocalized(@"CONTROLS"), YTKACELocalized(@"PREVIOUS & NEXT"),
-         YTKACELocalized(@"HIDE FROM PLAYER"), YTKACELocalized(@"PROGRESS BAR")]);
+         YTKACELocalized(@"HIDE FROM PLAYER"), YTKACELocalized(@"FULLSCREEN BAR"),
+         YTKACELocalized(@"PROGRESS BAR")]);
 }
 
 static NSDictionary *YTKACEQualityDefinition(void) {

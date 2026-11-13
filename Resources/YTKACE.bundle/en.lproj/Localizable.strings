@@ -1154,3 +1154,7 @@ Licensed under CC BY-NC-SA 4.0.";
 "Dislike" = "Dislike";
 "Submit Votes" = "Submit Votes";
 "Send your likes and dislikes to Return YouTube Dislike with an anonymous ID." = "Send your likes and dislikes to Return YouTube Dislike with an anonymous ID.";
+
+"FULLSCREEN BAR" = "FULLSCREEN BAR";
+"Hide the whole row under the progress bar in fullscreen." = "Hide the whole row under the progress bar in fullscreen.";
+"Hide the More videos button and the swipe up that opens it." = "Hide the More videos button and the swipe up that opens it.";

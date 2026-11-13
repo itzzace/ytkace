@@ -1181,11 +1181,159 @@ static void YTKACEApplyHidden(UIView *view, NSString *key) {
     if (view.hidden != hidden) view.hidden = hidden;
 }
 
+// Fullscreen bar (under the progress bar): a pill of buttons on the left and
+// More videos on the right, both built from Elements nodes. Hidden buttons are
+// collapsed to zero width so the pill shrinks to the ones left.
+typedef struct { NSInteger unit; CGFloat value; } YTKACEDimension;
+static const void *YTKACEFullscreenCollapsedKey = &YTKACEFullscreenCollapsedKey;
+static const void *YTKACEFullscreenWidthsKey = &YTKACEFullscreenWidthsKey;
+
+static id YTKACEFullscreenGet(id object, NSString *name) {
+    SEL selector = NSSelectorFromString(name);
+    return object != nil && [object respondsToSelector:selector]
+        ? ((id (*)(id, SEL))objc_msgSend)(object, selector) : nil;
+}
+
+static void YTKACEFullscreenRelayout(id node) {
+    for (id current = node; current != nil; current = YTKACEFullscreenGet(current, @"supernode")) {
+        SEL invalidate = NSSelectorFromString(@"invalidateCalculatedLayout");
+        if ([current respondsToSelector:invalidate]) ((void (*)(id, SEL))objc_msgSend)(current, invalidate);
+        SEL needs = NSSelectorFromString(@"setNeedsLayout");
+        if ([current respondsToSelector:needs]) ((void (*)(id, SEL))objc_msgSend)(current, needs);
+    }
+}
+
+static BOOL YTKACEFullscreenCollapse(id node, BOOL collapse) {
+    if (node == nil) return NO;
+    if ([objc_getAssociatedObject(node, YTKACEFullscreenCollapsedKey) boolValue] == collapse) return NO;
+    id style = YTKACEFullscreenGet(node, @"style");
+    NSArray<NSString *> *names = @[@"width", @"minWidth", @"maxWidth"];
+    if (collapse) {
+        NSMutableArray *saved = [NSMutableArray array];
+        for (NSString *name in names) {
+            SEL getter = NSSelectorFromString(name);
+            YTKACEDimension value = {0, 0};
+            if ([style respondsToSelector:getter]) {
+                value = ((YTKACEDimension (*)(id, SEL))objc_msgSend)(style, getter);
+            }
+            [saved addObject:[NSValue valueWithBytes:&value objCType:@encode(YTKACEDimension)]];
+        }
+        objc_setAssociatedObject(node, YTKACEFullscreenWidthsKey, saved, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    NSArray<NSValue *> *saved = objc_getAssociatedObject(node, YTKACEFullscreenWidthsKey);
+    for (NSUInteger index = 0; index < names.count; index++) {
+        NSString *name = names[index];
+        SEL setter = NSSelectorFromString([NSString stringWithFormat:@"set%@%@:",
+            [name substringToIndex:1].uppercaseString, [name substringFromIndex:1]]);
+        if (![style respondsToSelector:setter]) continue;
+        YTKACEDimension value = {1, 0};
+        if (!collapse) {
+            value = (YTKACEDimension){0, 0};
+            if (index < saved.count) [saved[index] getValue:&value];
+        }
+        ((void (*)(id, SEL, YTKACEDimension))objc_msgSend)(style, setter, value);
+    }
+    SEL hidden = NSSelectorFromString(@"setHidden:");
+    if ([node respondsToSelector:hidden]) ((void (*)(id, SEL, BOOL))objc_msgSend)(node, hidden, collapse);
+    objc_setAssociatedObject(node, YTKACEFullscreenCollapsedKey, @(collapse), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    return YES;
+}
+
+static NSString *YTKACEFullscreenID(id node) {
+    id value = YTKACEFullscreenGet(node, @"accessibilityIdentifier");
+    return [value isKindOfClass:NSString.class] ? value : @"";
+}
+
+static NSArray *YTKACEFullscreenChildren(id node) {
+    NSArray *children = YTKACEFullscreenGet(node, @"yogaChildren");
+    return [children isKindOfClass:NSArray.class] ? children : @[];
+}
+
+// The bar's nodes:
+//   root > wrapper > [pill, spacer, More videos]
+//   pill > [glass, wrapper > like, wrapper > dislike, ..., wrapper > ⋯]
+// Wrappers have no size of their own; each button is the one node inside.
+static id YTKACEFullscreenButton(id slot) {
+    if (YTKACEFullscreenID(slot).length != 0) return slot;
+    for (id child in YTKACEFullscreenChildren(slot)) {
+        if (YTKACEFullscreenID(child).length != 0) return child;
+    }
+    return nil;
+}
+
+static BOOL YTKACEFullscreenIsPill(id group) {
+    for (id slot in YTKACEFullscreenChildren(group)) {
+        if ([YTKACEFullscreenID(YTKACEFullscreenButton(slot)) isEqualToString:@"id.video.like.button"]) return YES;
+    }
+    return NO;
+}
+
+static void YTKACEApplyFullscreenBar(UIView *bar) {
+    id root = nil;
+    for (UIView *subview in bar.subviews) {
+        root = YTKACEFullscreenGet(subview, @"keepalive_node");
+        if (root != nil) break;
+    }
+    // Step through single-child wrappers to the row of groups.
+    NSArray *groups = YTKACEFullscreenChildren(root);
+    for (NSUInteger step = 0; groups.count == 1 && step < 3; step++) {
+        groups = YTKACEFullscreenChildren(groups.firstObject);
+    }
+    id pill = nil;
+    for (id group in groups) {
+        if (YTKACEFullscreenIsPill(group)) pill = group;
+    }
+    if (pill == nil) return;
+    BOOL changed = NO;
+    BOOL hideMore = YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.MoreVideosHidden");
+    for (id group in groups) {
+        if (group == pill || YTKACEFullscreenChildren(group).count == 0) continue;
+        changed |= YTKACEFullscreenCollapse(group, hideMore);
+    }
+    NSMutableArray *buttons = [NSMutableArray array];
+    NSMutableArray *slots = [NSMutableArray array];
+    for (id slot in YTKACEFullscreenChildren(pill)) {
+        id button = YTKACEFullscreenButton(slot);
+        if (button == nil) continue;
+        [buttons addObject:button];
+        [slots addObject:slot];
+    }
+    // Comments, Ask and ⋯ share an id; Comments follows dislike and ⋯ is last.
+    NSUInteger last = NSNotFound;
+    for (NSUInteger index = 0; index < buttons.count; index++) {
+        if ([YTKACEFullscreenID(buttons[index]) isEqualToString:@"id.elements.button"]) last = index;
+    }
+    BOOL afterDislike = NO;
+    NSUInteger shown = 0;
+    for (NSUInteger index = 0; index < buttons.count; index++) {
+        id button = buttons[index];
+        NSString *identifier = YTKACEFullscreenID(button);
+        NSString *key = nil;
+        if ([identifier isEqualToString:@"id.video.like.button"]) key = @"Like";
+        else if ([identifier isEqualToString:@"id.video.dislike.button"]) key = @"Dislike";
+        else if ([identifier isEqualToString:@"id.video.add_to.button"]) key = @"Save";
+        else if ([identifier isEqualToString:@"id.video.share.button"]) key = @"Share";
+        else if ([identifier isEqualToString:@"id.elements.button"]) {
+            key = afterDislike ? @"Comments" : (index == last ? @"Overflow" : @"Ask");
+        }
+        afterDislike = [identifier isEqualToString:@"id.video.dislike.button"];
+        BOOL hide = key != nil && YTKACEFeatureEnabled(
+            [NSString stringWithFormat:@"YTKACE.Preference.Fullscreen.%@Hidden", key]);
+        changed |= YTKACEFullscreenCollapse(button, hide);
+        if (slots[index] != button) changed |= YTKACEFullscreenCollapse(slots[index], hide);
+        if (!hide) shown++;
+    }
+    // Nothing left in the pill: hide its glass too.
+    changed |= YTKACEFullscreenCollapse(pill, buttons.count != 0 && shown == 0);
+    if (changed) YTKACEFullscreenRelayout(root);
+}
+
 static void YTKACEFullscreenActionsLayout(UIView *receiver, SEL selector) {
     if (OriginalFullscreenActionsLayout != NULL) {
         ((void (*)(id, SEL))OriginalFullscreenActionsLayout)(receiver, selector);
     }
     YTKACEApplyHidden(receiver, YTKACEFullscreenActionsKey);
+    if (!receiver.hidden) YTKACEApplyFullscreenBar(receiver);
 }
 
 static void YTKACEFullscreenEngagementLayout(UIView *receiver, SEL selector) {
