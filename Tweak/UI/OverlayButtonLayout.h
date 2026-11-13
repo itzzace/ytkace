@@ -7,6 +7,8 @@ NS_ASSUME_NONNULL_BEGIN
 FOUNDATION_EXPORT NSString *const YTKACEOverlayZoneTop;
 FOUNDATION_EXPORT NSString *const YTKACEOverlayZoneBelow;
 FOUNDATION_EXPORT NSString *const YTKACEOverlayZoneBottom;
+// In fullscreen, after the pill of buttons under the progress bar.
+FOUNDATION_EXPORT NSString *const YTKACEOverlayZoneFullscreen;
 
 // Each entry: id (the overlay configurator id), title, symbol, optional text.
 FOUNDATION_EXPORT NSArray<NSDictionary *> *YTKACEOverlayButtonCatalog(void);
@@ -19,5 +21,12 @@ FOUNDATION_EXPORT void YTKACESetOverlayLayout(NSDictionary<NSString *, NSArray<N
 
 FOUNDATION_EXPORT BOOL YTKACEOverlayButtonEnabled(NSString *identifier);
 FOUNDATION_EXPORT void YTKACESetOverlayButtonEnabled(NSString *identifier, BOOL enabled);
+
+// YouTube's own top-right buttons (autoplay, cast, captions, gear), left to
+// right. Nil order means YouTube's.
+FOUNDATION_EXPORT NSArray<NSString *> *YTKACENativeTopDefaultOrder(void);
+FOUNDATION_EXPORT NSArray<NSString *> *YTKACENativeTopOrder(void);
+FOUNDATION_EXPORT void YTKACESetNativeTopOrder(NSArray<NSString *> *_Nullable order);
+FOUNDATION_EXPORT NSDictionary<NSString *, NSString *> *YTKACENativeTopIdentifiers(void);
 
 NS_ASSUME_NONNULL_END

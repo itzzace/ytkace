@@ -1268,6 +1268,107 @@ static BOOL YTKACEFullscreenIsPill(id group) {
     return NO;
 }
 
+static const void *YTKACEFullscreenNameKey = &YTKACEFullscreenNameKey;
+
+// Puts the pill's buttons in the saved order. Buttons the order doesn't name
+// keep their place after the named ones. Done after the current layout pass.
+static void YTKACEOrderFullscreenPill(id pill, NSArray *slots, NSArray<NSString *> *keys) {
+    NSArray *order = YTKACEPreferenceObject(@"YTKACE.Preference.Fullscreen.Order");
+    if (![order isKindOfClass:NSArray.class] || order.count == 0 || slots.count != keys.count) return;
+    NSMutableArray *sorted = [NSMutableArray array];
+    for (id name in order) {
+        if (![name isKindOfClass:NSString.class]) continue;
+        NSUInteger index = [keys indexOfObject:name];
+        if (index != NSNotFound && ![sorted containsObject:slots[index]]) [sorted addObject:slots[index]];
+    }
+    for (id slot in slots) {
+        if (![sorted containsObject:slot]) [sorted addObject:slot];
+    }
+    if ([sorted isEqualToArray:slots]) return;
+    __weak id weakPill = pill;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        id strongPill = weakPill;
+        NSArray *children = YTKACEFullscreenChildren(strongPill);
+        if (children.count == 0) return;
+        // Slots move among their own positions; anything else (the glass) stays put.
+        NSMutableArray *next = [children mutableCopy];
+        NSUInteger cursor = 0;
+        for (NSUInteger index = 0; index < next.count && cursor < sorted.count; index++) {
+            if ([sorted containsObject:next[index]]) next[index] = sorted[cursor++];
+        }
+        if (cursor != sorted.count || [next isEqualToArray:children]) return;
+        SEL set = NSSelectorFromString(@"setYogaChildren:");
+        if (![strongPill respondsToSelector:set]) return;
+        @try {
+            ((void (*)(id, SEL, id))objc_msgSend)(strongPill, set, next);
+        } @catch (NSException *exception) {
+            YTKACEDebugLog(@"fsbar", @"reorder threw %@", exception.reason);
+            return;
+        }
+        YTKACEFullscreenRelayout(strongPill);
+    });
+}
+
+// Room at the end of the pill for YTKACE's buttons in the fullscreen zone;
+// OverlayButtonHost lays them over it. Width 0 means none.
+CGFloat YTKACEFullscreenExtraWidth = 0.0;
+static const void *YTKACEFullscreenSpacerKey = &YTKACEFullscreenSpacerKey;
+static const void *YTKACEFullscreenSpacerWidthKey = &YTKACEFullscreenSpacerWidthKey;
+
+static CGSize YTKACEFullscreenSpacerSize(id receiver, __unused SEL selector, __unused CGSize constrained) {
+    return CGSizeMake([objc_getAssociatedObject(receiver, YTKACEFullscreenSpacerWidthKey) doubleValue], 48.0);
+}
+
+static Class YTKACEFullscreenSpacerClass(void) {
+    static Class cls;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        Class base = NSClassFromString(@"ASDisplayNode");
+        if (base == Nil) return;
+        cls = objc_allocateClassPair(base, "YTKACEFullscreenSpacerNode", 0);
+        if (cls == Nil) { cls = NSClassFromString(@"YTKACEFullscreenSpacerNode"); return; }
+        class_addMethod(cls, NSSelectorFromString(@"calculateSizeThatFits:"),
+                        (IMP)YTKACEFullscreenSpacerSize, "{CGSize=dd}32@0:8{CGSize=dd}16");
+        objc_registerClassPair(cls);
+    });
+    return cls;
+}
+
+// Returns YES when the pill changed.
+static BOOL YTKACEUpdateFullscreenSpacer(id pill) {
+    const CGFloat width = YTKACEFullscreenExtraWidth;
+    id spacer = objc_getAssociatedObject(pill, YTKACEFullscreenSpacerKey);
+    NSArray *children = YTKACEFullscreenChildren(pill);
+    const BOOL present = spacer != nil && [children indexOfObjectIdenticalTo:spacer] != NSNotFound;
+    if (width <= 0.0) {
+        if (!present) return NO;
+        ((void (*)(id, SEL, id))objc_msgSend)(pill, NSSelectorFromString(@"removeYogaChild:"), spacer);
+        return YES;
+    }
+    if (spacer == nil) {
+        Class cls = YTKACEFullscreenSpacerClass();
+        if (cls == Nil) return NO;
+        spacer = [cls new];
+        ((void (*)(id, SEL))objc_msgSend)(spacer, NSSelectorFromString(@"enableYoga"));
+        objc_setAssociatedObject(pill, YTKACEFullscreenSpacerKey, spacer, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    const BOOL resized = [objc_getAssociatedObject(spacer, YTKACEFullscreenSpacerWidthKey) doubleValue] != width;
+    if (resized) {
+        objc_setAssociatedObject(spacer, YTKACEFullscreenSpacerWidthKey, @(width), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        SEL invalidate = NSSelectorFromString(@"invalidateCalculatedLayout");
+        if ([spacer respondsToSelector:invalidate]) ((void (*)(id, SEL))objc_msgSend)(spacer, invalidate);
+    }
+    if (present && [children lastObject] == spacer) return resized;
+    @try {
+        if (present) ((void (*)(id, SEL, id))objc_msgSend)(pill, NSSelectorFromString(@"removeYogaChild:"), spacer);
+        ((void (*)(id, SEL, id))objc_msgSend)(pill, NSSelectorFromString(@"addYogaChild:"), spacer);
+    } @catch (NSException *exception) {
+        YTKACEDebugLog(@"fsbar", @"spacer threw %@", exception.reason);
+        return NO;
+    }
+    return YES;
+}
+
 static void YTKACEApplyFullscreenBar(UIView *bar) {
     id root = nil;
     for (UIView *subview in bar.subviews) {
@@ -1298,24 +1399,31 @@ static void YTKACEApplyFullscreenBar(UIView *bar) {
         [buttons addObject:button];
         [slots addObject:slot];
     }
-    // Comments, Ask and ⋯ share an id; Comments follows dislike and ⋯ is last.
+    // Comments, Ask and ⋯ share an id; in YouTube's order Comments follows
+    // dislike and ⋯ is last. Each button is named the first time it's seen,
+    // before any reordering, and keeps that name.
     NSUInteger last = NSNotFound;
     for (NSUInteger index = 0; index < buttons.count; index++) {
         if ([YTKACEFullscreenID(buttons[index]) isEqualToString:@"id.elements.button"]) last = index;
     }
     BOOL afterDislike = NO;
     NSUInteger shown = 0;
+    NSMutableArray<NSString *> *keys = [NSMutableArray array];
     for (NSUInteger index = 0; index < buttons.count; index++) {
         id button = buttons[index];
         NSString *identifier = YTKACEFullscreenID(button);
-        NSString *key = nil;
-        if ([identifier isEqualToString:@"id.video.like.button"]) key = @"Like";
-        else if ([identifier isEqualToString:@"id.video.dislike.button"]) key = @"Dislike";
-        else if ([identifier isEqualToString:@"id.video.add_to.button"]) key = @"Save";
-        else if ([identifier isEqualToString:@"id.video.share.button"]) key = @"Share";
-        else if ([identifier isEqualToString:@"id.elements.button"]) {
-            key = afterDislike ? @"Comments" : (index == last ? @"Overflow" : @"Ask");
+        NSString *key = objc_getAssociatedObject(button, YTKACEFullscreenNameKey);
+        if (key == nil) {
+            if ([identifier isEqualToString:@"id.video.like.button"]) key = @"Like";
+            else if ([identifier isEqualToString:@"id.video.dislike.button"]) key = @"Dislike";
+            else if ([identifier isEqualToString:@"id.video.add_to.button"]) key = @"Save";
+            else if ([identifier isEqualToString:@"id.video.share.button"]) key = @"Share";
+            else if ([identifier isEqualToString:@"id.elements.button"]) {
+                key = afterDislike ? @"Comments" : (index == last ? @"Overflow" : @"Ask");
+            }
+            if (key != nil) objc_setAssociatedObject(button, YTKACEFullscreenNameKey, key, OBJC_ASSOCIATION_COPY_NONATOMIC);
         }
+        [keys addObject:key ?: @""];
         afterDislike = [identifier isEqualToString:@"id.video.dislike.button"];
         BOOL hide = key != nil && YTKACEFeatureEnabled(
             [NSString stringWithFormat:@"YTKACE.Preference.Fullscreen.%@Hidden", key]);
@@ -1323,9 +1431,11 @@ static void YTKACEApplyFullscreenBar(UIView *bar) {
         if (slots[index] != button) changed |= YTKACEFullscreenCollapse(slots[index], hide);
         if (!hide) shown++;
     }
-    // Nothing left in the pill: hide its glass too.
-    changed |= YTKACEFullscreenCollapse(pill, buttons.count != 0 && shown == 0);
+    // Nothing left in the pill: hide its glass too, unless YTKACE's buttons use it.
+    changed |= YTKACEFullscreenCollapse(pill, buttons.count != 0 && shown == 0 && YTKACEFullscreenExtraWidth <= 0.0);
+    changed |= YTKACEUpdateFullscreenSpacer(pill);
     if (changed) YTKACEFullscreenRelayout(root);
+    YTKACEOrderFullscreenPill(pill, slots, keys);
 }
 
 static void YTKACEFullscreenActionsLayout(UIView *receiver, SEL selector) {
