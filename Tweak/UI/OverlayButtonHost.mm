@@ -287,7 +287,8 @@ static UIStackView *YTKACEStackForOverlay(UIView *overlay) {
     stack.axis = UILayoutConstraintAxisHorizontal;
     stack.alignment = UIStackViewAlignmentCenter;
     stack.distribution = UIStackViewDistributionFill;
-    stack.spacing = 7.0;
+    // 40pt buttons 48pt apart, like YouTube's top row above it.
+    stack.spacing = 8.0;
     stack.layoutMargins = UIEdgeInsetsZero;
     stack.layoutMarginsRelativeArrangement = YES;
     stack.backgroundColor = UIColor.clearColor;
@@ -364,6 +365,7 @@ static NSDictionary<NSString *, UIStackView *> *YTKACEZoneStacks(UIView *overlay
         YTKACEInstallInstanceHook(@"YTFullscreenActionsView", @"hitTest:withEvent:",
                                   (IMP)YTKACEFullscreenActionsHitTest, &OriginalFullscreenActionsHitTest);
     }
+    ((UIStackView *)stacks[YTKACEOverlayZoneTop]).spacing = 8.0;
     [YTKACEFullscreenStacks addObject:stacks[YTKACEOverlayZoneFullscreen]];
     if (YTKACEBottomStacks == nil) {
         YTKACEBottomStacks = [NSHashTable weakObjectsHashTable];
@@ -801,6 +803,30 @@ static void YTKACEOrderNativeTopRow(UIView *overlay, NSArray<UIView *> *skip, UI
     objc_setAssociatedObject(top, YTKACETopSlotsAssociation, @[slots, widths, lastViews], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
+// The gap YouTube leaves between its top buttons (24pt on iPhone and iPad).
+static CGFloat YTKACENativeTopGap(UIView *overlay, NSArray<UIView *> *skip) {
+    NSMutableArray<NSValue *> *frames = [NSMutableArray array];
+    for (NSString *identifier in YTKACENativeTopIdentifiers().allValues) {
+        UIView *view = YTKACEFindIdentified(overlay, identifier, skip, 0);
+        if (view == nil || !YTKACEViewShown(view)) continue;
+        // The row's own child holding it, as the row lays those out.
+        UIView *item = view;
+        while (item.superview != nil && item.superview != overlay && item.superview.superview != overlay) item = item.superview;
+        [frames addObject:[NSValue valueWithCGRect:[item convertRect:item.bounds toView:overlay]]];
+    }
+    [frames sortUsingComparator:^NSComparisonResult(NSValue *a, NSValue *b) {
+        return [@(CGRectGetMinX(a.CGRectValue)) compare:@(CGRectGetMinX(b.CGRectValue))];
+    }];
+    NSMutableArray<NSNumber *> *gaps = [NSMutableArray array];
+    for (NSUInteger index = 1; index < frames.count; index++) {
+        const CGFloat gap = CGRectGetMinX(frames[index].CGRectValue) - CGRectGetMaxX(frames[index - 1].CGRectValue);
+        if (gap > 0.0) [gaps addObject:@(gap)];
+    }
+    if (gaps.count == 0) return 24.0;
+    [gaps sortUsingSelector:@selector(compare:)];
+    return gaps[gaps.count / 2].doubleValue;
+}
+
 static BOOL YTKACELayoutTopStack(UIView *overlay, NSDictionary<NSString *, UIStackView *> *stacks) {
     UIStackView *stack = stacks[YTKACEOverlayZoneTop];
     NSArray *spread = objc_getAssociatedObject(stack, YTKACETopSlotsAssociation);
@@ -817,7 +843,9 @@ static BOOL YTKACELayoutTopStack(UIView *overlay, NSDictionary<NSString *, UISta
     CGRect gearFrame = [gear convertRect:gear.bounds toView:overlay];
     CGFloat minX = CGRectGetMinX(gearFrame);
     YTKACEFindTopRowEdge(overlay, overlay, stacks.allValues, CGRectGetMidY(gearFrame), &minX);
-    YTKACEPlaceZoneStack(stack, overlay, minX - 6.0, CGRectGetMidY(gearFrame));
+    // YouTube's gap between icons; our buttons pad their icon by 8pt.
+    YTKACEPlaceZoneStack(stack, overlay, minX - MAX(0.0, YTKACENativeTopGap(overlay, stacks.allValues) - 8.0),
+                         CGRectGetMidY(gearFrame));
     return YES;
 }
 
