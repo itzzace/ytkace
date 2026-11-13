@@ -212,11 +212,16 @@ static void DUOReserveColumn(UIViewController *host, UIWindow *window, NSInteger
         self.rebuilds++;
         // A size class change makes the system choose the tab bar's place
         // again, the way a rotation does.
-        if (@available(iOS 17.0, *)) {
-            controller.traitOverrides.horizontalSizeClass = UIUserInterfaceSizeClassCompact;
+        // Called by name: the CI SDK predates traitOverrides (iOS 17).
+        SEL overridesSel = NSSelectorFromString(@"traitOverrides");
+        Class sizeTrait = NSClassFromString(@"UITraitHorizontalSizeClass");
+        if ([controller respondsToSelector:overridesSel] && sizeTrait != Nil) {
+            id overrides = ((id (*)(id, SEL))objc_msgSend)(controller, overridesSel);
+            ((void (*)(id, SEL, NSInteger))objc_msgSend)(overrides, NSSelectorFromString(@"setHorizontalSizeClass:"),
+                                                       UIUserInterfaceSizeClassCompact);
             [controller.view layoutIfNeeded];
             dispatch_async(dispatch_get_main_queue(), ^{
-                [controller.traitOverrides removeTrait:UITraitHorizontalSizeClass.class];
+                ((void (*)(id, SEL, Class))objc_msgSend)(overrides, NSSelectorFromString(@"removeTrait:"), sizeTrait);
                 [controller.view setNeedsLayout];
                 [self rebuildIfNoVerticalBar];
             });
