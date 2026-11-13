@@ -1069,6 +1069,11 @@ CC BY-NC-SA 4.0 でライセンスされています。";
 "Still show Shorts in search results when shelves are removed." = "棚を削除しても検索結果に Shorts を表示します。";
 "Still show Shorts on channel pages when shelves are removed." = "棚を削除してもチャンネルページに Shorts を表示します。";
 
+"Remove Live Shorts" = "ライブ配信の Shorts を削除";
+"Hide live broadcasts from the Shorts feed." = "Shorts フィードからライブ配信を非表示にします。";
+"Remove Posts from Shorts" = "Shorts の投稿を削除";
+"Hide community posts shown in the Shorts feed." = "Shorts フィードに表示されるコミュニティ投稿を非表示にします。";
+
 "Remove Live Videos from Home" = "ホームからライブ動画を削除";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "ホームのフィードからライブ配信を削除します。登録チャンネル、検索、チャンネルには表示されます。";
 

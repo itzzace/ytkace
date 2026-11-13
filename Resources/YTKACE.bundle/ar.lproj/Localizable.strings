@@ -1069,6 +1069,11 @@ Licensed under CC BY-NC-SA 4.0." = "يستخدم YTKACE بيانات SponsorBloc
 "Still show Shorts in search results when shelves are removed." = "مواصلة عرض Shorts في نتائج البحث عند إزالة الرفوف.";
 "Still show Shorts on channel pages when shelves are removed." = "مواصلة عرض Shorts في صفحات القنوات عند إزالة الرفوف.";
 
+"Remove Live Shorts" = "إزالة Shorts المباشرة";
+"Hide live broadcasts from the Shorts feed." = "إخفاء البث المباشر من خلاصة Shorts.";
+"Remove Posts from Shorts" = "إزالة المنشورات من Shorts";
+"Hide community posts shown in the Shorts feed." = "إخفاء منشورات المجتمع المعروضة في خلاصة Shorts.";
+
 "Remove Live Videos from Home" = "إزالة البث المباشر من الصفحة الرئيسية";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "يزيل البث المباشر من خلاصة الصفحة الرئيسية. تبقى في الاشتراكات والبحث والقنوات.";
 

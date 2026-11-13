@@ -1069,6 +1069,11 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE использует данные Spo
 "Still show Shorts in search results when shelves are removed." = "Показывать Shorts в результатах поиска, даже когда полки убраны.";
 "Still show Shorts on channel pages when shelves are removed." = "Показывать Shorts на каналах, даже когда полки убраны.";
 
+"Remove Live Shorts" = "Убрать прямые эфиры Shorts";
+"Hide live broadcasts from the Shorts feed." = "Скрывает прямые трансляции из ленты Shorts.";
+"Remove Posts from Shorts" = "Убрать публикации из Shorts";
+"Hide community posts shown in the Shorts feed." = "Скрывает публикации сообщества, показываемые в ленте Shorts.";
+
 "Remove Live Videos from Home" = "Убрать прямые эфиры с главной";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Убирает прямые трансляции из ленты на главной. В подписках, поиске и на каналах они остаются.";
 

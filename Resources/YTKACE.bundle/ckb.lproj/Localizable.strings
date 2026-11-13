@@ -1069,6 +1069,11 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE داتای SponsorBlock بەکارد�
 "Still show Shorts in search results when shelves are removed." = "Shorts هەر لە ئەنجامەکانی گەڕان پیشان بدە کاتێک ڕەفەکان لادەبرێن.";
 "Still show Shorts on channel pages when shelves are removed." = "Shorts هەر لە پەڕەی کەناڵەکان پیشان بدە کاتێک ڕەفەکان لادەبرێن.";
 
+"Remove Live Shorts" = "لابردنی Shortsی ڕاستەوخۆ";
+"Hide live broadcasts from the Shorts feed." = "شاردنەوەی پەخشە ڕاستەوخۆکان لە فیدی Shorts.";
+"Remove Posts from Shorts" = "لابردنی پۆستەکان لە Shorts";
+"Hide community posts shown in the Shorts feed." = "شاردنەوەی پۆستەکانی کۆمەڵگە کە لە فیدی Shorts نیشان دەدرێن.";
+
 "Remove Live Videos from Home" = "لابردنی ڤیدیۆی ڕاستەوخۆ لە سەرەکی";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "پەخشی ڕاستەوخۆ لە فیدی سەرەکی لادەبات. بەشداربوونەکان و گەڕان و کەناڵەکان دەیانهێڵنەوە.";
 

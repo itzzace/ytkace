@@ -67,6 +67,7 @@ YTKACE_FILES = \
 	Tweak/UI/ExtraDim.mm \
 	Tweak/Features/Playback/RemoteSkip.mm \
 	Tweak/Features/Shorts/ShortsHooks.mm \
+	Tweak/Features/Shorts/ShortsFeedFilter.mm \
 	Tweak/Features/Shorts/ShortsSessionLimit.mm \
 	Tweak/Features/Shorts/ShortsStartup.mm \
 	Tweak/Features/Shorts/ShortsPinch.mm \

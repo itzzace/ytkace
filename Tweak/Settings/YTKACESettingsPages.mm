@@ -349,6 +349,8 @@ BOOL YTKACEPreferenceNeedsRestart(NSString *key) {
         @"YTKACE.Preference.Playback.CaptionsAlwaysOn",
         @"YTKACE.Preference.Playback.CaptionsMode",
         @"YTKACE.Preference.Feed.HomeTabsHidden",
+        @"YTKACE.Preference.Shorts.LiveHidden",
+        @"YTKACE.Preference.Shorts.PostsHidden",
         @"YTKACE.Preference.Language",
         @"YTKACE.Preference.Navigation.NotificationsHidden"
     ] containsObject:key];
@@ -2014,6 +2016,12 @@ static NSDictionary *YTKACEShortsOptionsDefinition(void) {
                                5.0, 200.0, 5.0, 20.0)
         ],
         @[
+            YTKACEToggleDetail(@"Remove Live Shorts",
+                               @"Hide live broadcasts from the Shorts feed.",
+                               @"YTKACE.Preference.Shorts.LiveHidden"),
+            YTKACEToggleDetail(@"Remove Posts from Shorts",
+                               @"Hide community posts shown in the Shorts feed.",
+                               @"YTKACE.Preference.Shorts.PostsHidden"),
             YTKACEToggleDetail(@"Remove Pause Suggestions", @"Hide the videos shown when you pause a Short.",
                                @"YTKACE.Preference.Shorts.PauseCardHidden"),
             YTKACEToggle(@"Remove Sticker Ads", @"YTKACE.Preference.Shorts.StickerAdsHidden", @"", @""),

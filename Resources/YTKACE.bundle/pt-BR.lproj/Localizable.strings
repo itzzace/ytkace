@@ -1024,6 +1024,11 @@
 "Still show Shorts in search results when shelves are removed." = "Continuar mostrando Shorts nos resultados de busca quando as prateleiras forem removidas.";
 "Still show Shorts on channel pages when shelves are removed." = "Continuar mostrando Shorts nos canais quando as prateleiras forem removidas.";
 
+"Remove Live Shorts" = "Remover Shorts ao vivo";
+"Hide live broadcasts from the Shorts feed." = "Oculta transmissões ao vivo do feed de Shorts.";
+"Remove Posts from Shorts" = "Remover postagens do Shorts";
+"Hide community posts shown in the Shorts feed." = "Oculta postagens da comunidade exibidas no feed de Shorts.";
+
 "Remove Live Videos from Home" = "Remover vídeos ao vivo do Início";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Remove transmissões ao vivo do feed do Início. Inscrições, pesquisa e canais continuam mostrando.";
 
