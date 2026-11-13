@@ -19,7 +19,7 @@ NSArray<NSDictionary *> *YTKACEOverlayButtonCatalog(void) {
           @"key": @"YTKACE.Preference.SponsorBlock.OverlayButton"},
         @{@"id": @"sleeptimer", @"title": @"Sleep Timer", @"symbol": @"moon.zzz", @"key": YTKACESleepTimerKey},
         @{@"id": @"pip", @"title": @"Picture in Picture", @"symbol": @"pip", @"key": YTKACEPiPKey},
-        @{@"id": @"transcript", @"title": @"Transcript", @"symbol": @"text.bubble",
+        @{@"id": @"transcript", @"title": @"Transcript", @"symbol": @"doc.plaintext",
           @"key": @"YTKACE.Preference.Playback.Transcript"},
         @{@"id": @"downloads", @"title": @"Download", @"symbol": @"arrow.down.circle"}
     ];
@@ -126,6 +126,15 @@ NSArray<NSString *> *YTKACENativeTopOrder(void) {
     }
     for (NSString *name in YTKACENativeTopDefaultOrder()) {
         if (![order containsObject:name]) [order addObject:name];
+    }
+    return order;
+}
+
+NSArray<NSString *> *YTKACETopRowOrder(void) {
+    NSMutableArray *order = [NSMutableArray array];
+    id stored = YTKACEPreferenceObject(YTKACENativeTopOrderKey);
+    for (id name in [stored isKindOfClass:NSArray.class] ? stored : @[]) {
+        if ([name isKindOfClass:NSString.class] && ![order containsObject:name]) [order addObject:name];
     }
     return order;
 }

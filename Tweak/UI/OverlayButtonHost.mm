@@ -25,6 +25,7 @@ static const void *YTKACEOverlayAlignmentAssociation = &YTKACEOverlayAlignmentAs
 static const void *YTKACEOverlayZoneStacksAssociation = &YTKACEOverlayZoneStacksAssociation;
 static const void *YTKACEOverlayGroupAssociation = &YTKACEOverlayGroupAssociation;
 static const void *YTKACEOverlayPlacedAssociation = &YTKACEOverlayPlacedAssociation;
+static const void *YTKACETopSlotsAssociation = &YTKACETopSlotsAssociation;
 static const void *YTKACEOverlayAnchorAssociation = &YTKACEOverlayAnchorAssociation;
 static const void *YTKACEOverlayOwnerAssociation = &YTKACEOverlayOwnerAssociation;
 static const void *YTKACEOverlayRetryAssociation = &YTKACEOverlayRetryAssociation;
@@ -161,8 +162,13 @@ static BOOL YTKACEAlignOverlayStack(UIView *overlay, UIStackView *stack) {
     // under whichever is rightmost.
     UIView *rightmost = YTKACERightmostNativeTop(overlay, stack);
     if (rightmost != nil) gear = rightmost;
+    // Our own buttons can be last in the top row too.
+    NSDictionary *zoneStacks = objc_getAssociatedObject(overlay, YTKACEOverlayZoneStacksAssociation);
+    NSArray *spread = objc_getAssociatedObject(zoneStacks[YTKACEOverlayZoneTop], YTKACETopSlotsAssociation);
+    NSValue *lastSlot = [spread.firstObject lastObject];
     if (gear != nil) {
         CGRect frame = [gear.superview convertRect:gear.frame toView:overlay];
+        if (lastSlot != nil && CGRectGetMidX(lastSlot.CGRectValue) > CGRectGetMidX(frame)) frame = lastSlot.CGRectValue;
         CGFloat safeTrailing = CGRectGetMaxX(overlay.safeAreaLayoutGuide.layoutFrame);
         CGFloat center = CGRectGetMidX(frame);
         if (isfinite(center) && center > 0.0 && safeTrailing > 0.0) {
@@ -311,8 +317,19 @@ static UIStackView *YTKACEStackForOverlay(UIView *overlay) {
 static UIView *YTKACEPlayerBarHitTest(UIView *receiver, SEL selector, CGPoint point, UIEvent *event);
 static UIView *YTKACEFullscreenActionsHitTest(UIView *receiver, SEL selector, CGPoint point, UIEvent *event);
 
-static UIStackView *YTKACENewZoneStack(UIView *overlay) {
-    UIStackView *stack = [UIStackView new];
+// Spans YouTube's buttons when ours sit between them; only our buttons take taps.
+@interface YTKACEPassThroughStackView : UIStackView
+@end
+
+@implementation YTKACEPassThroughStackView
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
+    UIView *hit = [super hitTest:point withEvent:event];
+    return hit == self ? nil : hit;
+}
+@end
+
+static UIStackView *YTKACENewZoneStackOfClass(UIView *overlay, Class cls) {
+    UIStackView *stack = [cls new];
     stack.axis = UILayoutConstraintAxisHorizontal;
     stack.alignment = UIStackViewAlignmentCenter;
     stack.distribution = UIStackViewDistributionFill;
@@ -327,6 +344,10 @@ static UIStackView *YTKACENewZoneStack(UIView *overlay) {
     return stack;
 }
 
+static UIStackView *YTKACENewZoneStack(UIView *overlay) {
+    return YTKACENewZoneStackOfClass(overlay, UIStackView.class);
+}
+
 // One row per zone: the old row under YouTube's buttons, plus one placed in
 // YouTube's top row and one next to the fullscreen button.
 static NSDictionary<NSString *, UIStackView *> *YTKACEZoneStacks(UIView *overlay) {
@@ -334,9 +355,9 @@ static NSDictionary<NSString *, UIStackView *> *YTKACEZoneStacks(UIView *overlay
     if (stacks != nil) return stacks;
     stacks = @{
         YTKACEOverlayZoneBelow: YTKACEStackForOverlay(overlay),
-        YTKACEOverlayZoneTop: YTKACENewZoneStack(overlay),
+        YTKACEOverlayZoneTop: YTKACENewZoneStackOfClass(overlay, YTKACEPassThroughStackView.class),
         YTKACEOverlayZoneBottom: YTKACENewZoneStack(overlay),
-        YTKACEOverlayZoneFullscreen: YTKACENewZoneStack(overlay)
+        YTKACEOverlayZoneFullscreen: YTKACENewZoneStackOfClass(overlay, YTKACEPassThroughStackView.class)
     };
     if (YTKACEFullscreenStacks == nil) {
         YTKACEFullscreenStacks = [NSHashTable weakObjectsHashTable];
@@ -499,9 +520,182 @@ static UIView *YTKACEFindIdentified(UIView *view, NSString *identifier, NSArray<
     return nil;
 }
 
-static void YTKACEOrderNativeTopRow(UIView *overlay, NSArray<UIView *> *skip) {
+// A row's visible buttons by group (speed has three buttons in one group):
+// each group's id, total width and last button.
+static void YTKACEStackGroups(UIStackView *stack, NSMutableArray<NSString *> *names,
+                              NSMutableArray<NSNumber *> *widths, NSMutableArray<UIView *> *lastViews) {
+    NSString *current = nil;
+    for (UIView *view in stack.arrangedSubviews) {
+        if (view.hidden) continue;
+        NSString *group = objc_getAssociatedObject(view, YTKACEOverlayGroupAssociation) ?: @"";
+        // The row can squeeze a button; a text one's own width is its title's.
+        const CGFloat width = ceil(MAX([view systemLayoutSizeFittingSize:UILayoutFittingCompressedSize].width,
+                                       view.intrinsicContentSize.width));
+        if (current != nil && [group isEqualToString:current]) {
+            widths[widths.count - 1] = @(widths.lastObject.doubleValue + stack.spacing + width);
+            lastViews[lastViews.count - 1] = view;
+        } else {
+            current = group;
+            [names addObject:group];
+            [widths addObject:@(width)];
+            [lastViews addObject:view];
+        }
+    }
+}
+
+// Spreads a row's groups over slots (rects in the row's superview with 4pt
+// of padding each side) using custom spacing between groups, so one row can
+// sit among YouTube's buttons. Returns the row's frame. No slots: normal spacing.
+static CGRect YTKACESpreadStackOverSlots(UIStackView *stack, NSArray<NSValue *> *slots,
+                                         NSArray<NSNumber *> *widths, NSArray<UIView *> *lastViews) {
+    NSMapTable<UIView *, NSNumber *> *spacing = [NSMapTable strongToStrongObjectsMapTable];
+    for (NSUInteger index = 0; index + 1 < slots.count; index++) {
+        const CGFloat gap = CGRectGetMinX(slots[index + 1].CGRectValue) - CGRectGetMinX(slots[index].CGRectValue) -
+            widths[index].doubleValue;
+        [spacing setObject:@(MAX(0.0, round(gap))) forKey:lastViews[index]];
+    }
+    for (UIView *view in stack.arrangedSubviews) {
+        const CGFloat want = [spacing objectForKey:view] != nil ? [spacing objectForKey:view].doubleValue
+                                                                : UIStackViewSpacingUseDefault;
+        if ([stack customSpacingAfterView:view] != want) [stack setCustomSpacing:want afterView:view];
+    }
+    if (slots.count == 0) return CGRectZero;
+    const CGRect first = slots.firstObject.CGRectValue;
+    const CGFloat left = CGRectGetMinX(first) + 4.0;
+    return CGRectMake(round(left), round(CGRectGetMidY(first) - 20.0),
+                      ceil(CGRectGetMaxX(slots.lastObject.CGRectValue) - 4.0 - left), 40.0);
+}
+
+static void YTKACESetStackFrame(UIStackView *stack, CGRect frame) {
+    if (!CGRectEqualToRect(stack.frame, frame)) {
+        [UIView performWithoutAnimation:^{
+            stack.frame = frame;
+            [stack layoutIfNeeded];
+        }];
+    } else {
+        [stack layoutIfNeeded];
+    }
+}
+
+
+// YouTube puts its top buttons back in its own spots whenever it lays the
+// row out (controls showing, fullscreen), a frame before our layout runs.
+// A moved button is pinned: its frame setters keep our spot, kept as an
+// inset from the row's right edge since YouTube lays the row out from there.
+static const void *YTKACETopPinAssociation = &YTKACETopPinAssociation;
+static const void *YTKACETopMetricsAssociation = &YTKACETopMetricsAssociation;
+static NSHashTable<UIView *> *YTKACEPinnedTopItems;
+typedef struct { Class cls; IMP frame; IMP center; } YTKACEPinHook;
+static YTKACEPinHook YTKACEPinHooks[8];
+static int YTKACEPinHookCount;
+
+static IMP YTKACEPinOriginal(id view, BOOL center) {
+    for (Class cls = object_getClass(view); cls != Nil; cls = class_getSuperclass(cls)) {
+        for (int index = 0; index < YTKACEPinHookCount; index++) {
+            if (YTKACEPinHooks[index].cls == cls) return center ? YTKACEPinHooks[index].center : YTKACEPinHooks[index].frame;
+        }
+    }
+    return NULL;
+}
+
+static BOOL YTKACEPinnedX(UIView *view, CGFloat width, CGFloat *x) {
+    NSValue *pin = objc_getAssociatedObject(view, YTKACETopPinAssociation);
+    if (pin == nil || view.superview == nil) return NO;
+    const CGPoint value = pin.CGPointValue;
+    if (fabs(width - value.y) > 0.5) return NO;
+    *x = CGRectGetWidth(view.superview.bounds) - value.x - width;
+    return YES;
+}
+
+static void YTKACEPinnedSetFrame(UIView *view, SEL selector, CGRect frame) {
+    CGFloat x;
+    if (YTKACEPinnedX(view, CGRectGetWidth(frame), &x)) frame.origin.x = x;
+    IMP original = YTKACEPinOriginal(view, NO);
+    if (original != NULL) ((void (*)(id, SEL, CGRect))original)(view, selector, frame);
+}
+
+static void YTKACEPinnedSetCenter(UIView *view, SEL selector, CGPoint center) {
+    CGFloat x;
+    const CGFloat width = CGRectGetWidth(view.bounds);
+    if (YTKACEPinnedX(view, width, &x)) center.x = x + width * 0.5;
+    IMP original = YTKACEPinOriginal(view, YES);
+    if (original != NULL) ((void (*)(id, SEL, CGPoint))original)(view, selector, center);
+}
+
+static void YTKACEPinTopItem(UIView *item, CGFloat x) {
+    Class cls = object_getClass(item);
+    BOOL hooked = NO;
+    for (int index = 0; index < YTKACEPinHookCount; index++) hooked = hooked || YTKACEPinHooks[index].cls == cls;
+    if (!hooked) {
+        if (YTKACEPinHookCount >= 8) return;
+        YTKACEPinHook *hook = &YTKACEPinHooks[YTKACEPinHookCount];
+        NSString *name = NSStringFromClass(cls);
+        if (!YTKACEInstallInstanceHook(name, @"setFrame:", (IMP)YTKACEPinnedSetFrame, &hook->frame) ||
+            !YTKACEInstallInstanceHook(name, @"setCenter:", (IMP)YTKACEPinnedSetCenter, &hook->center)) return;
+        hook->cls = cls;
+        YTKACEPinHookCount++;
+    }
+    if (YTKACEPinnedTopItems == nil) YTKACEPinnedTopItems = [NSHashTable weakObjectsHashTable];
+    [YTKACEPinnedTopItems addObject:item];
+    const CGFloat width = CGRectGetWidth(item.frame);
+    objc_setAssociatedObject(item, YTKACETopPinAssociation,
+                             [NSValue valueWithCGPoint:CGPointMake(CGRectGetWidth(item.superview.bounds) - x - width, width)],
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+static void YTKACEUnpinTopItem(UIView *item) {
+    if (objc_getAssociatedObject(item, YTKACETopPinAssociation) == nil) return;
+    objc_setAssociatedObject(item, YTKACETopPinAssociation, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    [YTKACEPinnedTopItems removeObject:item];
+    [item.superview setNeedsLayout];
+    [item.superview.superview setNeedsLayout];
+}
+
+static void YTKACEUnpinTopRow(UIView *overlay) {
+    for (UIView *item in YTKACEPinnedTopItems.allObjects) {
+        if ([item isDescendantOfView:overlay]) YTKACEUnpinTopItem(item);
+    }
+}
+
+static void YTKACEMoveNativeTopItem(UIView *item, UIView *container, NSArray<UIView *> *items, CGFloat x) {
+    const CGRect old = item.frame;
+    CGRect frame = old;
+    frame.origin.x = x;
+    // Hidden views YouTube stacked on the same spot move along.
+    for (UIView *sibling in container.subviews) {
+        if (sibling == item || [items containsObject:sibling]) continue;
+        if (fabs(CGRectGetMinX(sibling.frame) - CGRectGetMinX(old)) < 0.5 &&
+            fabs(CGRectGetMinY(sibling.frame) - CGRectGetMinY(old)) < 0.5 && (sibling.hidden || sibling.alpha < 0.05)) {
+            CGRect moved = sibling.frame;
+            moved.origin.x = frame.origin.x;
+            [UIView performWithoutAnimation:^{ sibling.frame = moved; }];
+        }
+    }
+    // Not animated along with the controls fading in.
+    YTKACEPinTopItem(item, x);
+    [UIView performWithoutAnimation:^{ item.frame = frame; }];
+}
+
+// With some of YTKACE's top buttons saved between YouTube's, YouTube's are
+// spaced out to leave a slot for each, and the slots are kept on the row for
+// YTKACELayoutTopStack.
+static void YTKACEOrderNativeTopRow(UIView *overlay, NSArray<UIView *> *skip, UIStackView *top) {
     NSArray<NSString *> *order = YTKACENativeTopOrder();
-    if ([order isEqualToArray:YTKACENativeTopDefaultOrder()]) return;
+    NSArray<NSString *> *stored = YTKACETopRowOrder();
+    NSMutableArray<NSString *> *names = [NSMutableArray array];
+    NSMutableArray<NSNumber *> *widths = [NSMutableArray array];
+    NSMutableArray<UIView *> *lastViews = [NSMutableArray array];
+    YTKACEStackGroups(top, names, widths, lastViews);
+    BOOL mixed = NO, seenNative = NO;
+    for (NSString *name in stored) {
+        if ([order containsObject:name]) seenNative = YES;
+        else if (seenNative && [names containsObject:name]) mixed = YES;
+    }
+    if (!mixed) objc_setAssociatedObject(top, YTKACETopSlotsAssociation, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    if (!mixed && [order isEqualToArray:YTKACENativeTopDefaultOrder()]) {
+        YTKACEUnpinTopRow(overlay);
+        return;
+    }
     NSDictionary *identifiers = YTKACENativeTopIdentifiers();
     UIView *container = nil;
     NSMutableDictionary<NSString *, UIView *> *items = [NSMutableDictionary dictionary];
@@ -515,7 +709,11 @@ static void YTKACEOrderNativeTopRow(UIView *overlay, NSArray<UIView *> *skip) {
         }
         if (item.superview == overlay) continue;
         if (container == nil) container = item.superview;
-        if (item.superview != container) return;
+        if (item.superview != container) {
+            objc_setAssociatedObject(top, YTKACETopSlotsAssociation, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            YTKACEUnpinTopRow(overlay);
+            return;
+        }
         items[name] = item;
     }
     NSMutableArray<UIView *> *visible = [NSMutableArray array];
@@ -523,40 +721,96 @@ static void YTKACEOrderNativeTopRow(UIView *overlay, NSArray<UIView *> *skip) {
         UIView *item = items[name];
         if (item != nil && !item.hidden && item.alpha > 0.05 && YTKACEViewShown(item)) [visible addObject:item];
     }
-    if (visible.count < 2) return;
+    // Faded out: keep every spot as it is.
+    if (visible.count == 0) return;
+    for (UIView *item in items.allValues) {
+        if (![visible containsObject:item]) YTKACEUnpinTopItem(item);
+    }
+    if (!mixed && visible.count < 2) return;
     NSArray<UIView *> *byX = [visible sortedArrayUsingComparator:^NSComparisonResult(UIView *a, UIView *b) {
         return [@(CGRectGetMinX(a.frame)) compare:@(CGRectGetMinX(b.frame))];
     }];
-    if ([byX isEqualToArray:visible]) return;
-    CGFloat right = 0.0;
-    for (UIView *item in visible) right = MAX(right, CGRectGetMaxX(item.frame));
-    NSMutableArray<NSNumber *> *gaps = [NSMutableArray array];
-    for (NSUInteger index = 1; index < byX.count; index++) {
-        [gaps addObject:@(CGRectGetMinX(byX[index].frame) - CGRectGetMaxX(byX[index - 1].frame))];
-    }
-    [gaps sortUsingSelector:@selector(compare:)];
-    const CGFloat gap = MAX(0.0, gaps[gaps.count / 2].doubleValue);
-    for (UIView *item in visible.reverseObjectEnumerator) {
-        const CGRect old = item.frame;
-        CGRect frame = old;
-        frame.origin.x = right - CGRectGetWidth(old);
-        // Hidden views YouTube stacked on the same spot move along.
-        for (UIView *sibling in container.subviews) {
-            if (sibling == item || [items.allValues containsObject:sibling]) continue;
-            if (fabs(CGRectGetMinX(sibling.frame) - CGRectGetMinX(old)) < 0.5 &&
-                fabs(CGRectGetMinY(sibling.frame) - CGRectGetMinY(old)) < 0.5 && (sibling.hidden || sibling.alpha < 0.05)) {
-                CGRect moved = sibling.frame;
-                moved.origin.x = frame.origin.x;
-                sibling.frame = moved;
-            }
+    // Already in place, unless slots have to be made.
+    if (!mixed && [byX isEqualToArray:visible]) return;
+    // YouTube's right edge and gap, measured while nothing is pinned (pinned
+    // spots are ours) and kept as an inset from the row's right edge.
+    BOOL pinned = NO;
+    for (UIView *item in visible) pinned = pinned || objc_getAssociatedObject(item, YTKACETopPinAssociation) != nil;
+    NSValue *metrics = objc_getAssociatedObject(container, YTKACETopMetricsAssociation);
+    if (!pinned || metrics == nil) {
+        CGFloat maxX = 0.0;
+        for (UIView *item in visible) maxX = MAX(maxX, CGRectGetMaxX(item.frame));
+        NSMutableArray<NSNumber *> *gaps = [NSMutableArray array];
+        for (NSUInteger index = 1; index < byX.count; index++) {
+            [gaps addObject:@(CGRectGetMinX(byX[index].frame) - CGRectGetMaxX(byX[index - 1].frame))];
         }
-        item.frame = frame;
-        right = CGRectGetMinX(frame) - gap;
+        [gaps sortUsingSelector:@selector(compare:)];
+        const CGFloat measured = gaps.count != 0 ? MAX(0.0, gaps[gaps.count / 2].doubleValue) : 24.0;
+        metrics = [NSValue valueWithCGPoint:CGPointMake(CGRectGetWidth(container.bounds) - maxX, measured)];
+        objc_setAssociatedObject(container, YTKACETopMetricsAssociation, metrics, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
+    CGFloat right = CGRectGetWidth(container.bounds) - metrics.CGPointValue.x;
+    const CGFloat gap = metrics.CGPointValue.y;
+    if (!mixed) {
+        for (UIView *item in visible.reverseObjectEnumerator) {
+            YTKACEMoveNativeTopItem(item, container, items.allValues, right - CGRectGetWidth(item.frame));
+            right = CGRectGetMinX(item.frame) - gap;
+        }
+        return;
+    }
+    // Left to right: ours the order doesn't name first, then the saved order.
+    NSMutableArray *sequence = [NSMutableArray array];
+    for (NSString *name in names) {
+        if (![stored containsObject:name]) [sequence addObject:name];
+    }
+    for (NSString *name in stored) {
+        if ([names containsObject:name] || [visible containsObject:items[name] ?: (id)NSNull.null]) {
+            if (![sequence containsObject:name]) [sequence addObject:name];
+        }
+    }
+    for (NSString *name in order) {
+        if ([visible containsObject:items[name] ?: (id)NSNull.null] && ![sequence containsObject:name]) [sequence addObject:name];
+    }
+    const CGFloat midY = CGRectGetMidY(visible.firstObject.frame);
+    NSMutableDictionary<NSString *, NSValue *> *slotByName = [NSMutableDictionary dictionary];
+    for (NSString *name in sequence.reverseObjectEnumerator) {
+        UIView *item = items[name];
+        if (item != nil) {
+            YTKACEMoveNativeTopItem(item, container, items.allValues, right - CGRectGetWidth(item.frame));
+            right = CGRectGetMinX(item.frame) - gap;
+            continue;
+        }
+        // YouTube spaces its icons, not its tap areas: our buttons pad their
+        // icon by 8pt a side, so that padding sits in YouTube's gap.
+        const CGFloat width = widths[[names indexOfObject:name]].doubleValue;
+        const CGFloat cell = MAX(0.0, width - 16.0);
+        const CGRect slot = CGRectMake(right - cell - 8.0 - 4.0, midY - 20.0, width + 8.0, 40.0);
+        slotByName[name] = [NSValue valueWithCGRect:[container convertRect:slot toView:overlay]];
+        right -= cell + gap;
+    }
+    NSMutableArray<NSValue *> *slots = [NSMutableArray array];
+    for (NSString *name in names) {
+        NSValue *slot = slotByName[name];
+        // The row's own order has to match the saved one.
+        if (slot == nil || (slots.count != 0 && CGRectGetMinX(slot.CGRectValue) <= CGRectGetMinX(slots.lastObject.CGRectValue))) {
+            objc_setAssociatedObject(top, YTKACETopSlotsAssociation, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            return;
+        }
+        [slots addObject:slot];
+    }
+    objc_setAssociatedObject(top, YTKACETopSlotsAssociation, @[slots, widths, lastViews], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 static BOOL YTKACELayoutTopStack(UIView *overlay, NSDictionary<NSString *, UIStackView *> *stacks) {
     UIStackView *stack = stacks[YTKACEOverlayZoneTop];
+    NSArray *spread = objc_getAssociatedObject(stack, YTKACETopSlotsAssociation);
+    if (spread != nil) {
+        YTKACESetStackFrame(stack, YTKACESpreadStackOverSlots(stack, spread[0], spread[1], spread[2]));
+        objc_setAssociatedObject(stack, YTKACEOverlayPlacedAssociation,
+                                 [NSValue valueWithCGSize:overlay.bounds.size], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        return YES;
+    }
+    YTKACESpreadStackOverSlots(stack, nil, nil, nil);
     UIView *gear = YTKACEOverflowControl(overlay) ?:
         YTKACEFindSettingsControl(overlay, stacks[YTKACEOverlayZoneBelow]);
     if (gear == nil) return YTKACEZoneStackWasPlaced(stack, overlay);
@@ -614,19 +868,27 @@ static void YTKACECollectGlass(UIView *view, NSMutableArray<UIView *> *found, in
     for (UIView *subview in view.subviews) YTKACECollectGlass(subview, found, depth + 1);
 }
 
-extern CGFloat YTKACEFullscreenExtraWidth;
+extern NSArray<NSDictionary *> *YTKACEFullscreenGroups;
+extern BOOL YTKACEFullscreenGroupFrame(NSString *group, UIView *view, CGRect *frame);
 
-// Our buttons go at the end of YouTube's pill: the bar code adds empty room
-// there as wide as this row, and the row is laid over it.
+// Our buttons go in YouTube's pill: the bar code adds an empty node as wide
+// as each of our groups, in the saved order among YouTube's buttons, and the
+// row is laid over them with the gaps between groups matching.
 static BOOL YTKACELayoutFullscreenStack(UIView *overlay, UIStackView *stack) {
-    const BOOL wanted = YTKACEStackHasVisibleButton(stack);
+    NSMutableArray<NSString *> *names = [NSMutableArray array];
+    NSMutableArray<NSNumber *> *widths = [NSMutableArray array];
+    NSMutableArray<UIView *> *lastViews = [NSMutableArray array];
+    YTKACEStackGroups(stack, names, widths, lastViews);
+    NSMutableArray<NSDictionary *> *groups = [NSMutableArray array];
+    for (NSUInteger index = 0; index < names.count; index++) {
+        [groups addObject:@{@"id": names[index], @"width": @(widths[index].doubleValue + 8.0)}];
+    }
+    const BOOL wanted = groups.count != 0;
     // Nothing in this zone and no room left in YouTube's pill: skip the search.
-    if (!wanted && YTKACEFullscreenExtraWidth <= 0.0) return NO;
+    if (!wanted && YTKACEFullscreenGroups.count == 0) return NO;
     UIView *actions = YTKACEFindFullscreenActions(overlay.superview ?: overlay, 0);
-    CGSize size = [stack systemLayoutSizeFittingSize:UILayoutFittingCompressedSize];
-    const CGFloat width = wanted ? ceil(size.width) + 8.0 : 0.0;
-    if (YTKACEFullscreenExtraWidth != width) {
-        YTKACEFullscreenExtraWidth = width;
+    if (![groups isEqualToArray:YTKACEFullscreenGroups ?: @[]]) {
+        YTKACEFullscreenGroups = wanted ? [groups copy] : nil;
         [actions setNeedsLayout];
         __weak UIView *weakOverlay = overlay;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -638,30 +900,48 @@ static BOOL YTKACELayoutFullscreenStack(UIView *overlay, UIStackView *stack) {
     const CGRect bar = [actions convertRect:actions.bounds toView:overlay];
     if (CGRectGetMaxY(bar) > CGRectGetHeight(overlay.bounds) + 1.0 || CGRectGetMinY(bar) < 0.0 ||
         !CGRectIntersectsRect(bar, overlay.bounds)) return NO;
-    NSMutableArray<UIView *> *glass = [NSMutableArray array];
-    YTKACECollectGlass(actions, glass, 0);
-    UIView *pill = nil;
-    for (UIView *view in glass) {
-        if (pill == nil || CGRectGetMinX([view convertRect:view.bounds toView:actions]) <
-                           CGRectGetMinX([pill convertRect:pill.bounds toView:actions])) pill = view;
+    NSMutableArray<NSValue *> *slots = [NSMutableArray array];
+    for (NSString *name in names) {
+        CGRect frame;
+        if (!YTKACEFullscreenGroupFrame(name, actions, &frame)) break;
+        [slots addObject:[NSValue valueWithCGRect:frame]];
     }
-    if (pill == nil) return NO;
     // In YouTube's bar, above its glass, so it fades and hides with the bar.
     if (stack.superview != actions) [actions addSubview:stack];
     [actions bringSubviewToFront:stack];
     // The bar fades itself with the controls; the row just follows it.
     stack.alpha = 1.0;
     stack.userInteractionEnabled = YES;
-    const CGRect anchor = [pill convertRect:pill.bounds toView:actions];
-    CGSize fitting = [stack systemLayoutSizeFittingSize:UILayoutFittingCompressedSize];
-    const CGRect frame = CGRectMake(round(CGRectGetMaxX(anchor) - 4.0 - fitting.width),
-                                    round(CGRectGetMidY(anchor) - 20.0), ceil(fitting.width), 40.0);
-    if (!CGRectEqualToRect(stack.frame, frame)) {
-        [UIView performWithoutAnimation:^{
-            stack.frame = frame;
-            [stack layoutIfNeeded];
-        }];
+    CGRect frame;
+    if (slots.count == names.count) {
+        frame = YTKACESpreadStackOverSlots(stack, slots, widths, lastViews);
+        // The pill can finish its layout after ours; look again a few times.
+        NSUInteger tries = [objc_getAssociatedObject(stack, YTKACEOverlayRetryAssociation) unsignedIntegerValue];
+        if (CGRectEqualToRect(frame, stack.frame)) tries = 0;
+        objc_setAssociatedObject(stack, YTKACEOverlayRetryAssociation, @(tries + 1), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        if (!CGRectEqualToRect(frame, stack.frame) && tries < 4) {
+            __weak UIView *weakOverlay = overlay;
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [weakOverlay setNeedsLayout];
+            });
+        }
+    } else {
+        // The empty nodes aren't laid out yet: the end of the pill.
+        YTKACESpreadStackOverSlots(stack, nil, nil, nil);
+        NSMutableArray<UIView *> *glass = [NSMutableArray array];
+        YTKACECollectGlass(actions, glass, 0);
+        UIView *pill = nil;
+        for (UIView *view in glass) {
+            if (pill == nil || CGRectGetMinX([view convertRect:view.bounds toView:actions]) <
+                               CGRectGetMinX([pill convertRect:pill.bounds toView:actions])) pill = view;
+        }
+        if (pill == nil) return NO;
+        const CGRect anchor = [pill convertRect:pill.bounds toView:actions];
+        CGSize fitting = [stack systemLayoutSizeFittingSize:UILayoutFittingCompressedSize];
+        frame = CGRectMake(round(CGRectGetMaxX(anchor) - 4.0 - fitting.width),
+                           round(CGRectGetMidY(anchor) - 20.0), ceil(fitting.width), 40.0);
     }
+    YTKACESetStackFrame(stack, frame);
     return YES;
 }
 
@@ -690,6 +970,38 @@ static BOOL YTKACELayoutFullscreenStack(UIView *overlay, UIStackView *stack) {
 }
 
 @end
+
+// YouTube laid its fullscreen bar out again (rotation, a new video): our
+// row there follows the pill's new spots.
+static const void *YTKACESlotsSeenAssociation = &YTKACESlotsSeenAssociation;
+static const void *YTKACEButtonSizeAssociation = &YTKACEButtonSizeAssociation;
+
+void YTKACEFullscreenBarDidLayout(UIView *actions) {
+    for (UIStackView *stack in YTKACEFullscreenStacks.allObjects) {
+        if (stack.superview != actions || stack.hidden) continue;
+        // Only when the pill's spots for our buttons moved.
+        NSMutableArray *seen = [NSMutableArray array];
+        for (NSDictionary *group in YTKACEFullscreenGroups) {
+            CGRect frame;
+            if (YTKACEFullscreenGroupFrame(group[@"id"], actions, &frame)) [seen addObject:[NSValue valueWithCGRect:frame]];
+        }
+        if ([seen isEqualToArray:objc_getAssociatedObject(stack, YTKACESlotsSeenAssociation) ?: @[]]) continue;
+        objc_setAssociatedObject(stack, YTKACESlotsSeenAssociation, seen, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        __weak UIView *owner = objc_getAssociatedObject(stack, YTKACEOverlayOwnerAssociation);
+        dispatch_async(dispatch_get_main_queue(), ^{ [owner setNeedsLayout]; });
+    }
+}
+
+void YTKACEOverlayButtonResized(UIButton *button) {
+    if (button == nil) return;
+    const CGSize size = button.intrinsicContentSize;
+    NSValue *old = objc_getAssociatedObject(button, YTKACEButtonSizeAssociation);
+    if (old != nil && CGSizeEqualToSize(old.CGSizeValue, size)) return;
+    objc_setAssociatedObject(button, YTKACEButtonSizeAssociation, [NSValue valueWithCGSize:size], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    if (old == nil) return;
+    __weak UIView *owner = objc_getAssociatedObject(button.superview, YTKACEOverlayOwnerAssociation);
+    dispatch_async(dispatch_get_main_queue(), ^{ [owner setNeedsLayout]; });
+}
 
 UIButton *YTKACEOverlayButton(UIStackView *stack,
                               NSString *identifier,
@@ -765,8 +1077,8 @@ static void YTKACEControlsOverlayLayout(UIView *receiver, SEL selector) {
         configurator(receiver, stacks[YTKACEOverlayButtonZone(identifier)] ?: stack);
     }
     YTKACECurrentOverlayGroup = nil;
-    YTKACEOrderNativeTopRow(receiver, stacks.allValues);
     for (NSString *zone in stacks) YTKACESortZoneStack(stacks[zone], zone);
+    YTKACEOrderNativeTopRow(receiver, stacks.allValues, stacks[YTKACEOverlayZoneTop]);
     BOOL aligned = YTKACEAlignOverlayStack(receiver, stack);
     stack.hidden = !YTKACEStackHasVisibleButton(stack) || !aligned;
 

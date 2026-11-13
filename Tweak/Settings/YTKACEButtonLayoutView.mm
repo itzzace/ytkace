@@ -103,15 +103,19 @@ static BOOL YTKACEStoredBool(NSString *key) {
     return key.length != 0 && [NSUserDefaults.standardUserDefaults boolForKey:key];
 }
 
-// YouTube's autoplay switch, drawn small.
+// YouTube's autoplay switch, drawn small: a track and a knob with a pause
+// glyph cut out of it.
 static UIImage *YTKACEAutoplayImage(void) {
-    UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:CGSizeMake(26.0, 16.0)];
-    UIImage *image = [renderer imageWithActions:^(__unused UIGraphicsImageRendererContext *context) {
-        UIBezierPath *track = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(1.0, 3.0, 24.0, 10.0) cornerRadius:5.0];
+    UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:CGSizeMake(28.0, 18.0)];
+    UIImage *image = [renderer imageWithActions:^(UIGraphicsImageRendererContext *context) {
+        UIBezierPath *track = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(1.0, 3.5, 26.0, 11.0) cornerRadius:5.5];
         [[UIColor colorWithWhite:1.0 alpha:0.5] setFill];
         [track fill];
         [UIColor.whiteColor setFill];
-        [[UIBezierPath bezierPathWithOvalInRect:CGRectMake(0.0, 0.0, 16.0, 16.0)] fill];
+        [[UIBezierPath bezierPathWithOvalInRect:CGRectMake(0.0, 0.0, 18.0, 18.0)] fill];
+        CGContextSetBlendMode(context.CGContext, kCGBlendModeClear);
+        [[UIBezierPath bezierPathWithRoundedRect:CGRectMake(5.5, 5.0, 2.5, 8.0) cornerRadius:0.8] fill];
+        [[UIBezierPath bezierPathWithRoundedRect:CGRectMake(10.0, 5.0, 2.5, 8.0) cornerRadius:0.8] fill];
     }];
     return [image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 }
@@ -127,7 +131,7 @@ static UIImage *YTKACEChipImage(NSString *identifier) {
                                     @"yt_outline_sleep_timer_24pt", @"yt_outline_moon_24pt"], @"moon.zzz");
     }
     if ([identifier isEqualToString:@"sponsorblock"]) return [UIImage systemImageNamed:@"shield.lefthalf.filled"];
-    if ([identifier isEqualToString:@"transcript"]) return [UIImage systemImageNamed:@"text.bubble"];
+    if ([identifier isEqualToString:@"transcript"]) return [UIImage systemImageNamed:@"doc.plaintext"];
     if ([identifier isEqualToString:@"yt.autoplay"]) return YTKACEAutoplayImage();
     if ([identifier isEqualToString:@"yt.cast"]) {
         return YTKACEYouTubeImage(@[@"yt_outline_chromecast_24pt", @"ic_cast"], @"airplayvideo");
@@ -437,23 +441,50 @@ static BOOL YTKACESpeedChipIsMenu(void) {
     for (NSDictionary *button in YTKACEOverlayButtonCatalog()) {
         if ([hiddenOurs containsObject:button[@"id"]]) [hidden addObject:button[@"id"]];
     }
-    // YouTube's top buttons after ours in the top row.
-    for (NSString *name in YTKACENativeTopOrder()) {
-        NSString *identifier = [@"yt." stringByAppendingString:name];
-        if (YTKACEStoredBool(YTKACENativeItem(identifier)[@"key"])) continue;
-        [self.zones[YTKACEOverlayZoneTop] addObject:identifier];
+    // The top row: ours the saved order doesn't name, then the saved order of
+    // YouTube's buttons and ours.
+    NSArray *oursTop = self.zones[YTKACEOverlayZoneTop] ?: @[];
+    NSArray *storedTop = YTKACETopRowOrder();
+    NSMutableArray *top = [NSMutableArray array];
+    for (NSString *identifier in oursTop) {
+        if (![storedTop containsObject:identifier]) [top addObject:identifier];
     }
+    NSMutableArray *topNames = [storedTop mutableCopy];
+    [topNames addObjectsFromArray:YTKACENativeTopOrder()];
+    for (NSString *name in topNames) {
+        NSString *identifier = nil;
+        if ([YTKACENativeTopDefaultOrder() containsObject:name]) {
+            identifier = [@"yt." stringByAppendingString:name];
+            if (YTKACEStoredBool(YTKACENativeItem(identifier)[@"key"])) continue;
+        } else if ([oursTop containsObject:name]) {
+            identifier = name;
+        }
+        if (identifier != nil && ![top containsObject:identifier]) [top addObject:identifier];
+    }
+    self.zones[YTKACEOverlayZoneTop] = top;
     self.zones[YTKACECenterZone] = [NSMutableArray array];
     for (NSString *identifier in @[@"yt.previous", @"yt.play", @"yt.next"]) {
         if (!YTKACEStoredBool(YTKACENativeItem(identifier)[@"key"])) [self.zones[YTKACECenterZone] addObject:identifier];
     }
-    // The fullscreen bar: YouTube's pill, then ours, then More videos.
+    // The fullscreen bar: YouTube's pill buttons and ours in the saved order,
+    // then More videos.
+    NSArray *ours = self.zones[YTKACEOverlayZoneFullscreen] ?: @[];
     NSMutableArray *bar = [NSMutableArray array];
-    for (NSString *name in YTKACEPillOrder()) {
-        NSString *identifier = [@"yt.pill." stringByAppendingString:name];
-        if (!YTKACEStoredBool(YTKACENativeItem(identifier)[@"key"])) [bar addObject:identifier];
+    id stored = YTKACEPreferenceObject(YTKACEFullscreenOrderKey);
+    NSMutableArray *names = [NSMutableArray arrayWithArray:[stored isKindOfClass:NSArray.class] ? stored : @[]];
+    [names addObjectsFromArray:YTKACEPillOrder()];
+    [names addObjectsFromArray:ours];
+    for (id name in names) {
+        if (![name isKindOfClass:NSString.class]) continue;
+        NSString *identifier = nil;
+        if ([YTKACEPillDefaultOrder() containsObject:name]) {
+            identifier = [@"yt.pill." stringByAppendingString:name];
+            if (YTKACEStoredBool(YTKACENativeItem(identifier)[@"key"])) continue;
+        } else if ([ours containsObject:name]) {
+            identifier = name;
+        }
+        if (identifier != nil && ![bar containsObject:identifier]) [bar addObject:identifier];
     }
-    [bar addObjectsFromArray:self.zones[YTKACEOverlayZoneFullscreen] ?: @[]];
     if (!YTKACEStoredBool(YTKACEMoreVideosKey)) [bar addObject:@"yt.more"];
     self.zones[YTKACEOverlayZoneFullscreen] = bar;
     for (NSDictionary *item in YTKACENativeItems()) {
@@ -490,9 +521,8 @@ static BOOL YTKACESpeedChipIsMenu(void) {
     return YTKACEOverlayZoneBelow;
 }
 
-// Keeps each kind in its part of a row: ours before YouTube's in the top row;
-// YouTube's pill, then ours, then More videos in the fullscreen bar; the
-// center controls in their fixed order.
+// Keeps More videos last in the fullscreen bar and the center controls in
+// their fixed order.
 - (NSUInteger)clampIndex:(NSUInteger)index zone:(NSString *)zone kind:(YTKACEItemKind)kind identifier:(NSString *)identifier {
     NSArray<NSString *> *ids = self.zones[zone];
     NSUInteger ours = 0, pill = 0;
@@ -502,13 +532,9 @@ static BOOL YTKACESpeedChipIsMenu(void) {
         else if (otherKind == YTKACEItemPill) pill++;
     }
     index = MIN(index, ids.count);
-    if ([zone isEqualToString:YTKACEOverlayZoneTop]) {
-        return kind == YTKACEItemOurs ? MIN(index, ours) : MAX(index, ours);
-    }
     if ([zone isEqualToString:YTKACEOverlayZoneFullscreen]) {
-        if (kind == YTKACEItemPill) return MIN(index, pill);
         if (kind == YTKACEItemMore) return ids.count;
-        return MIN(MAX(index, pill), pill + ours);
+        return MIN(index, pill + ours);
     }
     if ([zone isEqualToString:YTKACECenterZone]) {
         NSArray *canonical = @[@"yt.previous", @"yt.play", @"yt.next"];
@@ -599,9 +625,12 @@ static BOOL YTKACESpeedChipIsMenu(void) {
 // height while dragging.
 - (CGFloat)fullscreenHeightForWidth:(CGFloat)width {
     NSArray *ids = self.zones[YTKACEOverlayZoneFullscreen] ?: @[];
-    NSArray *frames = [self flowFrames:ids gap:ids.count gapWidth:YTKACEChipHeight * 2.0 width:width top:10.0];
     CGFloat bottom = 10.0 + YTKACEChipHeight;
-    for (NSValue *frame in frames) bottom = MAX(bottom, CGRectGetMaxY(frame.CGRectValue));
+    // The gap can open anywhere, which changes where lines wrap.
+    for (NSUInteger gap = 0; gap <= ids.count; gap++) {
+        NSArray *frames = [self flowFrames:ids gap:gap gapWidth:YTKACEChipHeight * 2.0 width:width top:10.0];
+        for (NSValue *frame in frames) bottom = MAX(bottom, CGRectGetMaxY(frame.CGRectValue));
+    }
     return bottom + 10.0;
 }
 
@@ -708,6 +737,12 @@ static BOOL YTKACESpeedChipIsMenu(void) {
     NSMutableArray *frames = [NSMutableArray array];
     for (NSValue *frame in [self flowFrames:ids gap:gap gapWidth:gapWidth width:CGRectGetWidth(panel.bounds) top:top]) {
         [frames addObject:[NSValue valueWithCGRect:[panel convertRect:frame.CGRectValue toView:self]]];
+    }
+    // More videos sits at the right end, like the real bar.
+    if (panel == self.fullscreenView && [ids.lastObject isEqualToString:@"yt.more"] && frames.count == ids.count) {
+        CGRect more = [frames.lastObject CGRectValue];
+        more.origin.x = CGRectGetMaxX([panel convertRect:panel.bounds toView:self]) - 14.0 - CGRectGetWidth(more);
+        frames[frames.count - 1] = [NSValue valueWithCGRect:more];
     }
     return frames;
 }
@@ -936,6 +971,29 @@ static NSArray<NSString *> *YTKACEMergeOrder(NSArray<NSString *> *old, NSArray<N
     return result;
 }
 
+- (NSArray<NSString *> *)savedOrderForZone:(NSString *)zone kind:(YTKACEItemKind)kind prefix:(NSUInteger)prefix
+                                      base:(NSArray<NSString *> *)base {
+    NSMutableArray *natives = [NSMutableArray array];
+    NSMutableDictionary<NSString *, NSMutableArray *> *after = [NSMutableDictionary dictionary];
+    NSString *anchor = @"";
+    for (NSString *other in self.zones[zone]) {
+        const YTKACEItemKind otherKind = YTKACEKindOf(other);
+        if (otherKind == kind) {
+            anchor = [other substringFromIndex:prefix];
+            [natives addObject:anchor];
+        } else if (otherKind == YTKACEItemOurs) {
+            if (after[anchor] == nil) after[anchor] = [NSMutableArray array];
+            [after[anchor] addObject:other];
+        }
+    }
+    NSMutableArray *order = [NSMutableArray arrayWithArray:after[@""] ?: @[]];
+    for (NSString *name in YTKACEMergeOrder(base, natives)) {
+        [order addObject:name];
+        [order addObjectsFromArray:after[name] ?: @[]];
+    }
+    return order;
+}
+
 - (void)save:(NSString *)identifier zone:(NSString *)zone {
     self.saving = YES;
     // YTKACE's rows.
@@ -957,16 +1015,12 @@ static NSArray<NSString *> *YTKACEMergeOrder(NSArray<NSString *> *old, NSArray<N
         const BOOL hide = [hidden containsObject:item[@"id"]];
         if (YTKACEStoredBool(item[@"key"]) != hide) YTKACESetPreference(item[@"key"], hide);
     }
-    NSMutableArray *top = [NSMutableArray array];
-    for (NSString *other in self.zones[YTKACEOverlayZoneTop]) {
-        if (YTKACEKindOf(other) == YTKACEItemNativeTop) [top addObject:[other substringFromIndex:3]];
-    }
-    YTKACESetNativeTopOrder(YTKACEMergeOrder(YTKACENativeTopOrder(), top));
-    NSMutableArray *pill = [NSMutableArray array];
-    for (NSString *other in self.zones[YTKACEOverlayZoneFullscreen]) {
-        if (YTKACEKindOf(other) == YTKACEItemPill) [pill addObject:[other substringFromIndex:8]];
-    }
-    NSArray *order = YTKACEMergeOrder(YTKACEPillOrder(), pill);
+    // Both orders name YouTube's buttons (hidden ones too) and ours, each of
+    // ours after the YouTube button before it.
+    YTKACESetNativeTopOrder([self savedOrderForZone:YTKACEOverlayZoneTop kind:YTKACEItemNativeTop prefix:3
+                                               base:YTKACENativeTopOrder()]);
+    NSArray *order = [self savedOrderForZone:YTKACEOverlayZoneFullscreen kind:YTKACEItemPill prefix:8
+                                        base:YTKACEPillOrder()];
     YTKACESetPreferenceObject(YTKACEFullscreenOrderKey,
                               [order isEqualToArray:YTKACEPillDefaultOrder()] ? nil : order);
     self.saving = NO;

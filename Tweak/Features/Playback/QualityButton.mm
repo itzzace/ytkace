@@ -143,6 +143,7 @@ static void YTKACESetQualityTitle(UIButton *button, NSString *quality) {
                   withConfiguration:[UIImageSymbolConfiguration configurationWithPointSize:21.0
                                                                                     weight:UIImageSymbolWeightMedium]]
             forState:UIControlStateNormal];
+    YTKACEOverlayButtonResized(button);
 }
 
 // The stream switched quality (Auto changing it, or a pick in the menu).

@@ -188,6 +188,7 @@ static void YTKACESetSpeedTitle(UIButton *button, NSString *title) {
         [button setTitle:title forState:UIControlStateNormal];
         [button layoutIfNeeded];
     }];
+    YTKACEOverlayButtonResized(button);
 }
 
 @interface YTKACESpeedCoordinator : NSObject

@@ -28,5 +28,7 @@ FOUNDATION_EXPORT NSArray<NSString *> *YTKACENativeTopDefaultOrder(void);
 FOUNDATION_EXPORT NSArray<NSString *> *YTKACENativeTopOrder(void);
 FOUNDATION_EXPORT void YTKACESetNativeTopOrder(NSArray<NSString *> *_Nullable order);
 FOUNDATION_EXPORT NSDictionary<NSString *, NSString *> *YTKACENativeTopIdentifiers(void);
+// The saved top row as stored: YouTube's names and YTKACE's ids, left to right.
+FOUNDATION_EXPORT NSArray<NSString *> *YTKACETopRowOrder(void);
 
 NS_ASSUME_NONNULL_END

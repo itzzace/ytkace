@@ -1270,50 +1270,14 @@ static BOOL YTKACEFullscreenIsPill(id group) {
 
 static const void *YTKACEFullscreenNameKey = &YTKACEFullscreenNameKey;
 
-// Puts the pill's buttons in the saved order. Buttons the order doesn't name
-// keep their place after the named ones. Done after the current layout pass.
-static void YTKACEOrderFullscreenPill(id pill, NSArray *slots, NSArray<NSString *> *keys) {
-    NSArray *order = YTKACEPreferenceObject(@"YTKACE.Preference.Fullscreen.Order");
-    if (![order isKindOfClass:NSArray.class] || order.count == 0 || slots.count != keys.count) return;
-    NSMutableArray *sorted = [NSMutableArray array];
-    for (id name in order) {
-        if (![name isKindOfClass:NSString.class]) continue;
-        NSUInteger index = [keys indexOfObject:name];
-        if (index != NSNotFound && ![sorted containsObject:slots[index]]) [sorted addObject:slots[index]];
-    }
-    for (id slot in slots) {
-        if (![sorted containsObject:slot]) [sorted addObject:slot];
-    }
-    if ([sorted isEqualToArray:slots]) return;
-    __weak id weakPill = pill;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        id strongPill = weakPill;
-        NSArray *children = YTKACEFullscreenChildren(strongPill);
-        if (children.count == 0) return;
-        // Slots move among their own positions; anything else (the glass) stays put.
-        NSMutableArray *next = [children mutableCopy];
-        NSUInteger cursor = 0;
-        for (NSUInteger index = 0; index < next.count && cursor < sorted.count; index++) {
-            if ([sorted containsObject:next[index]]) next[index] = sorted[cursor++];
-        }
-        if (cursor != sorted.count || [next isEqualToArray:children]) return;
-        SEL set = NSSelectorFromString(@"setYogaChildren:");
-        if (![strongPill respondsToSelector:set]) return;
-        @try {
-            ((void (*)(id, SEL, id))objc_msgSend)(strongPill, set, next);
-        } @catch (NSException *exception) {
-            YTKACEDebugLog(@"fsbar", @"reorder threw %@", exception.reason);
-            return;
-        }
-        YTKACEFullscreenRelayout(strongPill);
-    });
-}
-
-// Room at the end of the pill for YTKACE's buttons in the fullscreen zone;
-// OverlayButtonHost lays them over it. Width 0 means none.
-CGFloat YTKACEFullscreenExtraWidth = 0.0;
-static const void *YTKACEFullscreenSpacerKey = &YTKACEFullscreenSpacerKey;
+// YTKACE's buttons in the fullscreen zone, as [{id, width}] in their own
+// order. Each gets an empty node of that width in YouTube's pill, placed by
+// the saved order (which names YouTube's buttons and ours), and
+// OverlayButtonHost lays the button over it.
+NSArray<NSDictionary *> *YTKACEFullscreenGroups = nil;
+static const void *YTKACEFullscreenSpacersKey = &YTKACEFullscreenSpacersKey;
 static const void *YTKACEFullscreenSpacerWidthKey = &YTKACEFullscreenSpacerWidthKey;
+static NSMapTable<NSString *, id> *YTKACEFullscreenLiveSpacers;
 
 static CGSize YTKACEFullscreenSpacerSize(id receiver, __unused SEL selector, __unused CGSize constrained) {
     return CGSizeMake([objc_getAssociatedObject(receiver, YTKACEFullscreenSpacerWidthKey) doubleValue], 48.0);
@@ -1334,39 +1298,140 @@ static Class YTKACEFullscreenSpacerClass(void) {
     return cls;
 }
 
-// Returns YES when the pill changed.
-static BOOL YTKACEUpdateFullscreenSpacer(id pill) {
-    const CGFloat width = YTKACEFullscreenExtraWidth;
-    id spacer = objc_getAssociatedObject(pill, YTKACEFullscreenSpacerKey);
-    NSArray *children = YTKACEFullscreenChildren(pill);
-    const BOOL present = spacer != nil && [children indexOfObjectIdenticalTo:spacer] != NSNotFound;
-    if (width <= 0.0) {
-        if (!present) return NO;
-        ((void (*)(id, SEL, id))objc_msgSend)(pill, NSSelectorFromString(@"removeYogaChild:"), spacer);
-        return YES;
+static __weak id YTKACEFullscreenLivePill;
+
+// Finds element's spot in a layout tree, relative to the tree's node.
+static BOOL YTKACEFindInLayout(id layout, id element, CGPoint origin, int depth, CGRect *frame) {
+    if (layout == nil || depth > 6) return NO;
+    for (id sublayout in YTKACEFullscreenGet(layout, @"sublayouts")) {
+        CGPoint position = ((CGPoint (*)(id, SEL))objc_msgSend)(sublayout, NSSelectorFromString(@"position"));
+        CGSize size = ((CGSize (*)(id, SEL))objc_msgSend)(sublayout, NSSelectorFromString(@"size"));
+        CGPoint at = CGPointMake(origin.x + (isfinite(position.x) ? position.x : 0.0),
+                                 origin.y + (isfinite(position.y) ? position.y : 0.0));
+        if (YTKACEFullscreenGet(sublayout, @"layoutElement") == element) {
+            *frame = (CGRect){at, size};
+            return YES;
+        }
+        if (YTKACEFindInLayout(sublayout, element, at, depth + 1, frame)) return YES;
     }
-    if (spacer == nil) {
-        Class cls = YTKACEFullscreenSpacerClass();
-        if (cls == Nil) return NO;
-        spacer = [cls new];
-        ((void (*)(id, SEL))objc_msgSend)(spacer, NSSelectorFromString(@"enableYoga"));
-        objc_setAssociatedObject(pill, YTKACEFullscreenSpacerKey, spacer, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    return NO;
+}
+
+// Where the empty node for one of our buttons is, in view's coordinates. The
+// pill manages its own subnodes, so the node has no layer; its spot comes
+// from the pill's last layout.
+BOOL YTKACEFullscreenGroupFrame(NSString *group, UIView *view, CGRect *frame) {
+    id spacer = [YTKACEFullscreenLiveSpacers objectForKey:group];
+    id pill = YTKACEFullscreenLivePill;
+    if (spacer == nil || pill == nil || view == nil) return NO;
+    SEL loaded = NSSelectorFromString(@"isNodeLoaded");
+    if (![pill respondsToSelector:loaded] || !((BOOL (*)(id, SEL))objc_msgSend)(pill, loaded)) return NO;
+    CALayer *layer = YTKACEFullscreenGet(pill, @"layer");
+    if (![layer isKindOfClass:CALayer.class]) return NO;
+    BOOL inside = NO;
+    for (CALayer *current = layer; current != nil; current = current.superlayer) {
+        if (current == view.layer) { inside = YES; break; }
     }
-    const BOOL resized = [objc_getAssociatedObject(spacer, YTKACEFullscreenSpacerWidthKey) doubleValue] != width;
-    if (resized) {
-        objc_setAssociatedObject(spacer, YTKACEFullscreenSpacerWidthKey, @(width), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        SEL invalidate = NSSelectorFromString(@"invalidateCalculatedLayout");
-        if ([spacer respondsToSelector:invalidate]) ((void (*)(id, SEL))objc_msgSend)(spacer, invalidate);
-    }
-    if (present && [children lastObject] == spacer) return resized;
-    @try {
-        if (present) ((void (*)(id, SEL, id))objc_msgSend)(pill, NSSelectorFromString(@"removeYogaChild:"), spacer);
-        ((void (*)(id, SEL, id))objc_msgSend)(pill, NSSelectorFromString(@"addYogaChild:"), spacer);
-    } @catch (NSException *exception) {
-        YTKACEDebugLog(@"fsbar", @"spacer threw %@", exception.reason);
-        return NO;
-    }
+    CGRect local;
+    if (!inside || !YTKACEFindInLayout(YTKACEFullscreenGet(pill, @"calculatedLayout"), spacer, CGPointZero, 0, &local) ||
+        CGRectGetWidth(local) < 1.0) return NO;
+    *frame = [layer convertRect:local toLayer:view.layer];
     return YES;
+}
+
+// Makes or resizes the empty nodes. Returns YES when a size changed.
+static BOOL YTKACEUpdateFullscreenSpacers(NSMutableDictionary<NSString *, id> *spacers) {
+    BOOL changed = NO;
+    NSMutableSet *wanted = [NSMutableSet set];
+    for (NSDictionary *group in YTKACEFullscreenGroups) {
+        NSString *identifier = group[@"id"];
+        const CGFloat width = [group[@"width"] doubleValue];
+        if (identifier.length == 0 || width <= 0.0) continue;
+        [wanted addObject:identifier];
+        id spacer = spacers[identifier];
+        if (spacer == nil) {
+            Class cls = YTKACEFullscreenSpacerClass();
+            if (cls == Nil) continue;
+            spacer = [cls new];
+            ((void (*)(id, SEL))objc_msgSend)(spacer, NSSelectorFromString(@"enableYoga"));
+            spacers[identifier] = spacer;
+        }
+        if ([objc_getAssociatedObject(spacer, YTKACEFullscreenSpacerWidthKey) doubleValue] != width) {
+            objc_setAssociatedObject(spacer, YTKACEFullscreenSpacerWidthKey, @(width), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            // A style width marks the node for layout again; a measured
+            // size alone stays cached.
+            id style = YTKACEFullscreenGet(spacer, @"style");
+            SEL setWidth = NSSelectorFromString(@"setWidth:");
+            if ([style respondsToSelector:setWidth]) {
+                ((void (*)(id, SEL, YTKACEDimension))objc_msgSend)(style, setWidth, (YTKACEDimension){1, width});
+            }
+            SEL invalidate = NSSelectorFromString(@"invalidateCalculatedLayout");
+            if ([spacer respondsToSelector:invalidate]) ((void (*)(id, SEL))objc_msgSend)(spacer, invalidate);
+            changed = YES;
+        }
+    }
+    for (NSString *identifier in spacers.allKeys) {
+        if (![wanted containsObject:identifier]) [spacers removeObjectForKey:identifier];
+    }
+    if (YTKACEFullscreenLiveSpacers == nil) YTKACEFullscreenLiveSpacers = [NSMapTable strongToWeakObjectsMapTable];
+    [YTKACEFullscreenLiveSpacers removeAllObjects];
+    for (NSString *identifier in spacers) [YTKACEFullscreenLiveSpacers setObject:spacers[identifier] forKey:identifier];
+    return changed;
+}
+
+// Puts YouTube's buttons and our empty nodes in the saved order. Buttons the
+// order doesn't name keep their place after the named ones; ours not named go
+// last. Done after the current layout pass.
+static void YTKACEOrderFullscreenPill(id pill, NSArray *slots, NSArray<NSString *> *keys,
+                                      NSDictionary<NSString *, id> *spacers) {
+    NSArray *children = YTKACEFullscreenChildren(pill);
+    NSArray *order = YTKACEPreferenceObject(@"YTKACE.Preference.Fullscreen.Order");
+    if (![order isKindOfClass:NSArray.class]) order = @[];
+    NSMutableArray *sorted = [NSMutableArray array];
+    for (id name in order) {
+        if (![name isKindOfClass:NSString.class]) continue;
+        id item = spacers[name];
+        if (item == nil && slots.count == keys.count) {
+            NSUInteger index = [keys indexOfObject:name];
+            if (index != NSNotFound) item = slots[index];
+        }
+        if (item != nil && ![sorted containsObject:item]) [sorted addObject:item];
+    }
+    for (id slot in slots) {
+        if (![sorted containsObject:slot]) [sorted addObject:slot];
+    }
+    for (NSDictionary *group in YTKACEFullscreenGroups) {
+        id spacer = spacers[group[@"id"] ?: @""];
+        if (spacer != nil && ![sorted containsObject:spacer]) [sorted addObject:spacer];
+    }
+    // Everything else (the glass) keeps its side of the buttons.
+    NSMutableArray *leading = [NSMutableArray array];
+    NSMutableArray *trailing = [NSMutableArray array];
+    BOOL seen = NO;
+    for (id child in children) {
+        const BOOL movable = [slots containsObject:child] ||
+            [NSStringFromClass([child class]) isEqualToString:@"YTKACEFullscreenSpacerNode"];
+        if (movable) seen = YES;
+        else [seen ? trailing : leading addObject:child];
+    }
+    NSMutableArray *next = [leading mutableCopy];
+    [next addObjectsFromArray:sorted];
+    [next addObjectsFromArray:trailing];
+    if ([next isEqualToArray:children]) return;
+    __weak id weakPill = pill;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        id strongPill = weakPill;
+        if (![YTKACEFullscreenChildren(strongPill) isEqualToArray:children]) return;
+        SEL set = NSSelectorFromString(@"setYogaChildren:");
+        if (![strongPill respondsToSelector:set]) return;
+        @try {
+            ((void (*)(id, SEL, id))objc_msgSend)(strongPill, set, next);
+        } @catch (NSException *exception) {
+            YTKACEDebugLog(@"fsbar", @"reorder threw %@", exception.reason);
+            return;
+        }
+        YTKACEFullscreenRelayout(strongPill);
+    });
 }
 
 static void YTKACEApplyFullscreenBar(UIView *bar) {
@@ -1432,10 +1497,16 @@ static void YTKACEApplyFullscreenBar(UIView *bar) {
         if (!hide) shown++;
     }
     // Nothing left in the pill: hide its glass too, unless YTKACE's buttons use it.
-    changed |= YTKACEFullscreenCollapse(pill, buttons.count != 0 && shown == 0 && YTKACEFullscreenExtraWidth <= 0.0);
-    changed |= YTKACEUpdateFullscreenSpacer(pill);
+    changed |= YTKACEFullscreenCollapse(pill, buttons.count != 0 && shown == 0 && YTKACEFullscreenGroups.count == 0);
+    NSMutableDictionary *spacers = objc_getAssociatedObject(pill, YTKACEFullscreenSpacersKey);
+    if (spacers == nil) {
+        spacers = [NSMutableDictionary dictionary];
+        objc_setAssociatedObject(pill, YTKACEFullscreenSpacersKey, spacers, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    changed |= YTKACEUpdateFullscreenSpacers(spacers);
+    YTKACEFullscreenLivePill = pill;
     if (changed) YTKACEFullscreenRelayout(root);
-    YTKACEOrderFullscreenPill(pill, slots, keys);
+    YTKACEOrderFullscreenPill(pill, slots, keys, spacers);
 }
 
 static void YTKACEFullscreenActionsLayout(UIView *receiver, SEL selector) {
@@ -1443,7 +1514,10 @@ static void YTKACEFullscreenActionsLayout(UIView *receiver, SEL selector) {
         ((void (*)(id, SEL))OriginalFullscreenActionsLayout)(receiver, selector);
     }
     YTKACEApplyHidden(receiver, YTKACEFullscreenActionsKey);
-    if (!receiver.hidden) YTKACEApplyFullscreenBar(receiver);
+    if (!receiver.hidden) {
+        YTKACEApplyFullscreenBar(receiver);
+        YTKACEFullscreenBarDidLayout(receiver);
+    }
 }
 
 static void YTKACEFullscreenEngagementLayout(UIView *receiver, SEL selector) {
