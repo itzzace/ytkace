@@ -124,6 +124,7 @@ NSAttributedString * _Nullable YTKACESubtitleWithoutProductCount(id _Nullable no
     NSAttributedString * _Nullable text);
 void YTKACEInstallNativeShareHooks(void);
 void YTKACEReturnDislikeConsiderView(UIView *view);
+NSAttributedString *YTKACEDislikeMetaText(id node, NSAttributedString *value);
 void YTKACEInstallReturnDislikeHooks(void);
 void YTKACEProfileConsiderDisplayView(UIView *view, id node);
 void YTKACEScheduleFirstLaunch(void);

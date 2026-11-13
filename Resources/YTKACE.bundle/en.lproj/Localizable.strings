@@ -1148,6 +1148,8 @@ Licensed under CC BY-NC-SA 4.0.";
 "Return YouTube Dislike" = "Return YouTube Dislike";
 "Show dislike counts from returnyoutubedislike.com." = "Show dislike counts from returnyoutubedislike.com.";
 "Shorts Dislike Count" = "Shorts Dislike Count";
+"%@ dislikes" = "%@ dislikes";
+"Dislikes" = "Dislikes";
 "Show dislikes from returnyoutubedislike.com under Like." = "Show dislikes from returnyoutubedislike.com under Like.";
 "Dislike" = "Dislike";
 "Submit Votes" = "Submit Votes";

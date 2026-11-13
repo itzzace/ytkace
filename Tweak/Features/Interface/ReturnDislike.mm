@@ -120,6 +120,168 @@ static BOOL YTKACEDislikeApplyCount(id number) {
 
 // On our node YouTube's update would put the like count back and fight with
 // ours, leaving half-rolled digits, so only ours is applied there.
+// Description panel ("more"): a Dislikes column after Likes in the stats row
+// (number over label, three equal columns). Found by layout, not by text, so
+// it works in every language. An empty node holds the space in YouTube's
+// layout and our view sits over it, since the row drops subnodes it didn't make.
+static NSString *YTKACECurrentWatchVideo;
+static NSHashTable<UIView *> *YTKACEStatViews;
+static const void *YTKACEStatNodeAssociation = &YTKACEStatNodeAssociation;
+static const void *YTKACEStatViewAssociation = &YTKACEStatViewAssociation;
+static const void *YTKACEStatVideoAssociation = &YTKACEStatVideoAssociation;
+static const NSInteger YTKACEStatValueTag = 0x52595356;
+static const NSInteger YTKACEStatLabelTag = 0x5259534c;
+
+static CGSize YTKACEStatSize(id receiver, __unused SEL selector, __unused CGSize constrained) {
+    NSValue *size = objc_getAssociatedObject(receiver, YTKACEStatNodeAssociation);
+    return size ? size.CGSizeValue : CGSizeMake(60, 38);
+}
+
+static Class YTKACEStatNodeClass(void) {
+    static Class cls;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        Class base = NSClassFromString(@"ASDisplayNode");
+        if (base == Nil) return;
+        cls = objc_allocateClassPair(base, "YTKACEDislikeStatNode", 0);
+        if (cls == Nil) { cls = NSClassFromString(@"YTKACEDislikeStatNode"); return; }
+        class_addMethod(cls, NSSelectorFromString(@"calculateSizeThatFits:"),
+                        (IMP)YTKACEStatSize, "{CGSize=dd}32@0:8{CGSize=dd}16");
+        objc_registerClassPair(cls);
+    });
+    return cls;
+}
+
+static CGRect YTKACENodeFrame(id node) {
+    return node ? ((CGRect (*)(id, SEL))objc_msgSend)(node, @selector(frame)) : CGRectZero;
+}
+
+static const void *YTKACEStatFullAssociation = &YTKACEStatFullAssociation;
+
+static void YTKACEStatSetCount(UIView *view) {
+    NSNumber *count = [YTKACEDislikeCounts objectForKey:objc_getAssociatedObject(view, YTKACEStatVideoAssociation) ?: @""];
+    UILabel *value = [view viewWithTag:YTKACEStatValueTag];
+    if (count == nil) {
+        value.text = @"-";
+    } else if ([objc_getAssociatedObject(view, YTKACEStatFullAssociation) boolValue]) {
+        // Likes are written out in full (105,735), so match that.
+        value.text = [NSNumberFormatter localizedStringFromNumber:count numberStyle:NSNumberFormatterDecimalStyle];
+    } else {
+        value.text = YTKACEDislikeText(count.longLongValue);
+    }
+}
+
+// Puts our view over the space the empty node holds, lined up with Likes.
+static void YTKACEStatPlace(id row, id stat, id holder, id labelNode) {
+    UIView *view = objc_getAssociatedObject(row, YTKACEStatViewAssociation);
+    id node = objc_getAssociatedObject(row, YTKACEStatNodeAssociation);
+    UIView *rowView = YTKACEDislikeIvar(row, "_view");
+    if (view == nil || node == nil || rowView == nil) return;
+    if (view.superview != rowView) [rowView addSubview:view];
+    CGRect slot = YTKACENodeFrame(node);
+    CGRect statFrame = YTKACENodeFrame(stat);
+    if (slot.size.width <= 0) return;
+    view.frame = CGRectMake(slot.origin.x, statFrame.origin.y, slot.size.width, statFrame.size.height);
+    UILabel *value = [view viewWithTag:YTKACEStatValueTag];
+    UILabel *label = [view viewWithTag:YTKACEStatLabelTag];
+    CGRect holderFrame = YTKACENodeFrame(holder);
+    CGRect labelFrame = YTKACENodeFrame(labelNode);
+    value.frame = CGRectMake(0, holderFrame.origin.y, slot.size.width, holderFrame.size.height);
+    label.frame = CGRectMake(0, labelFrame.origin.y, slot.size.width, labelFrame.size.height);
+}
+
+// The likes stat: a column whose first child holds this number and whose
+// second is the label, first of a row of three or more such columns.
+static void YTKACEStatConsider(id number) {
+    if (!YTKACEFeatureEnabled(YTKACEReturnDislikeKey) || YTKACECurrentWatchVideo == nil) return;
+    id holder = YTKACEDislikeGet(number, @"supernode");
+    id stat = YTKACEDislikeGet(holder, @"supernode");
+    id row = YTKACEDislikeGet(stat, @"supernode");
+    NSArray *statKids = YTKACEDislikeGet(stat, @"yogaChildren");
+    NSArray *rowKids = YTKACEDislikeGet(row, @"yogaChildren");
+    if (statKids.count != 2 || statKids[0] != holder || rowKids.count < 3 || rowKids.firstObject != stat) return;
+    id labelNode = statKids[1];
+    if (![NSStringFromClass([labelNode class]) isEqualToString:@"ELMTextNode"]) return;
+    if (objc_getAssociatedObject(row, YTKACEStatNodeAssociation) != nil) {
+        YTKACEStatPlace(row, stat, holder, labelNode);
+        return;
+    }
+    for (id other in rowKids) {
+        if (other == stat) continue;
+        NSArray *kids = YTKACEDislikeGet(other, @"yogaChildren");
+        if (kids.count != 2 || ![NSStringFromClass([kids[1] class]) isEqualToString:@"ELMTextNode"]) return;
+    }
+
+    // The digits are labels inside the number's view; copy the first one's style.
+    UILabel *digit = nil;
+    NSMutableArray<UIView *> *queue = [NSMutableArray array];
+    UIView *numberView = YTKACEDislikeGet(number, @"rollingNumberView");
+    if (numberView != nil) [queue addObject:numberView];
+    while (queue.count != 0 && digit == nil) {
+        UIView *view = queue.firstObject;
+        [queue removeObjectAtIndex:0];
+        if ([view isKindOfClass:UILabel.class]) digit = (UILabel *)view;
+        [queue addObjectsFromArray:view.subviews];
+    }
+    NSAttributedString *likesLabel = YTKACEDislikeGet(labelNode, @"attributedText");
+    if (digit.font == nil || ![likesLabel isKindOfClass:NSAttributedString.class] || likesLabel.length == 0) return;
+
+    UIView *view = [UIView new];
+    view.userInteractionEnabled = NO;
+    UILabel *value = [UILabel new];
+    value.tag = YTKACEStatValueTag;
+    value.font = digit.font;
+    value.textColor = digit.textColor ?: UIColor.labelColor;
+    value.textAlignment = NSTextAlignmentCenter;
+    UILabel *label = [UILabel new];
+    label.tag = YTKACEStatLabelTag;
+    NSMutableDictionary *labelAttributes = [[likesLabel attributesAtIndex:0 effectiveRange:NULL] mutableCopy];
+    [labelAttributes removeObjectForKey:NSParagraphStyleAttributeName];
+    [labelAttributes removeObjectForKey:NSBaselineOffsetAttributeName];
+    label.attributedText = [[NSAttributedString alloc] initWithString:YTKACELocalized(@"Dislikes")
+                                                           attributes:labelAttributes];
+    label.textAlignment = NSTextAlignmentCenter;
+    [view addSubview:value];
+    [view addSubview:label];
+    objc_setAssociatedObject(view, YTKACEStatVideoAssociation, YTKACECurrentWatchVideo, OBJC_ASSOCIATION_COPY_NONATOMIC);
+    id likesText = YTKACEDislikeGet(numberView, @"updatedCount");
+    BOOL full = [likesText isKindOfClass:NSString.class] && [likesText length] != 0 &&
+        [likesText rangeOfCharacterFromSet:NSCharacterSet.letterCharacterSet].location == NSNotFound;
+    objc_setAssociatedObject(view, YTKACEStatFullAssociation, @(full), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    if (YTKACEStatViews == nil) YTKACEStatViews = [NSHashTable weakObjectsHashTable];
+    [YTKACEStatViews addObject:view];
+    YTKACEStatSetCount(view);
+
+    id node = [YTKACEStatNodeClass() new];
+    if (node == nil) return;
+    CGRect statFrame = YTKACENodeFrame(stat);
+    CGFloat width = ceil(MAX([value sizeThatFits:CGSizeZero].width, [label sizeThatFits:CGSizeZero].width));
+    objc_setAssociatedObject(node, YTKACEStatNodeAssociation,
+        [NSValue valueWithCGSize:CGSizeMake(MAX(width, 40.0), statFrame.size.height > 0 ? statFrame.size.height : 38.0)],
+        OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    ((void (*)(id, SEL))objc_msgSend)(node, NSSelectorFromString(@"enableYoga"));
+    // Same flex as the likes column, so the row stays evenly spaced.
+    id style = YTKACEDislikeGet(node, @"style");
+    id statStyle = YTKACEDislikeGet(stat, @"style");
+    SEL grow = NSSelectorFromString(@"flexGrow"), shrink = NSSelectorFromString(@"flexShrink");
+    if ([statStyle respondsToSelector:grow] && [style respondsToSelector:NSSelectorFromString(@"setFlexGrow:")]) {
+        ((void (*)(id, SEL, CGFloat))objc_msgSend)(style, NSSelectorFromString(@"setFlexGrow:"),
+            ((CGFloat (*)(id, SEL))objc_msgSend)(statStyle, grow));
+        ((void (*)(id, SEL, CGFloat))objc_msgSend)(style, NSSelectorFromString(@"setFlexShrink:"),
+            ((CGFloat (*)(id, SEL))objc_msgSend)(statStyle, shrink));
+    }
+    @try {
+        ((void (*)(id, SEL, id, NSUInteger))objc_msgSend)(row, NSSelectorFromString(@"insertYogaChild:atIndex:"), node, 1);
+    } @catch (NSException *exception) {
+        YTKACEDebugLog(@"ryd", @"stat insert threw %@", exception.reason);
+        return;
+    }
+    objc_setAssociatedObject(row, YTKACEStatNodeAssociation, node, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(row, YTKACEStatViewAssociation, view, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    YTKACEDislikeRelayout(row);
+    YTKACEDebugLog(@"ryd", @"stat column added for %@", YTKACECurrentWatchVideo);
+}
+
 static void YTKACERollingUpdate(id receiver, SEL selector) {
     if (YTKACEDislikeApplyCount(receiver)) return;
     if (OriginalRollingUpdate != NULL) ((void (*)(id, SEL))OriginalRollingUpdate)(receiver, selector);
@@ -143,7 +305,11 @@ static CGSize YTKACERollingSize(id receiver, SEL selector, CGSize constrained) {
 // Same gap between the icon and the number as the like side.
 static void YTKACERollingLayout(id receiver, SEL selector) {
     if (OriginalRollingLayout != NULL) ((void (*)(id, SEL))OriginalRollingLayout)(receiver, selector);
-    if (objc_getAssociatedObject(receiver, YTKACEDislikeCountAssociation) == nil) return;
+    if (objc_getAssociatedObject(receiver, YTKACEDislikeCountAssociation) == nil) {
+        __weak id weakNumber = receiver;
+        dispatch_async(dispatch_get_main_queue(), ^{ YTKACEStatConsider(weakNumber); });
+        return;
+    }
     UIView *rolling = YTKACEDislikeGet(receiver, @"rollingNumberView");
     UIView *host = YTKACEDislikeGet(receiver, @"view");
     if (rolling == nil || host == nil) return;
@@ -157,12 +323,102 @@ static void YTKACERollingLayout(id receiver, SEL selector) {
 
 static NSHashTable<UIView *> *YTKACEWatchDislikeViews;
 
+// iPhone watch layout: the like count isn't on the button but in the line
+// under the title ("1.4M likes  149M views  8y ago"), so the dislike count
+// goes in that line after the likes.
+static const void *YTKACEMetaVideoAssociation = &YTKACEMetaVideoAssociation;
+static const void *YTKACEMetaOriginalAssociation = &YTKACEMetaOriginalAssociation;
+static const void *YTKACEMetaViewsAssociation = &YTKACEMetaViewsAssociation;
+static NSString *const YTKACEMetaGap = @"  ";
+
+// The likes part is the first one with a number that isn't the @handle.
+static NSInteger YTKACEMetaLikesIndex(NSArray<NSString *> *parts) {
+    for (NSUInteger index = 0; index + 2 < parts.count; index++) {
+        NSString *part = parts[index];
+        if ([part hasPrefix:@"@"]) continue;
+        if ([part rangeOfCharacterFromSet:NSCharacterSet.decimalDigitCharacterSet].location != NSNotFound) return index;
+        return -1;
+    }
+    return -1;
+}
+
+static void YTKACEMetaForget(id node) {
+    objc_setAssociatedObject(node, YTKACEMetaVideoAssociation, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(node, YTKACEMetaOriginalAssociation, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(node, YTKACEMetaViewsAssociation, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+// Called from the ELMTextNode setAttributedText: hook for every text node.
+NSAttributedString *YTKACEDislikeMetaText(id node, NSAttributedString *value) {
+    NSString *videoID = objc_getAssociatedObject(node, YTKACEMetaVideoAssociation);
+    if (videoID == nil || ![value isKindOfClass:NSAttributedString.class] || value.length == 0) return value;
+    NSArray<NSString *> *parts = [value.string componentsSeparatedByString:YTKACEMetaGap];
+    const NSInteger likes = YTKACEMetaLikesIndex(parts);
+    // A different views count means the node now shows another video.
+    if (likes < 0 || ![parts[likes + 1] isEqualToString:objc_getAssociatedObject(node, YTKACEMetaViewsAssociation)]) {
+        YTKACEMetaForget(node);
+        return value;
+    }
+    objc_setAssociatedObject(node, YTKACEMetaOriginalAssociation, value, OBJC_ASSOCIATION_COPY_NONATOMIC);
+    NSNumber *count = [YTKACEDislikeCounts objectForKey:videoID];
+    if (count == nil || !YTKACEFeatureEnabled(YTKACEReturnDislikeKey)) return value;
+    NSString *label = [NSString stringWithFormat:YTKACELocalized(@"%@ dislikes"),
+                       YTKACEDislikeText(count.longLongValue)];
+    NSDictionary *attributes = [value attributesAtIndex:0 effectiveRange:NULL];
+    NSMutableAttributedString *text = [value mutableCopy];
+    [text insertAttributedString:[[NSAttributedString alloc]
+        initWithString:[YTKACEMetaGap stringByAppendingString:label] attributes:attributes]
+                         atIndex:NSMaxRange([value.string rangeOfString:parts[likes]
+                                                 options:0
+                                                   range:NSMakeRange(0, value.length)])];
+    return text;
+}
+
+static void YTKACEDislikeMetaShow(UIView *dislikeView, NSString *videoID) {
+    UIView *list = dislikeView.superview;
+    while (list != nil && ![list isKindOfClass:UICollectionView.class]) list = list.superview;
+    if (list == nil) {
+        YTKACEDebugLog(@"ryd", @"meta no list");
+        return;
+    }
+    const CGFloat barY = [dislikeView convertPoint:CGPointZero toView:list].y;
+    NSMutableArray<UIView *> *stack = [NSMutableArray arrayWithObject:list];
+    NSUInteger visited = 0;
+    while (stack.count != 0 && visited++ < 4000) {
+        UIView *view = stack.lastObject;
+        [stack removeLastObject];
+        id node = YTKACEDislikeGet(view, @"keepalive_node");
+        if ([NSStringFromClass([node class]) isEqualToString:@"ELMTextNode"] &&
+            [view convertPoint:CGPointZero toView:list].y < barY) {
+            NSAttributedString *current = objc_getAssociatedObject(node, YTKACEMetaOriginalAssociation)
+                ?: YTKACEDislikeGet(node, @"attributedText");
+            NSArray<NSString *> *parts = [current isKindOfClass:NSAttributedString.class]
+                ? [current.string componentsSeparatedByString:YTKACEMetaGap] : nil;
+            const NSInteger likes = YTKACEMetaLikesIndex(parts);
+            if (likes >= 0) {
+                objc_setAssociatedObject(node, YTKACEMetaVideoAssociation, videoID, OBJC_ASSOCIATION_COPY_NONATOMIC);
+                objc_setAssociatedObject(node, YTKACEMetaViewsAssociation, parts[likes + 1], OBJC_ASSOCIATION_COPY_NONATOMIC);
+                SEL set = NSSelectorFromString(@"setAttributedText:");
+                if ([node respondsToSelector:set]) ((void (*)(id, SEL, id))objc_msgSend)(node, set, current);
+                YTKACEDebugLog(@"ryd", @"meta line set for %@", videoID);
+                return;
+            }
+        }
+        for (UIView *sub in view.subviews) [stack addObject:sub];
+    }
+    YTKACEDebugLog(@"ryd", @"meta line not found");
+}
+
 static void YTKACEDislikeShow(UIView *dislikeView, NSNumber *count) {
     if (YTKACEWatchDislikeViews == nil) YTKACEWatchDislikeViews = [NSHashTable weakObjectsHashTable];
     [YTKACEWatchDislikeViews addObject:dislikeView];
     id dislikeNode = YTKACEDislikeGet(dislikeView, @"keepalive_node");
     id likeNumber = YTKACEDislikeLikeNumber(dislikeView);
     if (dislikeNode == nil || likeNumber == nil) {
+        if (dislikeNode != nil && likeNumber == nil) {
+            YTKACEDislikeMetaShow(dislikeView, objc_getAssociatedObject(dislikeView, YTKACEDislikeVideoAssociation));
+            return;
+        }
         YTKACEDebugLog(@"ryd", @"show missing node=%d like=%d", dislikeNode != nil, likeNumber != nil);
         return;
     }
@@ -428,6 +684,7 @@ static void YTKACEDislikeFetch(NSString *videoID) {
         if (![dislikes isKindOfClass:NSNumber.class]) return;
         [YTKACEDislikeCounts setObject:dislikes forKey:videoID];
         dispatch_async(dispatch_get_main_queue(), ^{
+            for (UIView *stat in YTKACEStatViews.allObjects) YTKACEStatSetCount(stat);
             NSArray<UIView *> *views;
             @synchronized (YTKACEDislikeWaiting) {
                 views = YTKACEDislikeWaiting[videoID].allObjects;
@@ -460,6 +717,7 @@ void YTKACEReturnDislikeConsiderView(UIView *view) {
     }
     NSString *videoID = YTKACEDislikeVideoID(view);
     if (videoID.length == 0) return;
+    if (!shorts) YTKACECurrentWatchVideo = [videoID copy];
     objc_setAssociatedObject(view, YTKACEDislikeVideoAssociation, videoID, OBJC_ASSOCIATION_COPY_NONATOMIC);
     // Shorts: make room right away so the button doesn't pop in after the fetch.
     if (shorts) YTKACEShortsDislikeShow(view, nil);
@@ -624,6 +882,7 @@ static void YTKACEDislikeAdjust(NSString *videoID, NSInteger delta) {
     if (cached == nil || delta == 0) return;
     NSNumber *updated = @(MAX(0LL, cached.longLongValue + delta));
     [YTKACEDislikeCounts setObject:updated forKey:videoID];
+    for (UIView *stat in YTKACEStatViews.allObjects) YTKACEStatSetCount(stat);
     for (UIView *view in YTKACEWatchDislikeViews.allObjects) {
         if (view.window != nil && [objc_getAssociatedObject(view, YTKACEDislikeVideoAssociation) isEqualToString:videoID]) {
             YTKACEDislikeShow(view, updated);

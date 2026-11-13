@@ -699,7 +699,8 @@ static BOOL YTKACELooksLikeSpeedPill(NSString *text) {
 
 static void YTKACETextNodeSetAttributedText(id receiver, SEL selector,
                                             NSAttributedString *value) {
-    NSAttributedString *replacement = YTKACESubtitleWithoutProductCount(receiver, value);
+    NSAttributedString *replacement = YTKACEDislikeMetaText(receiver,
+        YTKACESubtitleWithoutProductCount(receiver, value));
     NSString *text = [value isKindOfClass:NSAttributedString.class]
         ? value.string : nil;
     if (text.length != 0 && YTKACEHoldPillActive &&
