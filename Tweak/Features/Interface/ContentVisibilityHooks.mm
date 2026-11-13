@@ -1901,6 +1901,8 @@ static NSString *YTKACEBrowseID(id object) {
 
 static BOOL YTKACEIsChannelBrowseID(NSString *browseID) {
     if ([browseID hasPrefix:@"UC"] || [browseID hasPrefix:@"@"]) return YES;
+    // channels opened from a Short report this instead of the channel ID
+    if ([browseID isEqualToString:@"CHANNELS"]) return YES;
     NSRange slash = [browseID rangeOfString:@"/" options:NSBackwardsSearch];
     if (slash.location == NSNotFound) return NO;
     static NSSet<NSString *> *tabs;
@@ -2420,6 +2422,7 @@ static void YTKACEDisplayViewDidMove(UIView *receiver, SEL selector) {
     }
     YTKACEApplyContentVisibility(receiver);
     YTKACEConsiderProductDisplayView(receiver, receiver.accessibilityIdentifier);
+    YTKACEReturnDislikeConsiderView(receiver);
 }
 
 
