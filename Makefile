@@ -97,6 +97,7 @@ YTKACE_FILES = \
 	Tweak/Features/Interface/ProfilePictureViewer.mm \
 	Tweak/Features/Interface/PostImageSaver.mm \
 	Tweak/Features/Interface/NativeShareHooks.mm \
+	Tweak/Features/Interface/ReturnDislike.mm \
 	Tweak/Features/Interface/NavigationVisibility.mm \
 	Tweak/Settings/SettingsEntry.mm \
 	Tweak/Settings/NativeSettingsEntry.mm \

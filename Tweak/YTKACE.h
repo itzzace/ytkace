@@ -123,6 +123,8 @@ BOOL YTKACEProductOverlayMatches(id overlay);
 NSAttributedString * _Nullable YTKACESubtitleWithoutProductCount(id _Nullable node,
     NSAttributedString * _Nullable text);
 void YTKACEInstallNativeShareHooks(void);
+void YTKACEReturnDislikeConsiderView(UIView *view);
+void YTKACEInstallReturnDislikeHooks(void);
 void YTKACEProfileConsiderDisplayView(UIView *view, id node);
 void YTKACEScheduleFirstLaunch(void);
 

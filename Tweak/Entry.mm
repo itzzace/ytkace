@@ -68,6 +68,7 @@ static void YTKACEInstallModules(void) {
     YTKACEInstallProfilePictureHooks();
     YTKACEInstallPostImageSaverHooks();
     YTKACEInstallNativeShareHooks();
+    YTKACEInstallReturnDislikeHooks();
     YTKACEInstallSettingsEntryHooks();
     YTKACEInstallNativeSettingsHooks();
 }
