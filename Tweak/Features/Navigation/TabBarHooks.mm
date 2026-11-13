@@ -3639,10 +3639,29 @@ static BOOL YTKACEApplyPivotBarGlass(UIView *receiver, UIView *blur) {
     } else {
         [receiver sendSubviewToBack:glass];
     }
-    CGFloat itemHeight = CGRectGetHeight(receiver.bounds) - receiver.safeAreaInsets.bottom;
+    // YouTube's strip along the bottom ("You're Incognito", offline, back
+    // online) sits over the bar's lower part; keep the glass above it.
+    CGFloat covered = 0.0;
+    for (UIView *sibling in receiver.superview.subviews) {
+        if (sibling.hidden || sibling.alpha < 0.01 ||
+            ![NSStringFromClass(sibling.class) isEqualToString:@"YTSlimStatusBarView"]) continue;
+        CGRect strip = [sibling convertRect:sibling.bounds toView:receiver];
+        // Only while the strip is on screen over the bar's lower part. With
+        // the watch page open both slide off screen and the glass must too.
+        UIWindow *window = receiver.window;
+        CGRect onScreen = window != nil ? [sibling convertRect:sibling.bounds toView:nil] : CGRectNull;
+        if (window == nil || CGRectGetMinY(onScreen) >= CGRectGetHeight(window.bounds) - 1.0) continue;
+        if (CGRectGetHeight(strip) > 0.0 && CGRectGetMinY(strip) > 0.0 &&
+            CGRectGetMinY(strip) < CGRectGetHeight(receiver.bounds)) {
+            covered = MAX(covered, CGRectGetHeight(receiver.bounds) - CGRectGetMinY(strip));
+        }
+    }
+    CGFloat itemHeight = CGRectGetHeight(receiver.bounds) - MAX(receiver.safeAreaInsets.bottom, covered);
     CGFloat extra = 7.0;
     CGFloat glassHeight = MAX(itemHeight, 44.0) + extra * 2.0;
-    CGFloat glassTop = MIN(0.0, CGRectGetHeight(receiver.bounds) - glassHeight - 4.0);
+    CGFloat glassTop = covered > 0.0
+        ? CGRectGetHeight(receiver.bounds) - covered - glassHeight - 4.0
+        : MIN(0.0, CGRectGetHeight(receiver.bounds) - glassHeight - 4.0);
     BOOL expanded = [objc_getAssociatedObject(receiver, YTKACEPivotBarExpandedAssociation) boolValue];
     NSUInteger tabs = 0;
     for (UIView *item in YTKACESortedPivotItems(receiver)) {
@@ -4106,7 +4125,58 @@ static void YTKACEPivotItemTraitChanged(UIView *receiver,
     }
 }
 
+// The glass sits above YouTube's bottom strip (incognito, offline, sleep
+// timer), so lay it out again when the strip comes or goes, or the bar moves.
+static IMP OriginalSlimStatusLayout;
+static IMP OriginalSlimStatusMoveToWindow;
+static IMP OriginalPivotSetFrame;
+static IMP OriginalPivotSetCenter;
+
+static void YTKACERelayoutPivotBesideStrip(UIView *strip) {
+    Class bar = NSClassFromString(@"YTPivotBarView");
+    for (UIView *sibling in strip.superview.subviews) {
+        if (bar != Nil && [sibling isKindOfClass:bar]) [sibling setNeedsLayout];
+    }
+}
+
+static BOOL YTKACEHasStripBeside(UIView *bar) {
+    for (UIView *sibling in bar.superview.subviews) {
+        if ([NSStringFromClass(sibling.class) isEqualToString:@"YTSlimStatusBarView"]) return YES;
+    }
+    return NO;
+}
+
+static void YTKACESlimStatusLayout(UIView *receiver, SEL selector) {
+    if (OriginalSlimStatusLayout != NULL) ((void (*)(id, SEL))OriginalSlimStatusLayout)(receiver, selector);
+    YTKACERelayoutPivotBesideStrip(receiver);
+}
+
+static void YTKACESlimStatusMoveToWindow(UIView *receiver, SEL selector) {
+    if (OriginalSlimStatusMoveToWindow != NULL) ((void (*)(id, SEL))OriginalSlimStatusMoveToWindow)(receiver, selector);
+    YTKACERelayoutPivotBesideStrip(receiver);
+}
+
+static void YTKACEPivotSetFrame(UIView *receiver, SEL selector, CGRect frame) {
+    BOOL moved = !CGRectEqualToRect(receiver.frame, frame);
+    ((void (*)(id, SEL, CGRect))OriginalPivotSetFrame)(receiver, selector, frame);
+    if (moved && YTKACEHasStripBeside(receiver)) [receiver setNeedsLayout];
+}
+
+static void YTKACEPivotSetCenter(UIView *receiver, SEL selector, CGPoint center) {
+    BOOL moved = !CGPointEqualToPoint(receiver.center, center);
+    ((void (*)(id, SEL, CGPoint))OriginalPivotSetCenter)(receiver, selector, center);
+    if (moved && YTKACEHasStripBeside(receiver)) [receiver setNeedsLayout];
+}
+
 void YTKACEInstallTabBarHooks(void) {
+    YTKACEInstallInstanceHook(@"YTSlimStatusBarView", @"layoutSubviews",
+                              (IMP)YTKACESlimStatusLayout, &OriginalSlimStatusLayout);
+    YTKACEInstallInstanceHook(@"YTSlimStatusBarView", @"didMoveToWindow",
+                              (IMP)YTKACESlimStatusMoveToWindow, &OriginalSlimStatusMoveToWindow);
+    YTKACEInstallInstanceHook(@"YTPivotBarView", @"setFrame:",
+                              (IMP)YTKACEPivotSetFrame, &OriginalPivotSetFrame);
+    YTKACEInstallInstanceHook(@"YTPivotBarView", @"setCenter:",
+                              (IMP)YTKACEPivotSetCenter, &OriginalPivotSetCenter);
     YTKACERefreshTabTint();
     YTKACEInstallClassHook(@"YTFloatingBarExperiment",
                            @"isIconsOnly",
