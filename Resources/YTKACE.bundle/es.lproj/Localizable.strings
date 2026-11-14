@@ -1051,6 +1051,11 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE usa datos de SponsorBlock.\nCon licen
 "Still show Shorts in search results when shelves are removed." = "Seguir mostrando Shorts en los resultados de búsqueda cuando se quitan los estantes.";
 "Still show Shorts on channel pages when shelves are removed." = "Seguir mostrando Shorts en los canales cuando se quitan los estantes.";
 
+"Remove Live Shorts" = "Quitar Shorts en directo";
+"Hide live broadcasts from the Shorts feed." = "Oculta las retransmisiones en directo del feed de Shorts.";
+"Remove Posts from Shorts" = "Quitar publicaciones de Shorts";
+"Hide community posts shown in the Shorts feed." = "Oculta las publicaciones de la comunidad que aparecen en el feed de Shorts.";
+
 "Remove Live Videos from Home" = "Quitar vídeos en directo de Inicio";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Quita las emisiones en directo del feed de Inicio. Suscripciones, búsqueda y canales las mantienen.";
 

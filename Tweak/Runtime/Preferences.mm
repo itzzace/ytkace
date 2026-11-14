@@ -88,6 +88,8 @@ void YTKACERegisterDefaults(void) {
         @"YTKACE.Preference.Shorts.CommentsHidden": @NO,
         @"YTKACE.Preference.Shorts.LikeHidden": @NO,
         @"YTKACE.Preference.Shorts.SoundHidden": @NO,
+        @"YTKACE.Preference.Shorts.LiveHidden": @NO,
+        @"YTKACE.Preference.Shorts.PostsHidden": @NO,
         @"YTKACE.Preference.Shorts.DownloadPosition": @0,
         @"YTKACE.Preference.Overlay.ProductsHidden": @NO,
         @"YTKACE.Preference.Player.HoldSpeedSwipe": @NO,

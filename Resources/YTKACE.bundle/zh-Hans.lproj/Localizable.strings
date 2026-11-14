@@ -1069,6 +1069,11 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE 使用 SponsorBlock 数据。
 "Still show Shorts in search results when shelves are removed." = "移除书架后仍在搜索结果中显示 Shorts。";
 "Still show Shorts on channel pages when shelves are removed." = "移除书架后仍在频道页面显示 Shorts。";
 
+"Remove Live Shorts" = "移除直播 Shorts";
+"Hide live broadcasts from the Shorts feed." = "从 Shorts 信息流中隐藏直播。";
+"Remove Posts from Shorts" = "移除 Shorts 帖子";
+"Hide community posts shown in the Shorts feed." = "隐藏 Shorts 信息流中显示的社区帖子。";
+
 "Remove Live Videos from Home" = "从首页移除直播视频";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "从首页 Feed 中移除直播。订阅、搜索和频道中仍会显示。";
 

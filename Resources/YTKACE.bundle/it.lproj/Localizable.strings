@@ -1069,6 +1069,11 @@ Concesso in licenza CC BY-NC-SA 4.0.";
 "Still show Shorts in search results when shelves are removed." = "Mostra ancora gli Shorts nei risultati di ricerca quando gli scaffali sono rimossi.";
 "Still show Shorts on channel pages when shelves are removed." = "Mostra ancora gli Shorts nei canali quando gli scaffali sono rimossi.";
 
+"Remove Live Shorts" = "Rimuovi Shorts in diretta";
+"Hide live broadcasts from the Shorts feed." = "Nasconde le dirette dal feed di Shorts.";
+"Remove Posts from Shorts" = "Rimuovi post da Shorts";
+"Hide community posts shown in the Shorts feed." = "Nasconde i post della community mostrati nel feed di Shorts.";
+
 "Remove Live Videos from Home" = "Rimuovi video dal vivo dalla Home";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Rimuove le dirette dal feed della Home. Iscrizioni, ricerca e canali le mantengono.";
 

@@ -1069,6 +1069,11 @@ CC BY-NC-SA 4.0 ile lisanslanmıştır.";
 "Still show Shorts in search results when shelves are removed." = "Raflar kaldırıldığında Shorts'u arama sonuçlarında göstermeye devam et.";
 "Still show Shorts on channel pages when shelves are removed." = "Raflar kaldırıldığında Shorts'u kanal sayfalarında göstermeye devam et.";
 
+"Remove Live Shorts" = "Canlı Shorts'ları kaldır";
+"Hide live broadcasts from the Shorts feed." = "Canlı yayınları Shorts akışından gizler.";
+"Remove Posts from Shorts" = "Shorts gönderilerini kaldır";
+"Hide community posts shown in the Shorts feed." = "Shorts akışında gösterilen topluluk gönderilerini gizler.";
+
 "Remove Live Videos from Home" = "Ana sayfadan canlı videoları kaldır";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Ana sayfa akışından canlı yayınları kaldırır. Abonelikler, arama ve kanallar bunları gösterir.";
 

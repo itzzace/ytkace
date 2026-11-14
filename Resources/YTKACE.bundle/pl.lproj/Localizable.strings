@@ -1054,6 +1054,11 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE korzysta z danych SponsorBlock.\nLice
 "Remove Live Videos from Home" = "Usuń transmisje na żywo z głównej";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Usuwa transmisje na żywo z kanału głównego. Subskrypcje, wyszukiwanie i kanały je zachowują.";
 
+"Remove Live Shorts" = "Usuń transmisje na żywo w Shorts";
+"Hide live broadcasts from the Shorts feed." = "Ukrywa transmisje na żywo w feedzie Shorts.";
+"Remove Posts from Shorts" = "Usuń posty z Shorts";
+"Hide community posts shown in the Shorts feed." = "Ukrywa posty społeczności wyświetlane w feedzie Shorts.";
+
 "iPhone Duo System Tab Bar" = "Systemowy pasek kart iPhone Duo";
 "Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright." = "Pokazuje karty na własnym pasku iPhone Duo: pionowym pasku, który po przytrzymaniu rozwija się z etykietami, lub pływającym pasku na dole po rozłożeniu w pionie.";
 "iPhone Duo Laptop Layout" = "Układ laptopa na iPhone Duo";

@@ -1069,6 +1069,11 @@ Cấp phép theo CC BY-NC-SA 4.0.";
 "Still show Shorts in search results when shelves are removed." = "Vẫn hiện Shorts trong kết quả tìm kiếm khi đã bỏ các kệ.";
 "Still show Shorts on channel pages when shelves are removed." = "Vẫn hiện Shorts trên trang kênh khi đã bỏ các kệ.";
 
+"Remove Live Shorts" = "Xóa Shorts trực tiếp";
+"Hide live broadcasts from the Shorts feed." = "Ẩn các buổi phát trực tiếp khỏi bảng tin Shorts.";
+"Remove Posts from Shorts" = "Xóa bài đăng khỏi Shorts";
+"Hide community posts shown in the Shorts feed." = "Ẩn bài đăng cộng đồng hiển thị trong bảng tin Shorts.";
+
 "Remove Live Videos from Home" = "Xóa video trực tiếp khỏi Trang chủ";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Xóa sự kiện phát trực tiếp khỏi nguồn cấp Trang chủ. Kênh đăng ký, tìm kiếm và kênh vẫn giữ chúng.";
 

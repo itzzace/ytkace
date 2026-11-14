@@ -90,6 +90,7 @@ NSInteger YTKACEPlaybackFixMode(void);
 id _Nullable YTKACEHLSOriginalResponse(NSString * _Nullable videoID);
 BOOL YTKACEHLSBeginFallback(NSString * _Nullable videoID, void (^ _Nonnull ready)(BOOL available));
 void YTKACEInstallShortsHooks(void);
+void YTKACEInstallShortsFeedFilterHooks(void);
 void YTKACEInstallSideloadCompatibilityHooks(void);
 void YTKACEInstallCastCompatibilityHooks(void);
 void YTKACEStartCastDiscovery(void);

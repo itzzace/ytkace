@@ -1084,6 +1084,11 @@ Licensed under CC BY-NC-SA 4.0.";
 "Remove Live Videos from Home" = "Remove Live Videos from Home";
 "Removes live streams from the Home feed. Subscriptions, search and channels keep them." = "Removes live streams from the Home feed. Subscriptions, search and channels keep them.";
 
+"Remove Live Shorts" = "Remove Live Shorts";
+"Hide live broadcasts from the Shorts feed." = "Hide live broadcasts from the Shorts feed.";
+"Remove Posts from Shorts" = "Remove Posts from Shorts";
+"Hide community posts shown in the Shorts feed." = "Hide community posts shown in the Shorts feed.";
+
 "iPhone Duo System Tab Bar" = "iPhone Duo System Tab Bar";
 "Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright." = "Shows the tabs in the iPhone Duo's own tab bar: the vertical bar, which expands with labels when held, or the floating bar at the bottom when unfolded upright.";
 "iPhone Duo Laptop Layout" = "iPhone Duo Laptop Layout";
