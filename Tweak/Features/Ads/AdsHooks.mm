@@ -687,12 +687,17 @@ void YTKACEInstallAdsHooks(void) {
                               @"decorateContext:",
                               (IMP)YTKACEAdsDecorateContext,
                               &OriginalAdsDecorateContext);
-    YTKACEInstallInstanceHook(@"YTAccountScopedAdsInnerTubeContextDecorator",
+    // Renamed to ...Impl in YouTube 21.46.
+    NSString *accountDecorator =
+        NSClassFromString(@"YTAccountScopedAdsInnerTubeContextDecoratorImpl") != Nil
+            ? @"YTAccountScopedAdsInnerTubeContextDecoratorImpl"
+            : @"YTAccountScopedAdsInnerTubeContextDecorator";
+    YTKACEInstallInstanceHook(accountDecorator,
                               @"decorateContext:",
                               (IMP)YTKACEAccountAdsDecorateContext,
                               &OriginalAccountAdsDecorateContext);
     YTKACEInstallAdsDecorateServiceHook(
-        @"YTAccountScopedAdsInnerTubeContextDecorator",
+        accountDecorator,
         (IMP)YTKACEAccountAdsDecorateService,
         &OriginalAccountAdsDecorateService
     );
