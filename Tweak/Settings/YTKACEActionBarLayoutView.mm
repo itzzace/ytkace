@@ -287,6 +287,8 @@ static BOOL YTKACEBarUsesChips(void) {
     NSArray *occasional = @[@"Clip", @"Remix", @"Thanks", @"Hype"];
     NSMutableArray *bar = [NSMutableArray array];
     NSMutableArray *hidden = [NSMutableArray array];
+    // The chip bar has no ⋯ button.
+    if (self.chips) [order removeObject:@"Overflow"];
     for (NSString *name in [order copy]) {
         if ([occasional containsObject:name] && ![seen containsObject:name] &&
             !YTKACEFeatureEnabled(YTKACEBarHiddenKey(name))) {

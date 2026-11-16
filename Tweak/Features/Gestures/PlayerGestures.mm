@@ -28,7 +28,6 @@ static const void *YTKACEIndicatorFillAssociation = &YTKACEIndicatorFillAssociat
 static const void *YTKACEIndicatorLabelAssociation = &YTKACEIndicatorLabelAssociation;
 static const void *YTKACEVolumeViewAssociation = &YTKACEVolumeViewAssociation;
 extern BOOL YTKACEHoldSpeedActive(void);
-static const int YTKACESwipeSeekSource = 0;
 static const void *YTKACESeekIndicatorAssociation = &YTKACESeekIndicatorAssociation;
 static const void *YTKACESeekIconAssociation = &YTKACESeekIconAssociation;
 static const void *YTKACESeekLabelAssociation = &YTKACESeekLabelAssociation;
@@ -446,12 +445,21 @@ static id YTKACEScrubberOverlay(UIView *view) {
     return YTKACEFindView(view, barClass, 0);
 }
 
-// Drives YouTube's own fine scrubber, so its time label and frame preview
-// follow the finger, like dragging the progress bar.
-static BOOL YTKACEScrubberCanSeek(id overlay) {
-    return [overlay respondsToSelector:NSSelectorFromString(@"fineScrubberDidStartSeeking")] &&
-        [overlay respondsToSelector:NSSelectorFromString(@"fineScrubberDidSeekToTime:")] &&
-        [overlay respondsToSelector:NSSelectorFromString(@"fineScrubberDidEndSeekingWithSeekSource:")];
+// Drives the player bar the way dragging the progress bar does, so YouTube's
+// own time pill and preview follow the finger. Ending the scrub only hides
+// them; the seek is ours.
+static BOOL YTKACEScrubberCanSeek(id bar) {
+    return [bar respondsToSelector:NSSelectorFromString(@"didStartScrubbing")] &&
+        [bar respondsToSelector:NSSelectorFromString(@"didScrubToPoint:withTime:")] &&
+        [bar respondsToSelector:NSSelectorFromString(@"didEndScrubbing")] &&
+        [bar respondsToSelector:NSSelectorFromString(@"scrubXForScrubRange:")];
+}
+
+static void YTKACEScrubBarToTime(id bar, double time, double total) {
+    const double fraction = total > 0.0 ? MIN(1.0, MAX(0.0, time / total)) : 0.0;
+    const double x = ((double (*)(id, SEL, double))objc_msgSend)(bar, NSSelectorFromString(@"scrubXForScrubRange:"), fraction);
+    ((void (*)(id, SEL, CGPoint, double))objc_msgSend)(bar, NSSelectorFromString(@"didScrubToPoint:withTime:"),
+                                                        (CGPoint){x, 0.0}, time);
 }
 
 // A zoomed video pans with a horizontal drag, so swipe to seek stays out.
@@ -489,7 +497,7 @@ static BOOL YTKACEScrubberCanSeek(id overlay) {
         objc_setAssociatedObject(recognizer, YTKACEGestureInitialAssociation, @(start),
                                  OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         if (self.scrubOverlay != nil) {
-            ((void (*)(id, SEL))objc_msgSend)(self.scrubOverlay, NSSelectorFromString(@"fineScrubberDidStartSeeking"));
+            ((void (*)(id, SEL))objc_msgSend)(self.scrubOverlay, NSSelectorFromString(@"didStartScrubbing"));
         }
     }
     id target = self.seekTarget;
@@ -511,7 +519,7 @@ static BOOL YTKACEScrubberCanSeek(id overlay) {
     if (recognizer.state == UIGestureRecognizerStateBegan ||
         recognizer.state == UIGestureRecognizerStateChanged) {
         if (overlay != nil) {
-            ((void (*)(id, SEL, double))objc_msgSend)(overlay, NSSelectorFromString(@"fineScrubberDidSeekToTime:"), time);
+            YTKACEScrubBarToTime(overlay, time, maximum);
         } else {
             [self showSeekIndicatorInView:view time:time forward:translation >= 0.0];
         }
@@ -519,11 +527,8 @@ static BOOL YTKACEScrubberCanSeek(id overlay) {
     }
     const BOOL seeks = recognizer.state == UIGestureRecognizerStateEnded && fabs(time - start) >= 1.0;
     if (overlay != nil) {
-        if (!seeks) {
-            ((void (*)(id, SEL, double))objc_msgSend)(overlay, NSSelectorFromString(@"fineScrubberDidSeekToTime:"), start);
-        }
-        ((void (*)(id, SEL, int))objc_msgSend)(overlay,
-            NSSelectorFromString(@"fineScrubberDidEndSeekingWithSeekSource:"), YTKACESwipeSeekSource);
+        if (!seeks) YTKACEScrubBarToTime(overlay, start, maximum);
+        ((void (*)(id, SEL))objc_msgSend)(overlay, NSSelectorFromString(@"didEndScrubbing"));
     } else {
         UIView *indicator = [self seekIndicatorInView:view];
         [UIView animateWithDuration:0.3 delay:0.3

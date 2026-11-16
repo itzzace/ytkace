@@ -107,10 +107,17 @@ static NSString *YTKACEVisionVisitor(void) {
     [[NSURLSession.sharedSession dataTaskWithRequest:YTKACEVisionRequest(
         @"guide?prettyPrint=false&fields=responseContext.visitorData",
         @{@"context": YTKACEVisionContext(nil)}, nil)
-        completionHandler:^(NSData *data, __unused NSURLResponse *response, __unused NSError *error) {
+        completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         id json = data.length ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
         id found = [json isKindOfClass:NSDictionary.class] ? json[@"responseContext"][@"visitorData"] : nil;
         if ([found isKindOfClass:NSString.class]) visitor = found;
+        if (visitor == nil) {
+            YTKACEDownloadLog(@"hls", @"visitor failed http=%ld bytes=%lu error=%@",
+                              [response isKindOfClass:NSHTTPURLResponse.class] ? (long)((NSHTTPURLResponse *)response).statusCode : 0L,
+                              (unsigned long)data.length,
+                              error != nil ? [NSString stringWithFormat:@"%@ %ld %@", error.domain, (long)error.code,
+                                              error.localizedDescription] : @"none");
+        }
         dispatch_semaphore_signal(done);
     }] resume];
     dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(12 * NSEC_PER_SEC)));
@@ -161,9 +168,11 @@ static void YTKACEHLSFetchVisionThen(NSString *videoID, void (^done)(BOOL ready)
             @"racyCheckOk": @YES
         };
         [[NSURLSession.sharedSession dataTaskWithRequest:YTKACEVisionRequest(@"player?prettyPrint=false", body, visitor)
-            completionHandler:^(NSData *data, __unused NSURLResponse *response, __unused NSError *error) {
+            completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
             id json = data.length ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
             NSDictionary *root = [json isKindOfClass:NSDictionary.class] ? json : @{};
+            const NSInteger http = [response isKindOfClass:NSHTTPURLResponse.class]
+                ? ((NSHTTPURLResponse *)response).statusCode : 0;
             NSDictionary *playability = [root[@"playabilityStatus"] isKindOfClass:NSDictionary.class]
                 ? root[@"playabilityStatus"] : @{};
             NSDictionary *streaming = [root[@"streamingData"] isKindOfClass:NSDictionary.class]
@@ -178,8 +187,13 @@ static void YTKACEHLSFetchVisionThen(NSString *videoID, void (^done)(BOOL ready)
                 }
             }
             if (hls.length == 0) {
-                YTKACEDownloadLog(@"hls", @"vision video=%@ playability=%@ no manifest", videoID,
-                                  playability[@"status"] ?: @"-");
+                // A missing status means the request itself failed (network,
+                // proxy, non-JSON reply), not that YouTube refused the video.
+                YTKACEDownloadLog(@"hls", @"vision video=%@ playability=%@ reason=%@ http=%ld bytes=%lu visitor=%d error=%@",
+                                  videoID, playability[@"status"] ?: @"-", playability[@"reason"] ?: @"-", (long)http,
+                                  (unsigned long)data.length, visitor.length != 0,
+                                  error != nil ? [NSString stringWithFormat:@"%@ %ld %@", error.domain, (long)error.code,
+                                                  error.localizedDescription] : @"none");
             }
             for (void (^waiter)(BOOL) in waiters) waiter(hls.length != 0);
         }] resume];
