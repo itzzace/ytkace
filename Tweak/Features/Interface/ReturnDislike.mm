@@ -739,13 +739,24 @@ static void YTKACEDislikeFetch(NSString *videoID) {
     }] resume];
 }
 
+// The iPhone bar puts the count in the line under the title, not on a
+// button. The dislike button can be moved into ⋯ there, so the like button
+// can start it too.
+static BOOL YTKACEInFixedActionBar(UIView *view) {
+    for (UIView *ancestor = view.superview; ancestor != nil; ancestor = ancestor.superview) {
+        if ([ancestor.accessibilityIdentifier containsString:@"non_scrollable_action_bar"]) return YES;
+    }
+    return NO;
+}
+
 void YTKACEReturnDislikeConsiderView(UIView *view) {
     if (view.window == nil) return;
     NSString *identifier = view.accessibilityIdentifier;
     BOOL shorts = [identifier isEqualToString:@"id.reel_like_button"];
+    const BOOL fixedLike = [identifier isEqualToString:@"id.video.like.button"] && YTKACEInFixedActionBar(view);
     if (shorts) {
         if (!YTKACEFeatureEnabled(YTKACEShortsDislikeKey)) return;
-    } else if (![identifier isEqualToString:@"id.video.dislike.button"] ||
+    } else if ((![identifier isEqualToString:@"id.video.dislike.button"] && !fixedLike) ||
                !YTKACEFeatureEnabled(YTKACEReturnDislikeKey) ||
                YTKACEFeatureEnabled(@"YTKACE.Preference.ActionBar.DislikeHidden")) {
         return;
