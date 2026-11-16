@@ -4,6 +4,7 @@
 #import "../Features/Downloads/SABRDownloader.h"
 #import "YTKACERootOptionsController.h"
 #import "YTKACETabEditorController.h"
+#import "YTKACEActionBarLayoutView.h"
 #import "YTKACEButtonLayoutView.h"
 #import "../Runtime/Preferences.h"
 #import "../YTKACE.h"
@@ -596,6 +597,7 @@ NSString *YTKACEPickerSummary(NSString *key,
     BOOL _backupRunning;
     BOOL _restoreRunning;
     YTKACEButtonLayoutView *_layoutView;
+    YTKACEActionBarLayoutView *_actionLayoutView;
 }
 
 - (instancetype)initWithTitle:(NSString *)title
@@ -697,11 +699,45 @@ NSString *YTKACEPickerSummary(NSString *key,
     return _layoutView;
 }
 
+- (YTKACEActionBarLayoutView *)actionLayoutView {
+    if (_actionLayoutView != nil) return _actionLayoutView;
+    _actionLayoutView = [YTKACEActionBarLayoutView new];
+    __weak YTKACEOptionsController *weakSelf = self;
+    // the Remove toggles below follow along
+    _actionLayoutView.changeHandler = ^{
+        YTKACEOptionsController *strongSelf = weakSelf;
+        if (strongSelf == nil) return;
+        UITableView *table = strongSelf.tableView;
+        NSMutableArray *paths = [NSMutableArray array];
+        for (NSIndexPath *path in table.indexPathsForVisibleRows) {
+            if (![strongSelf->_sections[(NSUInteger)path.section][(NSUInteger)path.row][@"type"] isEqualToString:@"actionlayout"]) {
+                [paths addObject:path];
+            }
+        }
+        [UIView performWithoutAnimation:^{
+            [table reloadRowsAtIndexPaths:paths withRowAnimation:UITableViewRowAnimationNone];
+        }];
+        [table beginUpdates];
+        [table endUpdates];
+    };
+    _actionLayoutView.heightHandler = ^{
+        UITableView *table = weakSelf.tableView;
+        [UIView performWithoutAnimation:^{
+            [table beginUpdates];
+            [table endUpdates];
+        }];
+    };
+    return _actionLayoutView;
+}
+
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
     NSDictionary *item = _sections[(NSUInteger)indexPath.section][(NSUInteger)indexPath.row];
     NSString *type = item[@"type"];
     if ([type isEqualToString:@"layout"]) {
         return [[self layoutView] heightForWidth:CGRectGetWidth(tableView.bounds)];
+    }
+    if ([type isEqualToString:@"actionlayout"]) {
+        return [[self actionLayoutView] heightForWidth:CGRectGetWidth(tableView.bounds)];
     }
     if ([type isEqualToString:@"text"]) {
         return 92.0;
@@ -739,6 +775,19 @@ willDisplayHeaderView:(UIView *)view
         }
         cell.backgroundColor = YTKACESettingsCellBackground();
         YTKACEButtonLayoutView *view = [self layoutView];
+        view.frame = cell.contentView.bounds;
+        view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        [cell.contentView addSubview:view];
+        return cell;
+    }
+    if ([type isEqualToString:@"actionlayout"]) {
+        UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"YTKACEActionLayout"];
+        if (cell == nil) {
+            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"YTKACEActionLayout"];
+            cell.selectionStyle = UITableViewCellSelectionStyleNone;
+        }
+        cell.backgroundColor = YTKACESettingsCellBackground();
+        YTKACEActionBarLayoutView *view = [self actionLayoutView];
         view.frame = cell.contentView.bounds;
         view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         [cell.contentView addSubview:view];
@@ -1888,22 +1937,11 @@ static NSDictionary *YTKACEWatchPageDefinition(void) {
                                @"YTKACE.Preference.Overlay.ProductsHidden")
         ],
         @[
-            YTKACEToggle(@"Remove Like", @"YTKACE.Preference.ActionBar.LikeHidden", @"", @""),
-            YTKACEToggle(@"Remove Dislike", @"YTKACE.Preference.ActionBar.DislikeHidden", @"", @""),
+            @{@"type": @"actionlayout", @"title": YTKACELocalized(@"Action Bar"), @"en": @"Action Bar", @"subtitle": @""},
             YTKACEToggleDetail(@"Return YouTube Dislike", @"Show dislike counts from returnyoutubedislike.com.",
                                @"YTKACE.Preference.ActionBar.ReturnDislike"),
             YTKACEToggleDetail(@"Submit Votes", @"Send your likes and dislikes to Return YouTube Dislike with an anonymous ID.",
-                               @"YTKACE.Preference.ActionBar.ReturnDislikeVotes"),
-            YTKACEToggle(@"Remove Share", @"YTKACE.Preference.ActionBar.ShareHidden", @"", @""),
-            YTKACEToggle(@"Remove Download", @"YTKACE.Preference.ActionBar.DownloadHidden", @"", @""),
-            YTKACEToggle(@"Remove Save", @"YTKACE.Preference.ActionBar.SaveHidden", @"", @""),
-            YTKACEToggle(@"Remove Clip", @"YTKACE.Preference.ActionBar.ClipHidden", @"", @""),
-            YTKACEToggle(@"Remove Remix", @"YTKACE.Preference.ActionBar.RemixHidden", @"", @""),
-            YTKACEToggle(@"Remove Thanks", @"YTKACE.Preference.ActionBar.ThanksHidden", @"", @""),
-            YTKACEToggle(@"Remove Hype", @"YTKACE.Preference.ActionBar.HypeHidden", @"", @""),
-            YTKACEToggle(@"Remove Report", @"YTKACE.Preference.ActionBar.ReportHidden", @"", @""),
-            YTKACEToggle(@"Remove Ask Button", @"YTKACE.Preference.ActionBar.AskHidden", @"", @""),
-            YTKACEToggle(@"Remove ⋯ Button", @"YTKACE.Preference.ActionBar.OverflowHidden", @"", @"")
+                               @"YTKACE.Preference.ActionBar.ReturnDislikeVotes")
         ]
     ], @[YTKACELocalized(@"UNDER THE VIDEO"), YTKACELocalized(@"ACTION BAR")]);
 }

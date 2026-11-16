@@ -39,8 +39,43 @@ static id YTKACEDislikeIvar(id object, const char *name) {
     return nil;
 }
 
+// ICU's short compact format ("1.5K", "1,5 mil", "1.5万"), so the count matches
+// the language of YouTube's own like count next to it.
+extern "C" {
+void *unum_open(int style, const uint16_t *pattern, int32_t patternLength,
+                const char *locale, void *parseError, int *status);
+int32_t unum_formatDouble(const void *format, double number, uint16_t *result,
+                          int32_t resultLength, void *position, int *status);
+}
+
+static NSString *YTKACECompactNumber(double value) {
+    static void *format;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        NSString *language = NSBundle.mainBundle.preferredLocalizations.firstObject ?: @"en";
+        NSString *locale = [NSLocale canonicalLocaleIdentifierFromString:language];
+        int status = 0;
+        void *opened = unum_open(14 /* UNUM_DECIMAL_COMPACT_SHORT */, NULL, 0,
+                                 locale.UTF8String, NULL, &status);
+        if (status <= 0) format = opened;
+    });
+    if (format == NULL) return nil;
+    uint16_t buffer[64];
+    int status = 0;
+    int32_t length = unum_formatDouble(format, value, buffer, 64, NULL, &status);
+    if (status > 0 || length <= 0 || length > 64) return nil;
+    return [NSString stringWithCharacters:buffer length:(NSUInteger)length];
+}
+
 static NSString *YTKACEDislikeText(long long count) {
     if (count < 1000) return [NSString stringWithFormat:@"%lld", count];
+    // Round down like YouTube (1,565 shows as 1.5K), then let ICU write it.
+    double scale = 1000.0;
+    while ((double)count / scale >= 1000.0 && scale < 1e9) scale *= 1000.0;
+    const double amount = (double)count / scale;
+    const double rounded = amount < 10.0 ? floor(amount * 10.0) / 10.0 : floor(amount);
+    NSString *compact = YTKACECompactNumber(rounded * scale);
+    if (compact.length != 0) return compact;
     NSArray<NSString *> *units = @[@"K", @"M", @"B"];
     double value = (double)count;
     NSUInteger unit = 0;

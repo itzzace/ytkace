@@ -89,6 +89,7 @@ YTKACE_FILES = \
 	Tweak/Features/Gestures/PlayerGestures.mm \
 	Tweak/Features/Interface/OverlayVisibilityHooks.mm \
 	Tweak/Features/Interface/ContentVisibilityHooks.mm \
+	Tweak/Features/Interface/ActionBarModel.mm \
 	Tweak/Features/Interface/AiSList.mm \
 	Tweak/Features/Interface/AiSListReport.mm \
 	Tweak/Features/Interface/LinkCleaning.mm \
@@ -106,6 +107,7 @@ YTKACE_FILES = \
 	Tweak/Settings/YTKACESettingsPages.mm \
 	Tweak/Settings/YTKACESettingsSearch.mm \
 	Tweak/Settings/YTKACETabEditorController.mm \
+	Tweak/Settings/YTKACEActionBarLayoutView.mm \
 	Tweak/Settings/YTKACEButtonLayoutView.mm \
 	Tweak/Settings/YTKACEDownloadsController.mm
 
@@ -117,7 +119,7 @@ YTKACE_CFLAGS += -I$(THEOS_PROJECT_DIR)/Vendor/FFmpeg/include
 YTKACE_CFLAGS += -I$(THEOS_PROJECT_DIR)/Vendor/DuoKit
 YTKACE_CCFLAGS = -std=c++17
 YTKACE_FRAMEWORKS = Foundation UIKit JavaScriptCore AVFoundation AVKit AudioToolbox Photos QuartzCore MediaPlayer Security SystemConfiguration UniformTypeIdentifiers VideoToolbox CoreMedia
-YTKACE_LIBRARIES = z
+YTKACE_LIBRARIES = z icucore
 YTKACE_LDFLAGS = -Wl,-install_name,@rpath/YTKACE.dylib
 YTKACE_LDFLAGS += $(THEOS_PROJECT_DIR)/Vendor/FFmpeg/lib/libavformat.a
 YTKACE_LDFLAGS += $(THEOS_PROJECT_DIR)/Vendor/FFmpeg/lib/libavcodec.a
