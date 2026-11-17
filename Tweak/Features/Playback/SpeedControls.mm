@@ -601,10 +601,12 @@ static double YTKACEHoldCurrentRate;
 static CGFloat YTKACEHoldStartY;
 static __weak id YTKACEHoldPillNode;
 static NSDictionary *YTKACEHoldPillAttributes;
+static NSString *YTKACEHoldPillOriginalText;
 static IMP OriginalTextNodeSetAttributedText;
 static const CGFloat YTKACEHoldStepDistance = 30.0;
 
 static void YTKACERestoreHoldRate(void);
+static NSString *YTKACEWithPillMarks(NSString *original, NSString *speed);
 
 static void YTKACEApplyHoldRate(NSString *source) {
     const BOOL on = YTKACEFeatureEnabled(YTKACEHoldSpeedKey);
@@ -638,7 +640,8 @@ static void YTKACEHoldSwipeChanged(UILongPressGestureRecognizer *recognizer) {
     id node = YTKACEHoldPillNode;
     if (node != nil && OriginalTextNodeSetAttributedText != NULL) {
         NSAttributedString *text = [[NSAttributedString alloc]
-            initWithString:YTKACESpeedText(rate) attributes:YTKACEHoldPillAttributes ?: @{}];
+            initWithString:YTKACEWithPillMarks(YTKACEHoldPillOriginalText ?: @"", YTKACESpeedText(rate))
+                attributes:YTKACEHoldPillAttributes ?: @{}];
         ((void (*)(id, SEL, id))OriginalTextNodeSetAttributedText)(
             node, NSSelectorFromString(@"setAttributedText:"), text);
     }
@@ -649,6 +652,7 @@ static void YTKACERestoreHoldRate(void) {
     YTKACEHoldOverrideActive = NO;
     YTKACEHoldCurrentRate = 0.0;
     YTKACEHoldPillNode = nil;
+    YTKACEHoldPillOriginalText = nil;
     const double previous = YTKACEHoldPreviousRate;
     YTKACEHoldPreviousRate = 0.0;
     if (previous < 0.25 || previous > 5.0) return;
@@ -695,7 +699,29 @@ static void YTKACESpeedmasterLongPress(id receiver, SEL selector,
     }
 }
 
+// Right-to-left languages wrap the pill's "2x" in invisible direction marks.
+static NSCharacterSet *YTKACEBidiMarks(void) {
+    static NSCharacterSet *marks;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        marks = [NSCharacterSet characterSetWithCharactersInString:
+            @"\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069\u061C"];
+    });
+    return marks;
+}
+
+// The same marks around a new speed text, so the pill keeps its direction.
+static NSString *YTKACEWithPillMarks(NSString *original, NSString *speed) {
+    NSCharacterSet *marks = YTKACEBidiMarks();
+    NSUInteger start = 0, end = original.length;
+    while (start < end && [marks characterIsMember:[original characterAtIndex:start]]) start++;
+    while (end > start && [marks characterIsMember:[original characterAtIndex:end - 1]]) end--;
+    return [NSString stringWithFormat:@"%@%@%@", [original substringToIndex:start], speed,
+                                      [original substringFromIndex:end]];
+}
+
 static BOOL YTKACELooksLikeSpeedPill(NSString *text) {
+    text = [text stringByTrimmingCharactersInSet:YTKACEBidiMarks()];
     if (text.length < 2 || ![text hasSuffix:@"x"]) return NO;
     NSString *number = [text substringToIndex:text.length - 1];
     NSCharacterSet *allowed =
@@ -713,7 +739,8 @@ static void YTKACETextNodeSetAttributedText(id receiver, SEL selector,
         YTKACEFeatureEnabled(YTKACEHoldSpeedKey) && YTKACELooksLikeSpeedPill(text)) {
         const double stored = YTKACEHoldCurrentRate > 0.0 ? YTKACEHoldCurrentRate :
             [YTKACEPreferenceObject(YTKACEHoldSpeedRateKey) doubleValue];
-        NSString *wanted = YTKACESpeedText(stored);
+        NSString *wanted = YTKACEWithPillMarks(text, YTKACESpeedText(stored));
+        YTKACEHoldPillOriginalText = [text copy];
         NSDictionary *attributes = value.length != 0
             ? [value attributesAtIndex:0 effectiveRange:NULL] : @{};
         YTKACEHoldPillNode = receiver;
