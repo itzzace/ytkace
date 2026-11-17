@@ -12,6 +12,9 @@ static IMP OriginalHeaderLogoSetHidden;
 static IMP OriginalLogoViewSetHidden;
 static IMP OriginalYTImageSetHidden;
 static IMP OriginalQTMButtonLayout;
+static IMP OriginalQTMButtonSetHidden;
+static IMP OriginalQTMButtonSetIdentifier;
+static IMP OriginalQTMButtonDidMoveToWindow;
 static IMP OriginalQTMButtonSetTint;
 static IMP OriginalQTMButtonSetImage;
 static IMP OriginalNavigationImageSetTint;
@@ -500,39 +503,68 @@ static void YTKACEYTImageSetHidden(UIView *receiver,
     }
 }
 
+// The setting that hides this top bar button, if any. Ids first, since
+// labels change with the app language.
+static NSString *YTKACEQTMButtonHideKey(UIView *receiver) {
+    NSString *identifier = receiver.accessibilityIdentifier.lowercaseString;
+    NSString *label = receiver.accessibilityLabel.lowercaseString;
+    if ([identifier isEqualToString:@"id.connections.inbox.button"] ||
+        [label isEqualToString:@"messages"] ||
+        [label isEqualToString:@"message"] ||
+        [label isEqualToString:@"chat"] ||
+        [label isEqualToString:@"inbox"]) {
+        return @"YTKACE.Preference.Navigation.MessagesHidden";
+    }
+    if ([identifier isEqualToString:@"id.ui.navigation.search.button"] ||
+        [label isEqualToString:@"search"]) {
+        return @"YTKACE.Preference.Navigation.SearchHidden";
+    }
+    if ([label isEqualToString:@"notifications"] ||
+        [label isEqualToString:@"notification"]) {
+        return @"YTKACE.Preference.Navigation.NotificationsHidden";
+    }
+    return nil;
+}
+
 static void YTKACEQTMButtonLayout(UIView *receiver, SEL selector) {
     if (OriginalQTMButtonLayout != NULL) {
         ((void (*)(id, SEL))OriginalQTMButtonLayout)(receiver, selector);
     }
-    NSString *label = receiver.accessibilityLabel.lowercaseString;
-    if ([label isEqualToString:@"notifications"] ||
-        [label isEqualToString:@"notification"]) {
-        YTKACESetNavigationHidden(
-            receiver,
-            YTKACEFeatureEnabled(@"YTKACE.Preference.Navigation.NotificationsHidden")
-        );
-    } else if ([label isEqualToString:@"messages"] ||
-               [label isEqualToString:@"message"] ||
-               [label isEqualToString:@"chat"] ||
-               [label isEqualToString:@"inbox"] ||
-               [receiver.accessibilityIdentifier.lowercaseString
-                   isEqualToString:@"id.connections.inbox.button"]) {
-        YTKACESetNavigationHidden(
-            receiver,
-            YTKACEFeatureEnabled(@"YTKACE.Preference.Navigation.MessagesHidden")
-        );
-    } else if ([label isEqualToString:@"search"] ||
-               [receiver.accessibilityIdentifier
-                   isEqualToString:@"id.ui.navigation.search.button"]) {
-        YTKACESetNavigationHidden(
-            receiver,
-            YTKACEFeatureEnabled(@"YTKACE.Preference.Navigation.SearchHidden")
-        );
-    }
+    NSString *key = YTKACEQTMButtonHideKey(receiver);
+    if (key != nil) YTKACESetNavigationHidden(receiver, YTKACEFeatureEnabled(key));
     if (YTKACEFeatureEnabled(YTKACEOLEDKey) &&
         YTKACEIsNavigationIcon(receiver)) {
         YTKACEApplyNavigationTint(receiver,
                                   YTKACENavigationForeground(receiver));
+    }
+}
+
+// Some tabs (You) show their top bar buttons again after layout, so keep
+// hidden buttons hidden here too.
+static void YTKACEQTMButtonSetHidden(UIView *receiver, SEL selector, BOOL hidden) {
+    if (!hidden) {
+        NSString *key = YTKACEQTMButtonHideKey(receiver);
+        if (key != nil && YTKACEFeatureEnabled(key) &&
+            YTKACEInsideRightNavigation(receiver)) hidden = YES;
+    }
+    ((void (*)(id, SEL, BOOL))OriginalQTMButtonSetHidden)(receiver, selector, hidden);
+}
+
+// YouTube sets the id after the button is laid out, so check again then.
+static void YTKACEQTMButtonSetIdentifier(UIView *receiver, SEL selector, NSString *value) {
+    ((void (*)(id, SEL, id))OriginalQTMButtonSetIdentifier)(receiver, selector, value);
+    NSString *key = YTKACEQTMButtonHideKey(receiver);
+    if (key != nil && YTKACEFeatureEnabled(key) && YTKACEInsideRightNavigation(receiver)) {
+        YTKACESetNavigationHidden(receiver, YES);
+    }
+}
+
+static void YTKACEQTMButtonDidMoveToWindow(UIView *receiver, SEL selector) {
+    ((void (*)(id, SEL))OriginalQTMButtonDidMoveToWindow)(receiver, selector);
+    if (receiver.window == nil) return;
+    NSString *key = YTKACEQTMButtonHideKey(receiver);
+    if (key != nil && YTKACEFeatureEnabled(key) && YTKACEInsideRightNavigation(receiver)) {
+        YTKACESetNavigationHidden(receiver, YES);
     }
 }
 
@@ -670,6 +702,18 @@ void YTKACEInstallNavigationVisibilityHooks(void) {
                               @"layoutSubviews",
                               (IMP)YTKACEQTMButtonLayout,
                               &OriginalQTMButtonLayout);
+    YTKACEInstallInstanceHook(@"YTQTMButton",
+                              @"setHidden:",
+                              (IMP)YTKACEQTMButtonSetHidden,
+                              &OriginalQTMButtonSetHidden);
+    YTKACEInstallInstanceHook(@"YTQTMButton",
+                              @"setAccessibilityIdentifier:",
+                              (IMP)YTKACEQTMButtonSetIdentifier,
+                              &OriginalQTMButtonSetIdentifier);
+    YTKACEInstallInstanceHook(@"YTQTMButton",
+                              @"didMoveToWindow",
+                              (IMP)YTKACEQTMButtonDidMoveToWindow,
+                              &OriginalQTMButtonDidMoveToWindow);
     YTKACEInstallInstanceHook(@"YTQTMButton",
                               @"setTintColor:",
                               (IMP)YTKACEQTMButtonSetTint,

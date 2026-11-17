@@ -2504,6 +2504,7 @@ static BOOL YTKACEMixFilteredEntries(id section) {
         if (YTKACEEntryIsMix(entry)) [drop addIndex:index];
     }];
     if (drop.count == 0) return NO;
+    YTKACEDebugLog(@"feed", @"removed %lu of %lu mixes", (unsigned long)drop.count, (unsigned long)[(NSArray *)contents count]);
     [(NSMutableArray *)contents removeObjectsAtIndexes:drop];
     return [(NSArray *)contents count] == 0;
 }
