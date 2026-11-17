@@ -49,6 +49,8 @@ Rootless and roothide packages are both published. The repository page also has 
 
 **Sideloaded.** Download the IPA for your iOS version from the [latest release](https://github.com/itzzace/ytkace/releases/latest) and install it with TrollStore, AltStore, SideStore or LiveContainer.
 
+**Open in YouTube.** Sideloaded IPAs include Billy Curtis’s [Safari extension](https://github.com/BillyCurtis/OpenYouTubeSafariExtension). Go to Settings → Apps → Safari → Extensions → Open in YouTube (Settings → Safari on older iOS versions). Enable the extension, set YouTube website access to **Allow**, then reload any open YouTube tabs.
+
 ## Build
 
 Fork the repository, enable Actions, open the **IPA** workflow and provide a direct link to a decrypted YouTube IPA you are legally allowed to use. The completed workflow provides the injected IPA as an artifact. The **Deb** workflow builds the tweak package.
