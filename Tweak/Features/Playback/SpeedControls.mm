@@ -474,6 +474,10 @@ static void YTKACESetSpeedTitle(UIButton *button, NSString *title) {
 
 @end
 
+double YTKACECurrentPlaybackRate(void) {
+    return [YTKACESpeedCoordinator sharedCoordinator].currentRate;
+}
+
 static IMP YTKACEMaximumOriginal(id receiver, SEL selector) {
     NSString *key = [NSString stringWithFormat:@"%@|%@",
         NSStringFromClass([receiver class]), NSStringFromSelector(selector)];

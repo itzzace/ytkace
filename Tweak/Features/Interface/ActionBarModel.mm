@@ -160,7 +160,7 @@ NSString *YTKACERendererName(const std::string &renderer) {
     if (kind == YTKACEAskRenderer) return @"Ask";
     if (kind != YTKACEButtonRenderer) return nil;
     if (PBContains(renderer, "/share_24pt") || PBContains(renderer, "id.video.share.button")) return @"Share";
-    if (PBContains(renderer, "/spark_24pt")) return @"Ask";
+    if (PBContains(renderer, "/spark_24pt") || PBContains(renderer, "you-chat-entrypoint")) return @"Ask";
     if (PBContains(renderer, "/flag_24pt")) return @"Report";
     if (PBContains(renderer, "/scissors")) return @"Clip";
     if (PBContains(renderer, "/remix")) return @"Remix";

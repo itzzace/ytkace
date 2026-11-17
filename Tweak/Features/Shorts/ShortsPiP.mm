@@ -44,20 +44,24 @@ static BOOL YTKACEShortsBlocksPiP(id controller) {
     return NO;
 }
 
+// YouTube says no to PiP for free accounts outside the US; with YTKACE PiP
+// on, every video that isn't blocked above can use it.
 static BOOL YTKACEShortsAllowed(id self, SEL _cmd) {
     if (YTKACEShortsBlocksPiP(self)) return NO;
+    if (YTKACEFeatureEnabled(YTKACEPiPKey)) return YES;
     return ((BOOL (*)(id, SEL))YTKACEShortsOrigAllowed)(self, _cmd);
 }
 
 static BOOL YTKACEShortsEligible(id self, SEL _cmd) {
     if (YTKACEShortsBlocksPiP(self)) return NO;
     BOOL eligible = ((BOOL (*)(id, SEL))YTKACEShortsOrigEligible)(self, _cmd);
-    if (!eligible && YTKACEFeatureEnabled(YTKACEBackgroundPlaybackKey)) return YES;
+    if (!eligible && (YTKACEFeatureEnabled(YTKACEBackgroundPlaybackKey) || YTKACEFeatureEnabled(YTKACEPiPKey))) return YES;
     return eligible;
 }
 
 static BOOL YTKACEShortsCanEnable(id self, SEL _cmd) {
     if (YTKACEShortsBlocksPiP(self)) return NO;
+    if (YTKACEFeatureEnabled(YTKACEPiPKey)) return YES;
     return ((BOOL (*)(id, SEL))YTKACEShortsOrigCanEnable)(self, _cmd);
 }
 
