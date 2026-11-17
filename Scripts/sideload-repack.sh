@@ -52,6 +52,14 @@ mkdir -p "$APP/Frameworks"
 cp "$DYLIB" "$APP/Frameworks/YTKACE.dylib"
 cp -R "$ROOT/Resources/YTKACE.bundle" "$APP/YTKACE.bundle"
 
+if [[ -n "${OPEN_IN_YOUTUBE_APPEX:-}" ]]; then
+  test -f "$OPEN_IN_YOUTUBE_APPEX/Info.plist"
+  EXTENSION="$APP/PlugIns/OpenYouTubeSafariExtension.appex"
+  mkdir -p "$APP/PlugIns"
+  rm -rf "$EXTENSION"
+  cp -R "$OPEN_IN_YOUTUBE_APPEX" "$EXTENSION"
+fi
+
 bash "$ROOT/Scripts/sign-bundle.sh" "$APP"
 
 mkdir -p "$(dirname "$OUTPUT")"

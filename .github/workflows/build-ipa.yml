@@ -53,6 +53,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Check out Open in YouTube
+        uses: actions/checkout@v6
+        with:
+          repository: BillyCurtis/OpenYouTubeSafariExtension
+          ref: c87b5d5551b406477dca883158572f803251f52c
+          path: open-in-youtube
+          persist-credentials: false
+
       - uses: actions/download-artifact@v8
         with:
           name: YTKACE-deb-rootless
@@ -83,6 +91,8 @@ jobs:
 
       - name: Inject
         id: inject
+        env:
+          OPEN_IN_YOUTUBE_APPEX: open-in-youtube/OpenYouTubeSafariExtension.appex
         run: |
           mkdir deb-root
           dpkg-deb -x packages/*.deb deb-root
