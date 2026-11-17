@@ -103,8 +103,12 @@ jobs:
           else
             output="YTKACE_${tweak_version}_YouTube_${youtube_version}.ipa"
           fi
-          bash Scripts/sideload-repack.sh YouTube.ipa deb-root/var/jb/Library/MobileSubstrate/DynamicLibraries/YTKACE.dylib "$output"
+          # Open in YTKACE Safari extension, off until turned on in Settings.
+          bash Scripts/build-safari-extension.sh safari-extension iphoneos
+          SAFARI_EXTENSION_APPEX=safari-extension/OpenInYTKACE.appex \
+            bash Scripts/sideload-repack.sh YouTube.ipa deb-root/var/jb/Library/MobileSubstrate/DynamicLibraries/YTKACE.dylib "$output"
           bash Tools/verify-artifacts.sh deb-root/var/jb/Library/MobileSubstrate/DynamicLibraries/YTKACE.dylib "$output"
+          unzip -l "$output" | grep -q 'PlugIns/OpenInYTKACE.appex/OpenInYTKACE$'
           echo "ipa=$output" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v7
