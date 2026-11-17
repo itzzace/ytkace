@@ -3,6 +3,7 @@
 #import "../../Runtime/Preferences.h"
 #import "../../UI/Assets.h"
 #import "../../UI/OverlayButtonHost.h"
+#import "../Downloads/DownloadLog.h"
 
 #import <AVFoundation/AVFoundation.h>
 #import <math.h>
@@ -760,7 +761,31 @@ static void YTKACETextNodeSetAttributedText(id receiver, SEL selector,
     }
 }
 
+// YouTube turns hold for speed off while the video is already at 2x. With a
+// custom hold speed that rule doesn't apply, so keep only its other checks.
+static IMP OriginalSpeedmasterEligible;
+
+static BOOL YTKACESpeedmasterEligible(id receiver, SEL selector) {
+    const BOOL eligible = ((BOOL (*)(id, SEL))OriginalSpeedmasterEligible)(receiver, selector);
+    if (eligible || !YTKACEFeatureEnabled(YTKACEHoldSpeedKey)) return eligible;
+    SEL videoDataSelector = NSSelectorFromString(@"videoData");
+    SEL videoTypeSelector = NSSelectorFromString(@"videoType");
+    SEL stateSelector = NSSelectorFromString(@"playerState");
+    Ivar videoIvar = class_getInstanceVariable(object_getClass(receiver), "_currentSingleVideoObservable");
+    id video = videoIvar != NULL ? object_getIvar(receiver, videoIvar) : nil;
+    if (![receiver respondsToSelector:stateSelector] || ![video respondsToSelector:videoDataSelector]) return NO;
+    id videoData = ((id (*)(id, SEL))objc_msgSend)(video, videoDataSelector);
+    if (![videoData respondsToSelector:videoTypeSelector]) return NO;
+    const long long videoType = ((long long (*)(id, SEL))objc_msgSend)(videoData, videoTypeSelector);
+    const long long state = ((long long (*)(id, SEL))objc_msgSend)(receiver, stateSelector);
+    YTKACEDebugLog(@"speed", @"hold eligible at 2x type=%lld state=%lld", videoType, state);
+    return videoType == 0 && state == 3;
+}
+
 static void YTKACEInstallHoldSpeedHooks(void) {
+    YTKACEInstallInstanceHook(
+        @"YTMainAppVideoPlayerOverlayViewController", @"currentVideoIsEligibleToActivateSpeedmaster",
+        (IMP)YTKACESpeedmasterEligible, &OriginalSpeedmasterEligible);
     const BOOL node = YTKACEInstallInstanceHook(
         @"ELMTextNode", @"setAttributedText:",
         (IMP)YTKACETextNodeSetAttributedText, &OriginalTextNodeSetAttributedText);
