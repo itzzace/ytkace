@@ -62,6 +62,7 @@ static UIScreen *YTKACEScreenForView(UIView *view) {
 @property(nonatomic, assign) double seekTime;
 @property(nonatomic, assign) NSInteger seekDirection;
 @property(nonatomic, weak) id scrubOverlay;
+@property(nonatomic, weak) id scrubController;
 - (void)handleEdgePan:(UIPanGestureRecognizer *)recognizer;
 - (void)handleHold:(UILongPressGestureRecognizer *)recognizer;
 - (void)handleTwoFingerTap:(UITapGestureRecognizer *)recognizer;
@@ -433,6 +434,25 @@ static UIView *YTKACEFindView(UIView *view, Class cls, NSUInteger depth) {
 }
 
 // The player bar (YTInlinePlayerBarContainerView) owns the fine scrubber.
+// The overlay controller shows the storyboard preview over the video while
+// the progress bar is dragged; tell it about the swipe the same way.
+static id YTKACEScrubController(UIView *view) {
+    Class overlayClass = NSClassFromString(@"YTMainAppVideoPlayerOverlayViewController");
+    for (UIResponder *responder = view; responder != nil; responder = responder.nextResponder) {
+        if (overlayClass != Nil && [responder isKindOfClass:overlayClass]) return responder;
+    }
+    return nil;
+}
+
+// Dragging the bar grows its dot (2) and shrinks it back (1) after.
+static void YTKACEScrubDotScale(id bar, long long scale) {
+    SEL selector = NSSelectorFromString(@"setScrubberDotDecorationScale:");
+    if (![bar respondsToSelector:selector]) return;
+    [UIView animateWithDuration:0.2 animations:^{
+        ((void (*)(id, SEL, long long))objc_msgSend)(bar, selector, scale);
+    }];
+}
+
 static id YTKACEScrubberOverlay(UIView *view) {
     Class overlayClass = NSClassFromString(@"YTMainAppVideoPlayerOverlayViewController");
     Class barClass = NSClassFromString(@"YTInlinePlayerBarContainerView");
@@ -492,12 +512,21 @@ static void YTKACEScrubBarToTime(id bar, double time, double total) {
         self.seekView = view;
         id overlay = YTKACEScrubberOverlay(view);
         self.scrubOverlay = YTKACEScrubberCanSeek(overlay) ? overlay : nil;
+        id controller = YTKACEScrubController(view);
+        self.scrubController = [controller respondsToSelector:NSSelectorFromString(@"didScrubPlayerBarToTime:")] ? controller : nil;
         double start = round([self doubleFromResponder:self.seekTarget
                                              selectors:@[@"currentVideoMediaTime", @"mediaTime"]]);
         objc_setAssociatedObject(recognizer, YTKACEGestureInitialAssociation, @(start),
                                  OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        // The overlay first: starting its preview resets the bar, so the bar
+        // has to start after it to keep its dot and fill following the finger.
+        SEL startPreview = NSSelectorFromString(@"didStartPlayerBarScrubbingWithGestureOriginatingInPlayerBar:");
+        if ([self.scrubController respondsToSelector:startPreview]) {
+            ((void (*)(id, SEL, BOOL))objc_msgSend)(self.scrubController, startPreview, YES);
+        }
         if (self.scrubOverlay != nil) {
             ((void (*)(id, SEL))objc_msgSend)(self.scrubOverlay, NSSelectorFromString(@"didStartScrubbing"));
+            YTKACEScrubDotScale(self.scrubOverlay, 2);
         }
     }
     id target = self.seekTarget;
@@ -518,6 +547,10 @@ static void YTKACEScrubBarToTime(id bar, double time, double total) {
     id overlay = self.scrubOverlay;
     if (recognizer.state == UIGestureRecognizerStateBegan ||
         recognizer.state == UIGestureRecognizerStateChanged) {
+        if (self.scrubController != nil) {
+            ((void (*)(id, SEL, double))objc_msgSend)(self.scrubController,
+                NSSelectorFromString(@"didScrubPlayerBarToTime:"), time);
+        }
         if (overlay != nil) {
             YTKACEScrubBarToTime(overlay, time, maximum);
         } else {
@@ -529,12 +562,19 @@ static void YTKACEScrubBarToTime(id bar, double time, double total) {
     if (overlay != nil) {
         if (!seeks) YTKACEScrubBarToTime(overlay, start, maximum);
         ((void (*)(id, SEL))objc_msgSend)(overlay, NSSelectorFromString(@"didEndScrubbing"));
+        YTKACEScrubDotScale(overlay, 1);
     } else {
         UIView *indicator = [self seekIndicatorInView:view];
         [UIView animateWithDuration:0.3 delay:0.3
                             options:UIViewAnimationOptionBeginFromCurrentState
                          animations:^{ indicator.alpha = 0.0; } completion:nil];
     }
+    SEL endPreview = NSSelectorFromString(@"didEndPlayerBarScrubbingWithGestureOriginatingInPlayerBar:withSeekCancelled:seekSource:");
+    if ([self.scrubController respondsToSelector:endPreview]) {
+        // Cancelled, so YouTube only hides the preview; the seek below is ours.
+        ((void (*)(id, SEL, BOOL, BOOL, int))objc_msgSend)(self.scrubController, endPreview, YES, YES, 0);
+    }
+    self.scrubController = nil;
     if (seeks) [self seekTarget:target toTime:time];
     YTKACEDebugLog(@"gestures", @"swipe seek %.0f -> %.0f scrubber=%d", start, time, overlay != nil);
     self.seekTarget = nil;
