@@ -1127,3 +1127,6 @@
 "Report" = "Denunciar";
 "Subscribe" = "Inscrever-se";
 "Hold any button and drag it where you want it. Drag it off the bar to hide it." = "Segure um botão e arraste para onde quiser. Arraste para fora da barra para ocultar.";
+"To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Para colocar vídeos na fila sem Premium, ative “Fila local” nas configurações do YTKACE.";
+"Check your connection and try again." = "Verifique sua conexão e tente novamente.";
+"Try %@ > %@ in YTKACE settings." = "Tente %@ > %@ nas configurações do YTKACE.";

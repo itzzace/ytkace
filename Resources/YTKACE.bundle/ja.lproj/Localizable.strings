@@ -1172,3 +1172,6 @@ CC BY-NC-SA 4.0 でライセンスされています。";
 "Report" = "報告";
 "Subscribe" = "チャンネル登録";
 "Hold any button and drag it where you want it. Drag it off the bar to hide it." = "ボタンを長押しして好きな場所にドラッグします。バーの外にドラッグすると非表示になります。";
+"To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Premium なしで動画をキューに追加するには、YTKACE の設定で「ローカルキュー」をオンにしてください。";
+"Check your connection and try again." = "接続を確認して、もう一度お試しください。";
+"Try %@ > %@ in YTKACE settings." = "YTKACE の設定で %@ > %@ をお試しください。";

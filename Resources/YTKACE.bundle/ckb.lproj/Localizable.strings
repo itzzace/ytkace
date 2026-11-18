@@ -1172,3 +1172,6 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE داتای SponsorBlock بەکارد�
 "Report" = "ڕاپۆرت";
 "Subscribe" = "بەشداربوون";
 "Hold any button and drag it where you want it. Drag it off the bar to hide it." = "دەست لەسەر هەر دوگمەیەک دابگرە و بیبە بۆ ئەو شوێنەی دەتەوێت. بیبە دەرەوەی شریتەکە بۆ شاردنەوەی.";
+"To queue videos without Premium, turn on Local Queue in YTKACE settings." = "بۆ ڕیزکردنی ڤیدیۆ بەبێ Premium، «ڕیزی ناوخۆیی» لە ڕێکخستنەکانی YTKACE چالاک بکە.";
+"Check your connection and try again." = "پەیوەندییەکەت بپشکنە و دووبارە هەوڵ بدەرەوە.";
+"Try %@ > %@ in YTKACE settings." = "%@ > %@ لە ڕێکخستنەکانی YTKACE تاقی بکەرەوە.";

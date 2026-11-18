@@ -1154,3 +1154,6 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE usa datos de SponsorBlock.\nCon licen
 "Report" = "Denunciar";
 "Subscribe" = "Suscribirse";
 "Hold any button and drag it where you want it. Drag it off the bar to hide it." = "Mantén pulsado un botón y arrástralo donde quieras. Arrástralo fuera de la barra para ocultarlo.";
+"To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Para poner videos en cola sin Premium, activa «Cola local» en los ajustes de YTKACE.";
+"Check your connection and try again." = "Revisa tu conexión e inténtalo de nuevo.";
+"Try %@ > %@ in YTKACE settings." = "Prueba %@ > %@ en los ajustes de YTKACE.";

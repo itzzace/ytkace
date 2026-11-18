@@ -1172,3 +1172,6 @@ Lizenziert unter CC BY-NC-SA 4.0.";
 "Report" = "Melden";
 "Subscribe" = "Abonnieren";
 "Hold any button and drag it where you want it. Drag it off the bar to hide it." = "Halte eine Taste gedrückt und zieh sie an die gewünschte Stelle. Zieh sie aus der Leiste, um sie auszublenden.";
+"To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Um ohne Premium Videos einzureihen, aktiviere „Lokale Warteschlange“ in den YTKACE-Einstellungen.";
+"Check your connection and try again." = "Prüfe deine Verbindung und versuche es erneut.";
+"Try %@ > %@ in YTKACE settings." = "Versuche %@ > %@ in den YTKACE-Einstellungen.";

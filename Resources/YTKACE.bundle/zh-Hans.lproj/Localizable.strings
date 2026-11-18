@@ -1172,3 +1172,6 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE 使用 SponsorBlock 数据。
 "Report" = "举报";
 "Subscribe" = "订阅";
 "Hold any button and drag it where you want it. Drag it off the bar to hide it." = "按住任意按钮并拖到想要的位置。拖出操作栏即可隐藏。";
+"To queue videos without Premium, turn on Local Queue in YTKACE settings." = "要在没有 Premium 的情况下将视频加入队列，请在 YTKACE 设置中开启“本地队列”。";
+"Check your connection and try again." = "请检查网络连接后重试。";
+"Try %@ > %@ in YTKACE settings." = "试试 YTKACE 设置中的 %@ > %@。";

@@ -1154,3 +1154,6 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE korzysta z danych SponsorBlock.\nLice
 "Report" = "Zgłoś";
 "Subscribe" = "Subskrybuj";
 "Hold any button and drag it where you want it. Drag it off the bar to hide it." = "Przytrzymaj przycisk i przeciągnij go, gdzie chcesz. Przeciągnij go poza pasek, aby go ukryć.";
+"To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Aby dodawać filmy do kolejki bez Premium, włącz „Kolejka lokalna” w ustawieniach YTKACE.";
+"Check your connection and try again." = "Sprawdź połączenie i spróbuj ponownie.";
+"Try %@ > %@ in YTKACE settings." = "Spróbuj %@ > %@ w ustawieniach YTKACE.";

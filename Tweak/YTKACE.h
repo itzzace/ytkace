@@ -18,6 +18,8 @@ void YTKACEInstallSponsorBlockHooks(void);
 void YTKACEInstallDownloadHooks(void);
 void YTKACEInstallQueueHooks(void);
 void YTKACEQueuePrepareMenuRenderers(id _Nullable renderers);
+void YTKACEQueueWrapMenuActions(id _Nullable renderers, id _Nullable actions);
+NSAttributedString *_Nullable YTKACEQueuePremiumText(NSAttributedString *_Nullable value);
 BOOL YTKACEQueueHasItems(void);
 BOOL YTKACEQueueOwnsCurrentVideo(void);
 NSString * _Nullable YTKACELastVideoID(void);

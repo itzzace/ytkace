@@ -1183,3 +1183,6 @@ Licensed under CC BY-NC-SA 4.0.";
 "Report" = "Report";
 "Subscribe" = "Subscribe";
 "Hold any button and drag it where you want it. Drag it off the bar to hide it." = "Hold any button and drag it where you want it. Drag it off the bar to hide it.";
+"To queue videos without Premium, turn on Local Queue in YTKACE settings." = "To queue videos without Premium, turn on Local Queue in YTKACE settings.";
+"Check your connection and try again." = "Check your connection and try again.";
+"Try %@ > %@ in YTKACE settings." = "Try %@ > %@ in YTKACE settings.";

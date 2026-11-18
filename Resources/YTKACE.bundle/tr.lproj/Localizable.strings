@@ -1172,3 +1172,6 @@ CC BY-NC-SA 4.0 ile lisanslanmıştır.";
 "Report" = "Bildir";
 "Subscribe" = "Abone ol";
 "Hold any button and drag it where you want it. Drag it off the bar to hide it." = "Bir düğmeyi basılı tutup istediğiniz yere sürükleyin. Gizlemek için çubuğun dışına sürükleyin.";
+"To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Premium olmadan video sıraya eklemek için YTKACE ayarlarında “Yerel Sıra”yı açın.";
+"Check your connection and try again." = "Bağlantınızı kontrol edip tekrar deneyin.";
+"Try %@ > %@ in YTKACE settings." = "YTKACE ayarlarında %@ > %@ seçeneğini deneyin.";

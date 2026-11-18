@@ -1172,3 +1172,6 @@ CC BY-NC-SA 4.0 라이선스가 적용됩니다.";
 "Report" = "신고";
 "Subscribe" = "구독";
 "Hold any button and drag it where you want it. Drag it off the bar to hide it." = "버튼을 길게 눌러 원하는 곳으로 드래그하세요. 바 밖으로 드래그하면 숨겨집니다.";
+"To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Premium 없이 동영상을 대기열에 추가하려면 YTKACE 설정에서 '로컬 대기열'을 켜세요.";
+"Check your connection and try again." = "연결을 확인한 뒤 다시 시도하세요.";
+"Try %@ > %@ in YTKACE settings." = "YTKACE 설정에서 %@ > %@ 을(를) 사용해 보세요.";

@@ -1172,3 +1172,6 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE использует данные Spo
 "Report" = "Пожаловаться";
 "Subscribe" = "Подписаться";
 "Hold any button and drag it where you want it. Drag it off the bar to hide it." = "Удерживайте кнопку и перетащите её куда нужно. Перетащите за пределы панели, чтобы скрыть.";
+"To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Чтобы добавлять видео в очередь без Premium, включите «Локальная очередь» в настройках YTKACE.";
+"Check your connection and try again." = "Проверьте подключение и попробуйте снова.";
+"Try %@ > %@ in YTKACE settings." = "Попробуйте %@ > %@ в настройках YTKACE.";

@@ -1172,3 +1172,6 @@ Licensed under CC BY-NC-SA 4.0." = "يستخدم YTKACE بيانات SponsorBloc
 "Report" = "إبلاغ";
 "Subscribe" = "اشتراك";
 "Hold any button and drag it where you want it. Drag it off the bar to hide it." = "اضغط مطولاً على أي زر واسحبه إلى المكان الذي تريده. اسحبه خارج الشريط لإخفائه.";
+"To queue videos without Premium, turn on Local Queue in YTKACE settings." = "لإضافة مقاطع إلى قائمة الانتظار بدون Premium، فعّل «قائمة انتظار محلية» في إعدادات YTKACE.";
+"Check your connection and try again." = "تحقق من اتصالك ثم حاول مرة أخرى.";
+"Try %@ > %@ in YTKACE settings." = "جرّب %@ > %@ في إعدادات YTKACE.";

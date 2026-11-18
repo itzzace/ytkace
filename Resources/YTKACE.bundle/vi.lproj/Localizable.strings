@@ -1172,3 +1172,6 @@ Cấp phép theo CC BY-NC-SA 4.0.";
 "Report" = "Báo cáo";
 "Subscribe" = "Đăng ký";
 "Hold any button and drag it where you want it. Drag it off the bar to hide it." = "Nhấn giữ một nút và kéo đến nơi bạn muốn. Kéo ra khỏi thanh để ẩn.";
+"To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Để thêm video vào danh sách chờ mà không cần Premium, hãy bật “Danh sách chờ cục bộ” trong cài đặt YTKACE.";
+"Check your connection and try again." = "Kiểm tra kết nối và thử lại.";
+"Try %@ > %@ in YTKACE settings." = "Hãy thử %@ > %@ trong cài đặt YTKACE.";

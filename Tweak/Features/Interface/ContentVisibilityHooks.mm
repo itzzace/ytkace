@@ -2524,6 +2524,23 @@ static NSArray *YTKACEMixFilteredFeedSections(NSArray *sections) {
     return kept;
 }
 
+// A section holding many results (search) with a Shorts shelf among them:
+// remove just the Shorts entries. Returns NO when the whole section should go.
+static BOOL YTKACEDropShortsEntries(id section) {
+    id contents = YTKACEFastChildSel(section, YTKACESelContentsArray);
+    if (![contents isKindOfClass:NSMutableArray.class] || [contents count] < 2) return NO;
+    NSMutableIndexSet *drop = [NSMutableIndexSet indexSet];
+    [(NSArray *)contents enumerateObjectsUsingBlock:^(id entry, NSUInteger index, __unused BOOL *stop) {
+        if (YTKACEFeedKindForSection(entry, YTKACEFeedKindShorts) & YTKACEFeedKindShorts) [drop addIndex:index];
+    }];
+    if (drop.count == [contents count]) return NO;
+    if (drop.count == 0) return YES;
+    [(NSMutableArray *)contents removeObjectsAtIndexes:drop];
+    YTKACEDebugLog(@"feed", @"removed %lu shorts of %lu in one section", (unsigned long)drop.count,
+                   (unsigned long)([contents count] + drop.count));
+    return YES;
+}
+
 static NSArray *YTKACEFilteredFeedSections(id receiver, NSArray *sections) {
     YTKACEFeedEnsureFlagObserver();
     NSArray *adFiltered = YTKACEMixFilteredFeedSections(
@@ -2578,6 +2595,11 @@ static NSArray *YTKACEFilteredFeedSections(id receiver, NSArray *sections) {
         YTKACEFeedKind kind = wanted != 0 ? YTKACEFeedKindForSection(section, wanted) : 0;
         NSString *cut = nil;
         if ((hideAIBlock || hideAIWarn) && YTKACESectionIsAIChannel(receiver, section, hideAIBlock, hideAIWarn)) {
+            continue;
+        }
+        if (hideShorts && (kind & YTKACEFeedKindShorts) && YTKACEDropShortsEntries(section)) {
+            // Search puts every result in one section; only its Shorts were removed.
+            [filtered addObject:section];
             continue;
         }
         if (hideShorts && (kind & YTKACEFeedKindShorts)) cut = @"shorts";

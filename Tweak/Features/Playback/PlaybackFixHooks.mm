@@ -27,6 +27,8 @@
 #import "../../Runtime/Hooking.h"
 #import "../../Runtime/Preferences.h"
 #import "../Downloads/DownloadLog.h"
+#import "../../Runtime/Localization.h"
+#import <UIKit/UIKit.h>
 
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
@@ -172,6 +174,108 @@ static void YTKACESeekToTime(id receiver, SEL selector, double time) {
     }
 }
 
+
+// The player's "Something went wrong" screen: add the real reason, a hint for
+// what to try in YTKACE, and a button that copies the log for an issue.
+static NSString *YTKACEErrorReason;
+static NSString *YTKACEErrorChain;
+static BOOL YTKACEErrorNetwork;
+static CFAbsoluteTime YTKACEErrorTime;
+static IMP OriginalErrorShowMessage;
+static IMP OriginalErrorLayout;
+static const void *YTKACEErrorInfoKey = &YTKACEErrorInfoKey;
+
+static void YTKACERememberPlaybackError(id error) {
+    if (![error isKindOfClass:NSError.class]) return;
+    NSMutableArray<NSString *> *chain = [NSMutableArray array];
+    NSString *reason = nil;
+    BOOL network = NO;
+    NSError *current = error;
+    for (int depth = 0; current != nil && depth < 6; depth++) {
+        [chain addObject:[NSString stringWithFormat:@"%@ %ld", current.domain, (long)current.code]];
+        if ([current.domain isEqualToString:NSURLErrorDomain]) network = YES;
+        NSString *text = current.userInfo[NSLocalizedDescriptionKey];
+        if ([text isKindOfClass:NSString.class] && text.length != 0) reason = text;
+        current = current.userInfo[NSUnderlyingErrorKey];
+    }
+    YTKACEErrorReason = reason;
+    YTKACEErrorChain = [chain componentsJoinedByString:@" > "];
+    YTKACEErrorNetwork = network;
+    YTKACEErrorTime = CFAbsoluteTimeGetCurrent();
+    YTKACEDownloadLog(@"fix", @"player error %@ reason=%@", YTKACEErrorChain, reason ?: @"-");
+}
+
+static NSString *YTKACEErrorHint(void) {
+    if (YTKACEErrorNetwork) return YTKACELocalized(@"Check your connection and try again.");
+    NSString *fix = YTKACELocalized(@"Playback Fix");
+    NSString *option = YTKACEPlaybackFixMode() == 2 ? YTKACELocalized(@"Reload") : YTKACELocalized(@"HLS Streams");
+    return [NSString stringWithFormat:YTKACELocalized(@"Try %@ > %@ in YTKACE settings."), fix, option];
+}
+
+@interface YTKACEErrorInfo : NSObject
+@property(nonatomic, strong) UILabel *detail;
+@end
+
+@implementation YTKACEErrorInfo
+@end
+
+static UIView *YTKACEErrorSubview(UIView *view, NSString *name) {
+    SEL selector = NSSelectorFromString(name);
+    if (![view respondsToSelector:selector]) return nil;
+    id value = ((id (*)(id, SEL))objc_msgSend)(view, selector);
+    return [value isKindOfClass:UIView.class] ? value : nil;
+}
+
+static void YTKACEErrorShowMessage(UIView *receiver, SEL selector, id message,
+                                   BOOL allowRetry, BOOL showRetry, BOOL background) {
+    ((void (*)(id, SEL, id, BOOL, BOOL, BOOL))OriginalErrorShowMessage)(
+        receiver, selector, message, allowRetry, showRetry, background);
+    YTKACEErrorInfo *info = objc_getAssociatedObject(receiver, YTKACEErrorInfoKey);
+    const BOOL fresh = YTKACEErrorTime != 0 && CFAbsoluteTimeGetCurrent() - YTKACEErrorTime < 10.0;
+    if (!allowRetry || !fresh) {
+        info.detail.hidden = YES;
+        return;
+    }
+    if (info == nil) {
+        info = [YTKACEErrorInfo new];
+        UILabel *detail = [UILabel new];
+        detail.numberOfLines = 2;
+        detail.lineBreakMode = NSLineBreakByTruncatingTail;
+        detail.textAlignment = NSTextAlignmentCenter;
+        detail.font = [UIFont systemFontOfSize:11.0];
+        detail.textColor = [UIColor colorWithWhite:1.0 alpha:0.7];
+        info.detail = detail;
+        [receiver addSubview:detail];
+        objc_setAssociatedObject(receiver, YTKACEErrorInfoKey, info, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    info.detail.text = YTKACEErrorReason.length != 0
+        ? [NSString stringWithFormat:@"%@\n%@", YTKACEErrorReason, YTKACEErrorHint()] : YTKACEErrorHint();
+    info.detail.hidden = NO;
+    [receiver setNeedsLayout];
+}
+
+static void YTKACEErrorLayout(UIView *receiver, SEL selector) {
+    ((void (*)(id, SEL))OriginalErrorLayout)(receiver, selector);
+    YTKACEErrorInfo *info = objc_getAssociatedObject(receiver, YTKACEErrorInfoKey);
+    if (info == nil || info.detail.hidden) return;
+    UIView *retry = YTKACEErrorSubview(receiver, @"errorTapToRetryLabel");
+    UIView *message = YTKACEErrorSubview(receiver, @"errorPlainTextLabel");
+    UIView *anchor = retry != nil && !retry.hidden ? retry : message;
+    if (anchor == nil) return;
+    const CGFloat width = MIN(CGRectGetWidth(receiver.bounds) - 40.0, 480.0);
+    const CGFloat y = CGRectGetMaxY(anchor.frame) + 4.0;
+    const CGFloat room = CGRectGetHeight(receiver.bounds) - 6.0 - y;
+    // When there isn't room under YouTube's text, nudge everything up.
+    CGSize size = [info.detail sizeThatFits:CGSizeMake(width, CGFLOAT_MAX)];
+    const CGFloat shift = MAX(0.0, size.height - room);
+    for (UIView *view in receiver.subviews) {
+        if (view == info.detail || CGRectGetHeight(view.frame) >= CGRectGetHeight(receiver.bounds) - 1.0) continue;
+        view.frame = CGRectOffset(view.frame, 0.0, -shift);
+    }
+    info.detail.frame = CGRectMake((CGRectGetWidth(receiver.bounds) - width) / 2.0, y - shift, width, size.height);
+    [receiver bringSubviewToFront:info.detail];
+}
+
 static void YTKACECallOriginalHandleError(id receiver, SEL selector, id error) {
     if (OriginalHandleError != NULL) {
         ((void (*)(id, SEL, id))OriginalHandleError)(receiver, selector, error);
@@ -203,6 +307,7 @@ static NSString *YTKACEPlayerVideoID(id pvc) {
 }
 
 static void YTKACEHandleError(id receiver, SEL selector, id error) {
+    YTKACERememberPlaybackError(error);
     if (YTKACEPlaybackFixMode() == 2) {
         NSError *hlsError = [error isKindOfClass:NSError.class] ? error : nil;
         YTKACEDownloadLog(@"hls", @"player error domain=%@ code=%ld", hlsError.domain ?: @"-",
@@ -371,6 +476,11 @@ void YTKACEInstallPlaybackFixHooks(void) {
     const BOOL handle = YTKACEInstallInstanceHook(
         @"YTMainAppVideoPlayerOverlayViewController", @"handleError:",
         (IMP)YTKACEHandleError, &OriginalHandleError);
+    YTKACEInstallInstanceHook(@"YTErrorPlayerOverlayView",
+        @"showErrorWithMessage:allowTapToRetry:showTapToRetryMessage:showErrorBackground:",
+        (IMP)YTKACEErrorShowMessage, &OriginalErrorShowMessage);
+    YTKACEInstallInstanceHook(@"YTErrorPlayerOverlayView", @"layoutSubviews",
+        (IMP)YTKACEErrorLayout, &OriginalErrorLayout);
     YTKACEDownloadLog(@"fix", @"hooks time=%d seek=%d handle=%d enabled=%d",
                       time, seek, handle, YTKACEPlaybackFixEnabled());
 }

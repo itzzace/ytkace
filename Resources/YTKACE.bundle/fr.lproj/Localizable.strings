@@ -1172,3 +1172,6 @@ Sous licence CC BY-NC-SA 4.0.";
 "Report" = "Signaler";
 "Subscribe" = "S'abonner";
 "Hold any button and drag it where you want it. Drag it off the bar to hide it." = "Maintenez un bouton et faites-le glisser où vous voulez. Faites-le glisser hors de la barre pour le masquer.";
+"To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Pour mettre des vidéos en file d’attente sans Premium, active « File d’attente locale » dans les réglages YTKACE.";
+"Check your connection and try again." = "Vérifie ta connexion et réessaie.";
+"Try %@ > %@ in YTKACE settings." = "Essaie %@ > %@ dans les réglages YTKACE.";
