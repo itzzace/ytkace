@@ -1130,3 +1130,5 @@
 "To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Para colocar vídeos na fila sem Premium, ative “Fila local” nas configurações do YTKACE.";
 "Check your connection and try again." = "Verifique sua conexão e tente novamente.";
 "Try %@ > %@ in YTKACE settings." = "Tente %@ > %@ nas configurações do YTKACE.";
+"Disable PiP for Miniplayer" = "Desativar PiP no miniplayer";
+"Don't open picture in picture when you leave the app from the miniplayer." = "Não abrir picture in picture ao sair do app pelo miniplayer.";

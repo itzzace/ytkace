@@ -1175,3 +1175,5 @@ Cấp phép theo CC BY-NC-SA 4.0.";
 "To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Để thêm video vào danh sách chờ mà không cần Premium, hãy bật “Danh sách chờ cục bộ” trong cài đặt YTKACE.";
 "Check your connection and try again." = "Kiểm tra kết nối và thử lại.";
 "Try %@ > %@ in YTKACE settings." = "Hãy thử %@ > %@ trong cài đặt YTKACE.";
+"Disable PiP for Miniplayer" = "Tắt PiP cho trình phát thu nhỏ";
+"Don't open picture in picture when you leave the app from the miniplayer." = "Không mở hình trong hình khi rời ứng dụng từ trình phát thu nhỏ.";

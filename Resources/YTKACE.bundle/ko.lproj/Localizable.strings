@@ -1175,3 +1175,5 @@ CC BY-NC-SA 4.0 라이선스가 적용됩니다.";
 "To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Premium 없이 동영상을 대기열에 추가하려면 YTKACE 설정에서 '로컬 대기열'을 켜세요.";
 "Check your connection and try again." = "연결을 확인한 뒤 다시 시도하세요.";
 "Try %@ > %@ in YTKACE settings." = "YTKACE 설정에서 %@ > %@ 을(를) 사용해 보세요.";
+"Disable PiP for Miniplayer" = "미니 플레이어에서 PiP 끄기";
+"Don't open picture in picture when you leave the app from the miniplayer." = "미니 플레이어 상태에서 앱을 나갈 때 PIP를 열지 않습니다.";

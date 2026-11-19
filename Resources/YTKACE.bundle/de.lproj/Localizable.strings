@@ -1175,3 +1175,5 @@ Lizenziert unter CC BY-NC-SA 4.0.";
 "To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Um ohne Premium Videos einzureihen, aktiviere „Lokale Warteschlange“ in den YTKACE-Einstellungen.";
 "Check your connection and try again." = "Prüfe deine Verbindung und versuche es erneut.";
 "Try %@ > %@ in YTKACE settings." = "Versuche %@ > %@ in den YTKACE-Einstellungen.";
+"Disable PiP for Miniplayer" = "PiP für Miniplayer deaktivieren";
+"Don't open picture in picture when you leave the app from the miniplayer." = "Kein Bild-im-Bild öffnen, wenn du die App aus dem Miniplayer verlässt.";

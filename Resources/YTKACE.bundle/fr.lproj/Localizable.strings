@@ -1175,3 +1175,5 @@ Sous licence CC BY-NC-SA 4.0.";
 "To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Pour mettre des vidéos en file d’attente sans Premium, active « File d’attente locale » dans les réglages YTKACE.";
 "Check your connection and try again." = "Vérifie ta connexion et réessaie.";
 "Try %@ > %@ in YTKACE settings." = "Essaie %@ > %@ dans les réglages YTKACE.";
+"Disable PiP for Miniplayer" = "Désactiver le PiP pour le mini-lecteur";
+"Don't open picture in picture when you leave the app from the miniplayer." = "Ne pas ouvrir l'image dans l'image quand vous quittez l'app depuis le mini-lecteur.";

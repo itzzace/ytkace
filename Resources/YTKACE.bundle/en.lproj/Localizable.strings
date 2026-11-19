@@ -1186,3 +1186,5 @@ Licensed under CC BY-NC-SA 4.0.";
 "To queue videos without Premium, turn on Local Queue in YTKACE settings." = "To queue videos without Premium, turn on Local Queue in YTKACE settings.";
 "Check your connection and try again." = "Check your connection and try again.";
 "Try %@ > %@ in YTKACE settings." = "Try %@ > %@ in YTKACE settings.";
+"Disable PiP for Miniplayer" = "Disable PiP for Miniplayer";
+"Don't open picture in picture when you leave the app from the miniplayer." = "Don't open picture in picture when you leave the app from the miniplayer.";

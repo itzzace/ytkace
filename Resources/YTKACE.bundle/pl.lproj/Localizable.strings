@@ -1157,3 +1157,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE korzysta z danych SponsorBlock.\nLice
 "To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Aby dodawać filmy do kolejki bez Premium, włącz „Kolejka lokalna” w ustawieniach YTKACE.";
 "Check your connection and try again." = "Sprawdź połączenie i spróbuj ponownie.";
 "Try %@ > %@ in YTKACE settings." = "Spróbuj %@ > %@ w ustawieniach YTKACE.";
+"Disable PiP for Miniplayer" = "Wyłącz PiP dla miniodtwarzacza";
+"Don't open picture in picture when you leave the app from the miniplayer." = "Nie otwieraj obrazu w obrazie po wyjściu z aplikacji z miniodtwarzacza.";

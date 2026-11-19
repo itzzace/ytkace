@@ -1175,3 +1175,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE 使用 SponsorBlock 数据。
 "To queue videos without Premium, turn on Local Queue in YTKACE settings." = "要在没有 Premium 的情况下将视频加入队列，请在 YTKACE 设置中开启“本地队列”。";
 "Check your connection and try again." = "请检查网络连接后重试。";
 "Try %@ > %@ in YTKACE settings." = "试试 YTKACE 设置中的 %@ > %@。";
+"Disable PiP for Miniplayer" = "迷你播放器停用画中画";
+"Don't open picture in picture when you leave the app from the miniplayer." = "从迷你播放器离开应用时不打开画中画。";

@@ -1175,3 +1175,5 @@ CC BY-NC-SA 4.0 でライセンスされています。";
 "To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Premium なしで動画をキューに追加するには、YTKACE の設定で「ローカルキュー」をオンにしてください。";
 "Check your connection and try again." = "接続を確認して、もう一度お試しください。";
 "Try %@ > %@ in YTKACE settings." = "YTKACE の設定で %@ > %@ をお試しください。";
+"Disable PiP for Miniplayer" = "ミニプレーヤーでPiPを無効化";
+"Don't open picture in picture when you leave the app from the miniplayer." = "ミニプレーヤー表示中にアプリを離れたとき、ピクチャ・イン・ピクチャを開きません。";

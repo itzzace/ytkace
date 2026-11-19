@@ -1175,3 +1175,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE использует данные Spo
 "To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Чтобы добавлять видео в очередь без Premium, включите «Локальная очередь» в настройках YTKACE.";
 "Check your connection and try again." = "Проверьте подключение и попробуйте снова.";
 "Try %@ > %@ in YTKACE settings." = "Попробуйте %@ > %@ в настройках YTKACE.";
+"Disable PiP for Miniplayer" = "Отключить PiP для мини-плеера";
+"Don't open picture in picture when you leave the app from the miniplayer." = "Не открывать картинку в картинке, если выйти из приложения из мини-плеера.";

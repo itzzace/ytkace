@@ -1175,3 +1175,5 @@ CC BY-NC-SA 4.0 ile lisanslanmıştır.";
 "To queue videos without Premium, turn on Local Queue in YTKACE settings." = "Premium olmadan video sıraya eklemek için YTKACE ayarlarında “Yerel Sıra”yı açın.";
 "Check your connection and try again." = "Bağlantınızı kontrol edip tekrar deneyin.";
 "Try %@ > %@ in YTKACE settings." = "YTKACE ayarlarında %@ > %@ seçeneğini deneyin.";
+"Disable PiP for Miniplayer" = "Mini oynatıcıda PiP'yi kapat";
+"Don't open picture in picture when you leave the app from the miniplayer." = "Mini oynatıcıdayken uygulamadan çıkınca resim içinde resmi açma.";

@@ -1175,3 +1175,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE داتای SponsorBlock بەکارد�
 "To queue videos without Premium, turn on Local Queue in YTKACE settings." = "بۆ ڕیزکردنی ڤیدیۆ بەبێ Premium، «ڕیزی ناوخۆیی» لە ڕێکخستنەکانی YTKACE چالاک بکە.";
 "Check your connection and try again." = "پەیوەندییەکەت بپشکنە و دووبارە هەوڵ بدەرەوە.";
 "Try %@ > %@ in YTKACE settings." = "%@ > %@ لە ڕێکخستنەکانی YTKACE تاقی بکەرەوە.";
+"Disable PiP for Miniplayer" = "ناچالاککردنی PiP بۆ لێدەری بچووک";
+"Don't open picture in picture when you leave the app from the miniplayer." = "کاتێک لە لێدەری بچووکەوە ئەپەکە جێدەهێڵیت، وێنە لەناو وێنە مەکەرەوە.";
