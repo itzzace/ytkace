@@ -12,6 +12,100 @@ static NSString *const YTKACEExitFullscreenKey = @"YTKACE.Preference.Player.Exit
 static NSString *YTKACEFullscreenEnteredVideo;
 static NSString *YTKACEFullscreenExitedVideo;
 
+static IMP OriginalAllowedFullscreenOrientations;
+static IMP OriginalWatchSupportedOrientations;
+static IMP OriginalLegacyUpdateOrientations;
+static IMP OriginalRequestFullscreenGeometry;
+static IMP OriginalCompleteFullscreenPresentation;
+
+static UIInterfaceOrientation YTKACEPreferredFullscreenOrientation(void) {
+    if (!YTKACEMasterEnabled()) return UIInterfaceOrientationUnknown;
+
+    id value = YTKACEPreferenceObject(YTKACEFullscreenOrientationKey);
+    if ([value isEqual:@(YTKACEFullscreenOrientationLeft)]) return UIInterfaceOrientationLandscapeLeft;
+    if ([value isEqual:@(YTKACEFullscreenOrientationRight)]) return UIInterfaceOrientationLandscapeRight;
+    return UIInterfaceOrientationUnknown;
+}
+
+static UIInterfaceOrientationMask YTKACEFullscreenMask(UIInterfaceOrientation orientation) {
+    return (UIInterfaceOrientationMask)(1UL << orientation);
+}
+
+static UIInterfaceOrientationMask YTKACEConstrainFullscreenLandscape(UIInterfaceOrientationMask mask) {
+    if (!(mask & UIInterfaceOrientationMaskLandscape)) return mask;
+
+    UIInterfaceOrientation preferred = YTKACEPreferredFullscreenOrientation();
+    if (preferred == UIInterfaceOrientationUnknown) return mask;
+    return (mask & ~UIInterfaceOrientationMaskLandscape) | YTKACEFullscreenMask(preferred);
+}
+
+// Keep YouTube's choice (vertical videos stay portrait) and only pick the
+// landscape side.
+static UIInterfaceOrientationMask YTKACEAllowedFullscreenOrientations(id receiver, SEL selector) {
+    UIInterfaceOrientationMask mask =
+        ((UIInterfaceOrientationMask (*)(id, SEL))OriginalAllowedFullscreenOrientations)(receiver, selector);
+    return YTKACEConstrainFullscreenLandscape(mask);
+}
+
+static BOOL YTKACEWatchIsFullscreen(id receiver) {
+    SEL selector = NSSelectorFromString(@"isWatchFullScreen");
+    return [receiver respondsToSelector:selector] && ((BOOL (*)(id, SEL))objc_msgSend)(receiver, selector);
+}
+
+static BOOL YTKACEWatchHasLensOverlay(id receiver) {
+    Ivar lens = class_getInstanceVariable(object_getClass(receiver), "_lensPostCaptureViewController");
+    return lens != NULL && ivar_getTypeEncoding(lens)[0] == '@' && object_getIvar(receiver, lens) != nil;
+}
+
+static UIInterfaceOrientationMask YTKACEWatchSupportedOrientations(id receiver, SEL selector) {
+    UIInterfaceOrientationMask mask =
+        ((UIInterfaceOrientationMask (*)(id, SEL))OriginalWatchSupportedOrientations)(receiver, selector);
+    // The watch layer also handles fullscreen without presenting a separate controller.
+    if ((mask == UIInterfaceOrientationMaskLandscape || YTKACEWatchIsFullscreen(receiver)) &&
+        !YTKACEWatchHasLensOverlay(receiver)) {
+        return YTKACEConstrainFullscreenLandscape(mask);
+    }
+    return mask;
+}
+
+static void YTKACELegacyUpdateOrientations(id receiver, SEL selector, UIInterfaceOrientation orientation) {
+    if (UIInterfaceOrientationIsLandscape(orientation)) {
+        UIInterfaceOrientation preferred = YTKACEPreferredFullscreenOrientation();
+        if (preferred != UIInterfaceOrientationUnknown) orientation = preferred;
+    }
+    ((void (*)(id, SEL, UIInterfaceOrientation))OriginalLegacyUpdateOrientations)(receiver, selector, orientation);
+}
+
+static void YTKACERequestFullscreenGeometry(id receiver, SEL selector, UIInterfaceOrientationMask mask,
+                                           void (^errorHandler)(NSError *)) {
+    ((void (*)(id, SEL, UIInterfaceOrientationMask, void (^)(NSError *)))OriginalRequestFullscreenGeometry)(
+        receiver, selector, YTKACEConstrainFullscreenLandscape(mask), errorHandler);
+}
+
+static void YTKACECompleteFullscreenPresentation(UIViewController *receiver, SEL selector) {
+    ((void (*)(id, SEL))OriginalCompleteFullscreenPresentation)(receiver, selector);
+    UIInterfaceOrientation preferred = YTKACEPreferredFullscreenOrientation();
+    if (preferred == UIInterfaceOrientationUnknown || !YTKACEWatchIsFullscreen(receiver) ||
+        YTKACEWatchHasLensOverlay(receiver)) return;
+
+    if (@available(iOS 16.0, *)) {
+        // YouTube can skip its geometry request when the scene is already in landscape.
+        // Only the side: a vertical video in portrait fullscreen stays portrait.
+        UIWindowScene *scene = receiver.viewIfLoaded.window.windowScene;
+        if (scene == nil || scene.interfaceOrientation == preferred ||
+            !UIInterfaceOrientationIsLandscape(scene.interfaceOrientation)) return;
+        YTKACEDebugLog(@"fullscreen", @"turning to side %ld from %ld", (long)preferred,
+                       (long)scene.interfaceOrientation);
+
+        [receiver setNeedsUpdateOfSupportedInterfaceOrientations];
+        UIWindowSceneGeometryPreferencesIOS *geometry = [[UIWindowSceneGeometryPreferencesIOS alloc]
+            initWithInterfaceOrientations:YTKACEFullscreenMask(preferred)];
+        [scene requestGeometryUpdateWithPreferences:geometry errorHandler:^(NSError *error) {
+            YTKACEDebugLog(@"fullscreen", @"preferred landscape request failed: %@", error.localizedDescription);
+        }];
+    }
+}
+
 static id YTKACEFullscreenGet(id object, NSString *name) {
     SEL selector = NSSelectorFromString(name);
     if (object == nil || ![object respondsToSelector:selector]) return nil;
@@ -115,6 +209,20 @@ static BOOL YTKACELoopOn(void) {
 @end
 
 void YTKACEInstallFullscreenHooks(void) {
+    if (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) {
+        NSString *watchLayer = @"YTWatchLayerViewController";
+        YTKACEInstallInstanceHook(@"YTWatchViewController", @"allowedFullScreenOrientations",
+                                  (IMP)YTKACEAllowedFullscreenOrientations, &OriginalAllowedFullscreenOrientations);
+        YTKACEInstallInstanceHook(watchLayer, @"supportedInterfaceOrientations",
+                                  (IMP)YTKACEWatchSupportedOrientations, &OriginalWatchSupportedOrientations);
+        YTKACEInstallInstanceHook(watchLayer, @"updateSupportedInterfaceOrientations:",
+                                  (IMP)YTKACELegacyUpdateOrientations, &OriginalLegacyUpdateOrientations);
+        YTKACEInstallInstanceHook(watchLayer, @"requestGeometryUpdateWithInterfaceOrientationMask:errorHandler:",
+                                  (IMP)YTKACERequestFullscreenGeometry, &OriginalRequestFullscreenGeometry);
+        YTKACEInstallInstanceHook(watchLayer, @"didCompleteFullscreenPresentAnimation",
+                                  (IMP)YTKACECompleteFullscreenPresentation, &OriginalCompleteFullscreenPresentation);
+    }
+
     static YTKACEFullscreenObserver *observer;
     observer = [YTKACEFullscreenObserver new];
     [NSNotificationCenter.defaultCenter addObserver:observer

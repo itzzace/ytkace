@@ -1141,3 +1141,5 @@
 "%lu files · %@" = "%lu arquivos · %@";
 "INCLUDED" = "INCLUÍDO";
 "1 file · %@" = "1 arquivo · %@";
+"Charging Port in Fullscreen" = "Entrada de carga em tela cheia";
+"Keep landscape fullscreen on one side." = "Mantém a tela cheia horizontal de um lado.";

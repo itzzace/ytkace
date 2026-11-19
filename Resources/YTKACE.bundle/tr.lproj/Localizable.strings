@@ -1186,3 +1186,5 @@ CC BY-NC-SA 4.0 ile lisanslanmıştır.";
 "%lu files · %@" = "%lu dosya · %@";
 "INCLUDED" = "DAHİL OLANLAR";
 "1 file · %@" = "1 dosya · %@";
+"Charging Port in Fullscreen" = "Tam ekranda şarj girişi";
+"Keep landscape fullscreen on one side." = "Yatay tam ekranı tek tarafta tut.";

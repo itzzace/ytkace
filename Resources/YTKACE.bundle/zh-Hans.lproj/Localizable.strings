@@ -1186,3 +1186,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE 使用 SponsorBlock 数据。
 "%lu files · %@" = "%lu 个文件 · %@";
 "INCLUDED" = "包含内容";
 "1 file · %@" = "1 个文件 · %@";
+"Charging Port in Fullscreen" = "全屏时充电口位置";
+"Keep landscape fullscreen on one side." = "横屏全屏时固定在一侧。";

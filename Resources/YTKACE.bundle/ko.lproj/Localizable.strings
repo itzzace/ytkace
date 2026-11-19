@@ -1186,3 +1186,5 @@ CC BY-NC-SA 4.0 라이선스가 적용됩니다.";
 "%lu files · %@" = "파일 %lu개 · %@";
 "INCLUDED" = "포함 항목";
 "1 file · %@" = "파일 1개 · %@";
+"Charging Port in Fullscreen" = "전체 화면 충전 포트";
+"Keep landscape fullscreen on one side." = "가로 전체 화면을 한쪽 방향으로 유지합니다.";

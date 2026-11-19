@@ -1186,3 +1186,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE использует данные Spo
 "%lu files · %@" = "Файлов: %lu · %@";
 "INCLUDED" = "ВКЛЮЧЕНО";
 "1 file · %@" = "1 файл · %@";
+"Charging Port in Fullscreen" = "Разъём зарядки в полноэкранном режиме";
+"Keep landscape fullscreen on one side." = "Держать горизонтальный полноэкранный режим на одной стороне.";

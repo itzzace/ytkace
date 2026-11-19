@@ -1186,3 +1186,5 @@ Cấp phép theo CC BY-NC-SA 4.0.";
 "%lu files · %@" = "%lu tệp · %@";
 "INCLUDED" = "BAO GỒM";
 "1 file · %@" = "1 tệp · %@";
+"Charging Port in Fullscreen" = "Cổng sạc khi toàn màn hình";
+"Keep landscape fullscreen on one side." = "Giữ toàn màn hình ngang ở một phía.";

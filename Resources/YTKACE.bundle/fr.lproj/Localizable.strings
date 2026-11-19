@@ -1186,3 +1186,5 @@ Sous licence CC BY-NC-SA 4.0.";
 "%lu files · %@" = "%lu fichiers · %@";
 "INCLUDED" = "INCLUS";
 "1 file · %@" = "1 fichier · %@";
+"Charging Port in Fullscreen" = "Port de charge en plein écran";
+"Keep landscape fullscreen on one side." = "Garder le plein écran paysage d'un seul côté.";

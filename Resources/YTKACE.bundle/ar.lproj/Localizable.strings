@@ -1186,3 +1186,5 @@ Licensed under CC BY-NC-SA 4.0." = "يستخدم YTKACE بيانات SponsorBloc
 "%lu files · %@" = "%lu ملفات · %@";
 "INCLUDED" = "المضمَّن";
 "1 file · %@" = "ملف واحد · %@";
+"Charging Port in Fullscreen" = "منفذ الشحن في ملء الشاشة";
+"Keep landscape fullscreen on one side." = "إبقاء ملء الشاشة الأفقي على جانب واحد.";
