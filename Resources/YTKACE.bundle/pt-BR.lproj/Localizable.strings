@@ -1132,3 +1132,12 @@
 "Try %@ > %@ in YTKACE settings." = "Tente %@ > %@ nas configurações do YTKACE.";
 "Disable PiP for Miniplayer" = "Desativar PiP no miniplayer";
 "Don't open picture in picture when you leave the app from the miniplayer." = "Não abrir picture in picture ao sair do app pelo miniplayer.";
+"Backup" = "Backup";
+"Back up and restore settings and downloads" = "Faça backup e restaure ajustes e downloads";
+"Download button, where to save, and storage" = "Botão de download, onde salvar e armazenamento";
+"Never" = "Nunca";
+"Last Backup" = "Último backup";
+"%lu changed" = "%lu alterados";
+"%lu files · %@" = "%lu arquivos · %@";
+"INCLUDED" = "INCLUÍDO";
+"1 file · %@" = "1 arquivo · %@";

@@ -1560,7 +1560,29 @@ static CGSize YTKACEFullscreenActionsSizeThatFits(id receiver, SEL selector,
     return CGSizeMake(fitted.width, YTKACEFullscreenActionsReservedHeight);
 }
 
+static IMP OriginalCreatePanelNavigation;
+
+// Products panels ("PAproduct_list") can open on their own when a video
+// loads (the landscape and iPad sidebar). With Remove Products on, the
+// panel isn't created.
+static BOOL YTKACEIsProductsPanelCommand(id command) {
+    if (!YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden")) return NO;
+    NSString *text = [command description];
+    return [text containsString:@"PAproduct_list"] || [text containsString:@"shopping_panel"];
+}
+
+static id YTKACECreatePanelNavigation(id self, SEL _cmd, id command, id parent, id delegate) {
+    if (YTKACEIsProductsPanelCommand(command)) {
+        YTKACEDebugLog(@"products", @"blocked products panel");
+        return nil;
+    }
+    return ((id (*)(id, SEL, id, id, id))OriginalCreatePanelNavigation)(self, _cmd, command, parent, delegate);
+}
+
 void YTKACEInstallOverlayVisibilityHooks(void) {
+    YTKACEInstallInstanceHook(@"YTEngagementPanelViewControllerManager",
+                              @"createNavigationControllerWithRootShowCommand:parentResponder:delegate:",
+                              (IMP)YTKACECreatePanelNavigation, &OriginalCreatePanelNavigation);
     YTKACEInstallInstanceHook(@"ELMTextNode", @"__setNodeController:",
                               (IMP)YTKACETextNodeSetNodeController,
                               &OriginalTextNodeSetNodeController);
