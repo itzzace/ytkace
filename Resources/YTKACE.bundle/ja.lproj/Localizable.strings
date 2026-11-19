@@ -1186,3 +1186,5 @@ CC BY-NC-SA 4.0 でライセンスされています。";
 "%lu files · %@" = "%lu ファイル · %@";
 "INCLUDED" = "含まれるもの";
 "1 file · %@" = "1 ファイル · %@";
+"Charging Port in Fullscreen" = "全画面での充電ポート";
+"Keep landscape fullscreen on one side." = "横向きの全画面を片側に固定します。";

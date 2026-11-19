@@ -1168,3 +1168,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE korzysta z danych SponsorBlock.\nLice
 "%lu files · %@" = "Pliki: %lu · %@";
 "INCLUDED" = "ZAWARTOŚĆ";
 "1 file · %@" = "1 plik · %@";
+"Charging Port in Fullscreen" = "Port ładowania na pełnym ekranie";
+"Keep landscape fullscreen on one side." = "Utrzymuj poziomy pełny ekran po jednej stronie.";
