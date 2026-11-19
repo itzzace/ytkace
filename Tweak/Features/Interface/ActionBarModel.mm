@@ -5,6 +5,7 @@
 #import <algorithm>
 #import "../../Runtime/Hooking.h"
 #import "../../Runtime/Preferences.h"
+#import "../Downloads/DownloadLog.h"
 
 // The iPhone bar under the video comes in the watch response as a list of
 // buttons whose last entry is ⋯. YouTube's template shows as many as fit and
@@ -273,6 +274,7 @@ bool YTKACERewriteBar(std::string &bar, NSArray<NSString *> *order, NSSet<NSStri
         if (item.name != nil) [names addObject:item.name];
     }
     YTKACENoteActionBarButtons(names);
+    YTKACEDebugLog(@"actionbar", @"model bar=%@", [names componentsJoinedByString:@","]);
     if (order.count == 0 && hidden.count == 0) return false;
 
     // Hidden ones go; the rest follow the saved order, then YouTube's.
@@ -288,6 +290,10 @@ bool YTKACERewriteBar(std::string &bar, NSArray<NSString *> *order, NSSet<NSStri
         if (rightRank == NSNotFound) rightRank = order.count + right.position;
         return leftRank < rightRank;
     });
+
+    NSMutableArray<NSString *> *shownNames = [NSMutableArray array];
+    for (const YTKACEBarItem &item : shown) [shownNames addObject:item.name ?: @"?"];
+    YTKACEDebugLog(@"actionbar", @"model rewritten=%@,Overflow", [shownNames componentsJoinedByString:@","]);
 
     // ⋯ keeps its button and unknown items; its copies match the new bar.
     std::vector<PBField> newOverflow;

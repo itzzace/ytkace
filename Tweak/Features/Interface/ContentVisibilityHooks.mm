@@ -1298,10 +1298,18 @@ static void YTKACEFixedBarLayoutSubviews(UIView *receiver, SEL selector) {
     if (keep.count == 0 || (keep.count == slots.count && order.count == 0)) return;
 
     // Saved order first; buttons the order doesn't name keep YouTube's order
-    // after them.
+    // after them. Slots we can't name (⋯ items the model already moved into
+    // place) stay where they are; only the named ones swap among themselves.
     if (order.count != 0) {
-        NSArray<UIView *> *natural = [keep copy];
-        [keep sortUsingComparator:^NSComparisonResult(UIView *left, UIView *right) {
+        NSMutableArray<UIView *> *named = [NSMutableArray array];
+        NSMutableIndexSet *namedPositions = [NSMutableIndexSet indexSet];
+        for (NSUInteger index = 0; index < keep.count; index++) {
+            if ([names objectForKey:keep[index]] == nil) continue;
+            [named addObject:keep[index]];
+            [namedPositions addIndex:index];
+        }
+        NSArray<UIView *> *natural = [named copy];
+        [named sortUsingComparator:^NSComparisonResult(UIView *left, UIView *right) {
             NSUInteger leftRank = [order indexOfObject:[names objectForKey:left] ?: @""];
             NSUInteger rightRank = [order indexOfObject:[names objectForKey:right] ?: @""];
             if (leftRank == NSNotFound) leftRank = order.count + [natural indexOfObject:left];
@@ -1310,6 +1318,7 @@ static void YTKACEFixedBarLayoutSubviews(UIView *receiver, SEL selector) {
             if (leftRank > rightRank) return NSOrderedDescending;
             return NSOrderedSame;
         }];
+        [keep replaceObjectsAtIndexes:namedPositions withObjects:named];
     }
 
     // Keep YouTube's slot width and pack the remaining buttons to the right
@@ -1325,8 +1334,16 @@ static void YTKACEFixedBarLayoutSubviews(UIView *receiver, SEL selector) {
 
     static NSTimeInterval lastLog = 0.0;
     NSTimeInterval now = NSDate.timeIntervalSinceReferenceDate;
-    if (now - lastLog > 2.0) {
+    static NSString *lastTrace = nil;
+    NSMutableArray<NSString *> *final = [NSMutableArray array];
+    for (UIView *slot in keep) [final addObject:[names objectForKey:slot] ?: @"?"];
+    NSString *line = [NSString stringWithFormat:@"fixed slots=%@ final=%@ order=%@",
+        [trace componentsJoinedByString:@","], [final componentsJoinedByString:@","],
+        [order componentsJoinedByString:@","]];
+    if (now - lastLog > 2.0 || ![line isEqualToString:lastTrace]) {
         lastLog = now;
+        lastTrace = line;
+        YTKACEDebugLog(@"actionbar", @"%@", line);
     }
 }
 
