@@ -146,6 +146,8 @@ static BOOL YTKACEAnyActionPreferenceEnabled(void) {
     return NO;
 }
 
+static NSString *YTKACEIconPreferenceInView(UIView *view);
+
 static NSString *YTKACEActionPreferenceForView(UIView *view) {
     if (view == nil || !YTKACEViewIsInsideWatchActionBar(view)) return nil;
     for (NSString *name in @[@"entry", @"renderer", @"buttonRenderer",
@@ -192,6 +194,8 @@ static NSString *YTKACEActionPreferenceForView(UIView *view) {
             }
         }
     }
+    NSString *iconPreference = YTKACEIconPreferenceInView(view);
+    if (iconPreference.length != 0) return iconPreference;
     for (NSArray<NSString *> *rule in rules) {
         if (dislikeToken &&
             [rule.firstObject isEqualToString:
@@ -347,6 +351,136 @@ static id YTKACEActionCellControllerInit(id receiver, SEL selector,
 static NSArray<NSString *> *YTKACEActionButtonIdentifiers(UIView *view);
 static BOOL YTKACEIsActionButtonIdentifier(NSString *identifier);
 
+// YouTube's server-driven buttons (Ask, Report, ...) have no identifier and a
+// translated label, but every icon is loaded by a fixed resource name such as
+// "youtube_fill_experimental/spark_24pt". Remember that name on the image node
+// that asked for it, so buttons can be matched in any language.
+static IMP OriginalLocalImage;
+static IMP OriginalResourceImage;
+static IMP OriginalResourceImageBoost;
+static __thread void *YTKACELoadingImageNode;
+static const void *YTKACEIconNameAssociation = &YTKACEIconNameAssociation;
+
+static void YTKACETagLoadingNode(NSString *name) {
+    void *node = YTKACELoadingImageNode;
+    if (node == NULL || ![name isKindOfClass:NSString.class]) return;
+    objc_setAssociatedObject((__bridge id)node, YTKACEIconNameAssociation,
+                             name, OBJC_ASSOCIATION_COPY_NONATOMIC);
+}
+
+static id YTKACELocalImage(id node, SEL selector, const void *image,
+                           BOOL *boosted) {
+    void *previous = YTKACELoadingImageNode;
+    YTKACELoadingImageNode = (__bridge void *)node;
+    id result = ((id (*)(id, SEL, const void *, BOOL *))OriginalLocalImage)(
+        node, selector, image, boosted);
+    YTKACELoadingImageNode = previous;
+    return result;
+}
+
+static id YTKACEResourceImage(id loader, SEL selector, NSString *name,
+                              id color, id bundle) {
+    YTKACETagLoadingNode(name);
+    return ((id (*)(id, SEL, id, id, id))OriginalResourceImage)(
+        loader, selector, name, color, bundle);
+}
+
+static id YTKACEResourceImageBoost(id loader, SEL selector, NSString *name,
+                                   id color, id bundle, float ratio) {
+    YTKACETagLoadingNode(name);
+    return ((id (*)(id, SEL, id, id, id, float))OriginalResourceImageBoost)(
+        loader, selector, name, color, bundle, ratio);
+}
+
+static void YTKACEEnsureIconNameHooks(void) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        Class node = NSClassFromString(@"ELMImageNode");
+        Method local = node == Nil ? NULL : class_getInstanceMethod(node,
+            NSSelectorFromString(@"localImageWithImage:boosted:"));
+        const char *types = local == NULL ? NULL : method_getTypeEncoding(local);
+        // Only hook the shape this was written for: (const void *, BOOL *).
+        if (types == NULL || strcmp(types, "@32@0:8r^v16^B24") != 0) return;
+        YTKACEInstallInstanceHook(@"YTELMResourceLoaderImpl",
+                                  @"imageWithName:color:bundleId:",
+                                  (IMP)YTKACEResourceImage,
+                                  &OriginalResourceImage);
+        YTKACEInstallInstanceHook(@"YTELMResourceLoaderImpl",
+                                  @"imageWithName:color:bundleId:hdrUIBoostRatio:",
+                                  (IMP)YTKACEResourceImageBoost,
+                                  &OriginalResourceImageBoost);
+        YTKACEInstallInstanceHook(@"ELMImageNode",
+                                  @"localImageWithImage:boosted:",
+                                  (IMP)YTKACELocalImage,
+                                  &OriginalLocalImage);
+    });
+}
+
+static NSString *YTKACEPreferenceForIconName(NSString *name) {
+    NSString *icon = name.lastPathComponent.lowercaseString;
+    if (icon.length == 0) return nil;
+    NSArray<NSArray<NSString *> *> *rules = @[
+        @[@"YTKACE.Preference.ActionBar.DislikeHidden", @"thumb_down", @"dislike"],
+        @[@"YTKACE.Preference.ActionBar.LikeHidden", @"thumb_up", @"like"],
+        @[@"YTKACE.Preference.ActionBar.ShareHidden", @"share"],
+        @[@"YTKACE.Preference.ActionBar.DownloadHidden", @"download", @"offline"],
+        @[@"YTKACE.Preference.ActionBar.SaveHidden", @"bookmark", @"playlist_add", @"library_add", @"save"],
+        @[@"YTKACE.Preference.ActionBar.ClipHidden", @"scissors", @"clip"],
+        @[@"YTKACE.Preference.ActionBar.RemixHidden", @"remix"],
+        @[@"YTKACE.Preference.ActionBar.ThanksHidden", @"thanks", @"money_heart"],
+        @[@"YTKACE.Preference.ActionBar.HypeHidden", @"hype"],
+        @[@"YTKACE.Preference.ActionBar.ReportHidden", @"flag", @"report"],
+        @[@"YTKACE.Preference.ActionBar.AskHidden", @"spark", @"gemini"],
+        @[@"YTKACE.Preference.ActionBar.OverflowHidden", @"overflow"]
+    ];
+    for (NSArray<NSString *> *rule in rules) {
+        for (NSUInteger index = 1; index < rule.count; index++) {
+            if ([icon hasPrefix:rule[index]]) return rule.firstObject;
+        }
+    }
+    return nil;
+}
+
+// Icon names of the ELM image nodes inside a view, closest first.
+static NSArray<NSString *> *YTKACEIconNamesInView(UIView *view) {
+    if (view == nil || OriginalLocalImage == NULL) return @[];
+    SEL nodeSelector = NSSelectorFromString(@"asyncdisplaykit_node");
+    id root = nil;
+    NSMutableArray<UIView *> *views = [NSMutableArray arrayWithObject:view];
+    for (NSUInteger index = 0; views.count != 0 && index < 8 && root == nil; index++) {
+        UIView *candidate = views.firstObject;
+        [views removeObjectAtIndex:0];
+        if ([candidate respondsToSelector:nodeSelector]) {
+            root = ((id (*)(id, SEL))objc_msgSend)(candidate, nodeSelector);
+        }
+        [views addObjectsFromArray:candidate.subviews];
+    }
+    if (root == nil) return @[];
+    SEL subnodesSelector = NSSelectorFromString(@"subnodes");
+    NSMutableArray<NSString *> *names = [NSMutableArray array];
+    NSMutableArray *pending = [NSMutableArray arrayWithObject:root];
+    NSUInteger visited = 0;
+    while (pending.count != 0 && visited < 48) {
+        id node = pending.firstObject;
+        [pending removeObjectAtIndex:0];
+        visited++;
+        NSString *name = objc_getAssociatedObject(node, YTKACEIconNameAssociation);
+        if (name.length != 0) [names addObject:name];
+        if (![node respondsToSelector:subnodesSelector]) continue;
+        NSArray *subnodes = ((id (*)(id, SEL))objc_msgSend)(node, subnodesSelector);
+        if ([subnodes isKindOfClass:NSArray.class]) [pending addObjectsFromArray:subnodes];
+    }
+    return names;
+}
+
+static NSString *YTKACEIconPreferenceInView(UIView *view) {
+    for (NSString *name in YTKACEIconNamesInView(view)) {
+        NSString *preference = YTKACEPreferenceForIconName(name);
+        if (preference.length != 0) return preference;
+    }
+    return nil;
+}
+
 static NSString *YTKACEPreferenceForButtonIdentifier(NSString *identifier) {
     NSString *token = [[identifier lowercaseString]
         stringByReplacingOccurrencesOfString:@"." withString:@"_"];
@@ -483,6 +617,10 @@ static NSSet<NSString *> *YTKACEActionPreferencesInCell(UIView *cell) {
         }
         [pending addObjectsFromArray:candidate.subviews];
     }
+    for (NSString *name in YTKACEIconNamesInView(cell)) {
+        NSString *preference = YTKACEPreferenceForIconName(name);
+        if (preference.length != 0) [preferences addObject:preference];
+    }
     return preferences;
 }
 
@@ -557,14 +695,213 @@ static void YTKACEHiddenActionWidths(UIView *cell,
     if (outVisible != NULL) *outVisible = visible;
 }
 
+// The like/dislike pill is one cell holding [like, separator, dislike] in a
+// Yoga row. Hiding one half by shrinking the cell's frame left a hole (like)
+// or squashed the other half (dislike). Collapse the hidden half and the
+// separator inside Yoga instead, so the pill measures itself correctly.
+typedef struct { NSInteger unit; CGFloat value; } YTKACEActionDimension;
+typedef struct {
+    YTKACEActionDimension top, left, bottom, right, start, end, horizontal, vertical, all;
+} YTKACEActionEdges;
+static const void *YTKACEActionCollapsedKey = &YTKACEActionCollapsedKey;
+static const void *YTKACEActionWidthsKey = &YTKACEActionWidthsKey;
+static const void *YTKACEActionEdgesKey = &YTKACEActionEdgesKey;
+
+static id YTKACEActionNodeGet(id object, NSString *name) {
+    SEL selector = NSSelectorFromString(name);
+    return object != nil && [object respondsToSelector:selector]
+        ? ((id (*)(id, SEL))objc_msgSend)(object, selector) : nil;
+}
+
+static void YTKACEActionNodeRelayout(id node) {
+    for (id current = node; current != nil; current = YTKACEActionNodeGet(current, @"supernode")) {
+        SEL invalidate = NSSelectorFromString(@"invalidateCalculatedLayout");
+        if ([current respondsToSelector:invalidate]) ((void (*)(id, SEL))objc_msgSend)(current, invalidate);
+        SEL needs = NSSelectorFromString(@"setNeedsLayout");
+        if ([current respondsToSelector:needs]) ((void (*)(id, SEL))objc_msgSend)(current, needs);
+    }
+}
+
+static BOOL YTKACEActionNodeCollapse(id node, BOOL collapse) {
+    if (node == nil) return NO;
+    if ([objc_getAssociatedObject(node, YTKACEActionCollapsedKey) boolValue] == collapse) return NO;
+    id style = YTKACEActionNodeGet(node, @"style");
+    NSArray<NSString *> *names = @[@"width", @"minWidth", @"maxWidth"];
+    if (collapse) {
+        NSMutableArray *saved = [NSMutableArray array];
+        for (NSString *name in names) {
+            SEL getter = NSSelectorFromString(name);
+            YTKACEActionDimension value = {0, 0};
+            if ([style respondsToSelector:getter]) {
+                value = ((YTKACEActionDimension (*)(id, SEL))objc_msgSend)(style, getter);
+            }
+            [saved addObject:[NSValue valueWithBytes:&value objCType:@encode(YTKACEActionDimension)]];
+        }
+        objc_setAssociatedObject(node, YTKACEActionWidthsKey, saved, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    NSArray<NSValue *> *saved = objc_getAssociatedObject(node, YTKACEActionWidthsKey);
+    for (NSUInteger index = 0; index < names.count; index++) {
+        NSString *name = names[index];
+        SEL setter = NSSelectorFromString([NSString stringWithFormat:@"set%@%@:",
+            [name substringToIndex:1].uppercaseString, [name substringFromIndex:1]]);
+        if (![style respondsToSelector:setter]) continue;
+        YTKACEActionDimension value = {1, 0};
+        if (!collapse) {
+            value = (YTKACEActionDimension){0, 0};
+            if (index < saved.count) [saved[index] getValue:&value];
+        }
+        ((void (*)(id, SEL, YTKACEActionDimension))objc_msgSend)(style, setter, value);
+    }
+    // Padding and margin would keep a zero-width node from shrinking fully.
+    NSArray<NSString *> *edgeNames = @[@"padding", @"margin"];
+    if (collapse) {
+        NSMutableArray *savedEdges = [NSMutableArray array];
+        for (NSString *name in edgeNames) {
+            SEL getter = NSSelectorFromString(name);
+            YTKACEActionEdges value = {};
+            if ([style respondsToSelector:getter]) {
+                value = ((YTKACEActionEdges (*)(id, SEL))objc_msgSend)(style, getter);
+            }
+            [savedEdges addObject:[NSValue valueWithBytes:&value objCType:@encode(YTKACEActionEdges)]];
+        }
+        objc_setAssociatedObject(node, YTKACEActionEdgesKey, savedEdges, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    NSArray<NSValue *> *savedEdges = objc_getAssociatedObject(node, YTKACEActionEdgesKey);
+    for (NSUInteger index = 0; index < edgeNames.count; index++) {
+        NSString *name = edgeNames[index];
+        SEL setter = NSSelectorFromString([NSString stringWithFormat:@"set%@%@:",
+            [name substringToIndex:1].uppercaseString, [name substringFromIndex:1]]);
+        if (![style respondsToSelector:setter]) continue;
+        YTKACEActionEdges value = {};
+        if (collapse) {
+            YTKACEActionDimension zero = {1, 0};
+            value = (YTKACEActionEdges){zero, zero, zero, zero, zero, zero, zero, zero, zero};
+        } else if (index < savedEdges.count) {
+            [savedEdges[index] getValue:&value];
+        }
+        ((void (*)(id, SEL, YTKACEActionEdges))objc_msgSend)(style, setter, value);
+    }
+    SEL hidden = NSSelectorFromString(@"setHidden:");
+    if ([node respondsToSelector:hidden]) ((void (*)(id, SEL, BOOL))objc_msgSend)(node, hidden, collapse);
+    objc_setAssociatedObject(node, YTKACEActionCollapsedKey, @(collapse), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    return YES;
+}
+
+static id YTKACECellRootNode(UIView *cell) {
+    SEL nodeSelector = NSSelectorFromString(@"asyncdisplaykit_node");
+    NSMutableArray<UIView *> *views = [NSMutableArray arrayWithObject:cell];
+    for (NSUInteger index = 0; views.count != 0 && index < 12; index++) {
+        UIView *candidate = views.firstObject;
+        [views removeObjectAtIndex:0];
+        if ([candidate respondsToSelector:nodeSelector]) {
+            id node = ((id (*)(id, SEL))objc_msgSend)(candidate, nodeSelector);
+            if (node != nil) return node;
+        }
+        [views addObjectsFromArray:candidate.subviews];
+    }
+    return nil;
+}
+
+// Returns YES when the cell is the like/dislike pill. bothHidden says whether
+// the whole pill should go (left to the normal cell collapse).
+static BOOL YTKACEApplyPillHiding(UIView *cell, BOOL *bothHidden) {
+    if (bothHidden != NULL) *bothHidden = NO;
+    id root = YTKACECellRootNode(cell);
+    if (root == nil) return NO;
+    id like = nil, dislike = nil;
+    NSMutableArray *pending = [NSMutableArray arrayWithObject:root];
+    NSUInteger visited = 0;
+    while (pending.count != 0 && visited < 40 && (like == nil || dislike == nil)) {
+        id node = pending.firstObject;
+        [pending removeObjectAtIndex:0];
+        visited++;
+        id identifier = YTKACEActionNodeGet(node, @"accessibilityIdentifier");
+        if ([identifier isEqual:@"id.video.like.button"]) like = node;
+        else if ([identifier isEqual:@"id.video.dislike.button"]) dislike = node;
+        NSArray *subnodes = YTKACEActionNodeGet(node, @"subnodes");
+        if ([subnodes isKindOfClass:NSArray.class]) [pending addObjectsFromArray:subnodes];
+    }
+    id pill = YTKACEActionNodeGet(like, @"supernode");
+    if (like == nil || dislike == nil || pill == nil ||
+        YTKACEActionNodeGet(dislike, @"supernode") != pill) return NO;
+    BOOL likeHidden = YTKACEFeatureEnabled(@"YTKACE.Preference.ActionBar.LikeHidden");
+    BOOL dislikeHidden = YTKACEFeatureEnabled(@"YTKACE.Preference.ActionBar.DislikeHidden");
+    BOOL both = likeHidden && dislikeHidden;
+    if (bothHidden != NULL) *bothHidden = both;
+    // When both go, the cell itself collapses; keep the halves intact so the
+    // pill comes back whole if a setting is turned off.
+    BOOL hideLike = likeHidden && !both;
+    BOOL hideDislike = dislikeHidden && !both;
+    BOOL changed = NO;
+    changed |= YTKACEActionNodeCollapse(like, hideLike);
+    changed |= YTKACEActionNodeCollapse(dislike, hideDislike);
+    NSArray *children = YTKACEActionNodeGet(pill, @"subnodes");
+    if ([children isKindOfClass:NSArray.class]) {
+        for (id child in children) {
+            if (child == like || child == dislike) continue;
+            changed |= YTKACEActionNodeCollapse(child, hideLike || hideDislike);
+        }
+    }
+    if (changed) YTKACEActionNodeRelayout(pill);
+    return YES;
+}
+
+// The first cell (the like/dislike pill) carries the row's leading inset
+// inside itself. When it collapses, the next visible cell should keep it.
+static CGFloat YTKACECellLeadingInset(UIView *cell) {
+    id node = YTKACECellRootNode(cell);
+    for (NSUInteger depth = 0; node != nil && depth < 2; depth++) {
+        NSArray *subnodes = YTKACEActionNodeGet(node, @"subnodes");
+        node = [subnodes isKindOfClass:NSArray.class] ? subnodes.firstObject : nil;
+    }
+    if (node == nil || ![node respondsToSelector:@selector(frame)]) return 0.0;
+    CGFloat inset = ((CGRect (*)(id, SEL))objc_msgSend)(node, @selector(frame)).origin.x;
+    return inset > 0.5 && inset <= 32.0 ? inset : 0.0;
+}
+
+extern "C" void YTKACENoteActionBarButtons(NSArray<NSString *> *names);
+
+// Which action bar this device gets, for the editor's mock: "fixed" (the
+// iPhone row of icons) or "chips" (the scrolling row of chips).
+static void YTKACENoteActionBarLayout(NSString *kind) {
+    static NSString *noted;
+    // The fixed row wins if both show up in one launch.
+    if ([noted isEqualToString:kind] || [noted isEqualToString:@"fixed"]) return;
+    noted = kind;
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    NSString *key = @"YTKACE.State.ActionBarLayout";
+    if (![[defaults stringForKey:key] isEqualToString:kind]) [defaults setObject:kind forKey:key];
+}
+
 static void YTKACEASCollectionViewLayout(UICollectionView *receiver,
                                           SEL selector) {
     if (OriginalASCollectionViewLayout != NULL) {
         ((void (*)(id, SEL))OriginalASCollectionViewLayout)(receiver, selector);
     }
-    if (!YTKACEAnyActionPreferenceEnabled() || receiver.window == nil) return;
+    if (receiver.window == nil) return;
     CGFloat height = CGRectGetHeight(receiver.bounds);
     if (height < 36.0 || height > 68.0) return;
+    static BOOL notedChips;
+    if (!notedChips) {
+        for (UICollectionViewCell *cell in receiver.visibleCells) {
+            for (NSString *identifier in YTKACEActionButtonIdentifiers(cell)) {
+                if ([identifier containsString:@"like.button"]) notedChips = YES;
+            }
+        }
+        if (notedChips) YTKACENoteActionBarLayout(@"chips");
+    }
+    if (notedChips) {
+        NSMutableArray<NSString *> *names = [NSMutableArray array];
+        for (UICollectionViewCell *cell in receiver.visibleCells) {
+            for (NSString *preference in YTKACEActionPreferencesInCell(cell)) {
+                NSString *name = [[preference componentsSeparatedByString:@"."].lastObject
+                    stringByReplacingOccurrencesOfString:@"Hidden" withString:@""];
+                if (name.length != 0) [names addObject:name];
+            }
+        }
+        YTKACENoteActionBarButtons(names);
+    }
+    if (!YTKACEAnyActionPreferenceEnabled()) return;
 
     NSArray<UICollectionViewCell *> *visible = [receiver.visibleCells
         sortedArrayUsingComparator:^NSComparisonResult(UICollectionViewCell *left,
@@ -585,6 +922,9 @@ static void YTKACEASCollectionViewLayout(UICollectionView *receiver,
     static NSUInteger layoutLogged = 0;
     CGFloat removedWidth = 0.0;
     NSUInteger matchedCells = 0;
+    CGFloat leadingInset = 0.0;
+    BOOL seenVisibleCell = NO;
+    NSUInteger cellIndex = 0;
     for (UICollectionViewCell *cell in visible) {
         CGRect frame = cell.frame;
         NSArray<NSString *> *cellButtons = YTKACEActionButtonIdentifiers(cell);
@@ -592,7 +932,17 @@ static void YTKACEASCollectionViewLayout(UICollectionView *receiver,
             layoutLogged++;
         }
         frame.origin.x -= removedWidth;
+        BOOL pillBothHidden = NO;
+        BOOL pill = YTKACEApplyPillHiding(cell, &pillBothHidden);
         NSSet<NSString *> *preferences = YTKACEActionPreferencesInCell(cell);
+        if (pill && !pillBothHidden) {
+            // Yoga already resized the pill; undo any old frame changes.
+            preferences = [NSSet set];
+            cell.hidden = NO;
+            cell.userInteractionEnabled = YES;
+            cell.clipsToBounds = NO;
+            cell.contentView.clipsToBounds = NO;
+        }
         if (preferences.count != 0) {
             matchedCells++;
             NSUInteger hiddenCount = 0;
@@ -634,8 +984,18 @@ static void YTKACEASCollectionViewLayout(UICollectionView *receiver,
                 cell.contentView.transform = CGAffineTransformIdentity;
             }
         }
+        if (cellIndex == 0) leadingInset = YTKACECellLeadingInset(cell);
+        if (!seenVisibleCell && !cell.hidden && CGRectGetWidth(frame) > 0.5) {
+            seenVisibleCell = YES;
+            if (cellIndex > 0 && leadingInset > 0.0 && removedWidth >= leadingInset) {
+                frame.origin.x += leadingInset;
+                removedWidth -= leadingInset;
+            }
+        }
+        cellIndex++;
         cell.frame = frame;
     }
+
     if (matchedCells == 0 || removedWidth <= 0.0) return;
 
     CGSize contentSize = receiver.contentSize;
@@ -836,6 +1196,8 @@ static NSString *YTKACEBarSlotPreference(UIView *slot) {
         }
         [pending addObjectsFromArray:node.subviews];
     }
+    NSString *icon = YTKACEIconPreferenceInView(slot);
+    if (icon.length != 0) return icon;
     NSString *joined = [labels componentsJoinedByString:@" "];
     if (joined.length == 0) return nil;
     NSArray<NSArray<NSString *> *> *rules = @[
@@ -870,12 +1232,50 @@ static void YTKACEFixedBarLayoutSubviews(UIView *receiver, SEL selector) {
     if (slots.count < 3 || slots.count > 10) return;
     NSString *identifier = receiver.accessibilityIdentifier;
     if (![identifier containsString:@"non_scrollable_action_bar"]) return;
-    if (!YTKACEAnyActionPreferenceEnabled()) return;
+    YTKACENoteActionBarLayout(@"fixed");
+    NSArray *order = YTKACEPreferenceObject(@"YTKACE.Preference.ActionBar.Order");
+    if (![order isKindOfClass:NSArray.class]) order = nil;
+    if (!YTKACEAnyActionPreferenceEnabled() && order.count == 0) return;
 
     CGFloat barWidth = CGRectGetWidth(receiver.bounds);
     if (barWidth <= 0.0) return;
-    CGFloat naturalSlot = barWidth / (CGFloat)slots.count;
+    // Buttons that didn't fit are zero wide (they're in ⋯); only the
+    // laid-out ones count.
+    NSMutableArray<UIView *> *laidOut = [NSMutableArray array];
+    CGFloat naturalSlot = 0.0;
+    for (UIView *slot in slots) {
+        if (CGRectGetWidth(slot.frame) < 1.0) continue;
+        [laidOut addObject:slot];
+        naturalSlot = MAX(naturalSlot, CGRectGetWidth(slot.frame));
+    }
+    if (laidOut.count == 0) return;
+    slots = laidOut;
+    // ⋯ items moved into the bar (ActionBarModel.mm) are menu rows with 16pt
+    // side padding; a bar button's icon sits about 8.5pt in.
+    for (UIView *slot in slots) {
+        NSMutableArray<UIView *> *pending = [NSMutableArray arrayWithObject:slot];
+        for (NSUInteger visited = 0; pending.count != 0 && visited < 12; visited++) {
+            UIView *view = pending.firstObject;
+            [pending removeObjectAtIndex:0];
+            if ([view.accessibilityIdentifier isEqualToString:@"id.elements.list_item"]) {
+                id node = YTKACEActionNodeGet(view, @"asyncdisplaykit_node");
+                id style = YTKACEActionNodeGet(node, @"style");
+                SEL getter = NSSelectorFromString(@"padding"), setter = NSSelectorFromString(@"setPadding:");
+                if ([style respondsToSelector:getter] && [style respondsToSelector:setter]) {
+                    YTKACEActionEdges padding = ((YTKACEActionEdges (*)(id, SEL))objc_msgSend)(style, getter);
+                    if (padding.horizontal.unit == 1 && padding.horizontal.value > 9.0) {
+                        padding.horizontal.value = 8.5;
+                        ((void (*)(id, SEL, YTKACEActionEdges))objc_msgSend)(style, setter, padding);
+                        YTKACEActionNodeRelayout(node);
+                    }
+                }
+                break;
+            }
+            [pending addObjectsFromArray:view.subviews];
+        }
+    }
     NSMutableArray<UIView *> *keep = [NSMutableArray array];
+    NSMapTable<UIView *, NSString *> *names = [NSMapTable strongToStrongObjectsMapTable];
     NSMutableArray<NSString *> *trace = [NSMutableArray array];
     for (UIView *slot in slots) {
         NSString *preference = YTKACEBarSlotPreference(slot);
@@ -886,24 +1286,64 @@ static void YTKACEFixedBarLayoutSubviews(UIView *receiver, SEL selector) {
                 : [preference componentsSeparatedByString:@"."].lastObject,
             hidden ? @"!" : @""]];
         if (!hidden) [keep addObject:slot];
+        // "YTKACE.Preference.ActionBar.LikeHidden" -> "Like"
+        NSString *name = [[preference componentsSeparatedByString:@"."].lastObject
+            stringByReplacingOccurrencesOfString:@"Hidden" withString:@""];
+        if (name.length != 0) [names setObject:name forKey:slot];
+        // Hide here too: a button matched by its icon name may only be
+        // recognised after the other hiding paths have already run.
+        slot.hidden = hidden;
+        slot.userInteractionEnabled = !hidden;
     }
-    if (keep.count == 0 || keep.count == slots.count) return;
+    if (keep.count == 0 || (keep.count == slots.count && order.count == 0)) return;
 
-    CGFloat share = barWidth / (CGFloat)keep.count;
-    NSUInteger position = 0;
+    // Saved order first; buttons the order doesn't name keep YouTube's order
+    // after them. Slots we can't name (⋯ items the model already moved into
+    // place) stay where they are; only the named ones swap among themselves.
+    if (order.count != 0) {
+        NSMutableArray<UIView *> *named = [NSMutableArray array];
+        NSMutableIndexSet *namedPositions = [NSMutableIndexSet indexSet];
+        for (NSUInteger index = 0; index < keep.count; index++) {
+            if ([names objectForKey:keep[index]] == nil) continue;
+            [named addObject:keep[index]];
+            [namedPositions addIndex:index];
+        }
+        NSArray<UIView *> *natural = [named copy];
+        [named sortUsingComparator:^NSComparisonResult(UIView *left, UIView *right) {
+            NSUInteger leftRank = [order indexOfObject:[names objectForKey:left] ?: @""];
+            NSUInteger rightRank = [order indexOfObject:[names objectForKey:right] ?: @""];
+            if (leftRank == NSNotFound) leftRank = order.count + [natural indexOfObject:left];
+            if (rightRank == NSNotFound) rightRank = order.count + [natural indexOfObject:right];
+            if (leftRank < rightRank) return NSOrderedAscending;
+            if (leftRank > rightRank) return NSOrderedDescending;
+            return NSOrderedSame;
+        }];
+        [keep replaceObjectsAtIndexes:namedPositions withObjects:named];
+    }
+
+    // Keep YouTube's slot width and pack the remaining buttons to the right
+    // edge, instead of stretching them across the whole bar.
+    CGFloat x = barWidth - (CGFloat)keep.count * naturalSlot;
     for (UIView *slot in keep) {
         CGRect frame = slot.frame;
         frame.size.width = naturalSlot;
-        frame.origin.x = (CGFloat)position * share +
-            (share - naturalSlot) / 2.0;
+        frame.origin.x = x;
+        x += naturalSlot;
         slot.frame = frame;
-        position++;
     }
 
     static NSTimeInterval lastLog = 0.0;
     NSTimeInterval now = NSDate.timeIntervalSinceReferenceDate;
-    if (now - lastLog > 2.0) {
+    static NSString *lastTrace = nil;
+    NSMutableArray<NSString *> *final = [NSMutableArray array];
+    for (UIView *slot in keep) [final addObject:[names objectForKey:slot] ?: @"?"];
+    NSString *line = [NSString stringWithFormat:@"fixed slots=%@ final=%@ order=%@",
+        [trace componentsJoinedByString:@","], [final componentsJoinedByString:@","],
+        [order componentsJoinedByString:@","]];
+    if (now - lastLog > 2.0 || ![line isEqualToString:lastTrace]) {
         lastLog = now;
+        lastTrace = line;
+        YTKACEDebugLog(@"actionbar", @"%@", line);
     }
 }
 
@@ -920,6 +1360,7 @@ static void YTKACEEnsureFixedBarHook(void) {
 }
 
 static void YTKACEEnsureActionCellReuseHook(void) {
+    YTKACEEnsureIconNameHooks();
     YTKACEEnsureFixedBarHook();
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -1901,6 +2342,8 @@ static NSString *YTKACEBrowseID(id object) {
 
 static BOOL YTKACEIsChannelBrowseID(NSString *browseID) {
     if ([browseID hasPrefix:@"UC"] || [browseID hasPrefix:@"@"]) return YES;
+    // channels opened from a Short report this instead of the channel ID
+    if ([browseID isEqualToString:@"CHANNELS"]) return YES;
     NSRange slash = [browseID rangeOfString:@"/" options:NSBackwardsSearch];
     if (slash.location == NSNotFound) return NO;
     static NSSet<NSString *> *tabs;
@@ -2078,6 +2521,7 @@ static BOOL YTKACEMixFilteredEntries(id section) {
         if (YTKACEEntryIsMix(entry)) [drop addIndex:index];
     }];
     if (drop.count == 0) return NO;
+    YTKACEDebugLog(@"feed", @"removed %lu of %lu mixes", (unsigned long)drop.count, (unsigned long)[(NSArray *)contents count]);
     [(NSMutableArray *)contents removeObjectsAtIndexes:drop];
     return [(NSArray *)contents count] == 0;
 }
@@ -2095,6 +2539,23 @@ static NSArray *YTKACEMixFilteredFeedSections(NSArray *sections) {
     NSMutableArray *kept = [sections mutableCopy];
     [kept removeObjectsAtIndexes:empty];
     return kept;
+}
+
+// A section holding many results (search) with a Shorts shelf among them:
+// remove just the Shorts entries. Returns NO when the whole section should go.
+static BOOL YTKACEDropShortsEntries(id section) {
+    id contents = YTKACEFastChildSel(section, YTKACESelContentsArray);
+    if (![contents isKindOfClass:NSMutableArray.class] || [contents count] < 2) return NO;
+    NSMutableIndexSet *drop = [NSMutableIndexSet indexSet];
+    [(NSArray *)contents enumerateObjectsUsingBlock:^(id entry, NSUInteger index, __unused BOOL *stop) {
+        if (YTKACEFeedKindForSection(entry, YTKACEFeedKindShorts) & YTKACEFeedKindShorts) [drop addIndex:index];
+    }];
+    if (drop.count == [contents count]) return NO;
+    if (drop.count == 0) return YES;
+    [(NSMutableArray *)contents removeObjectsAtIndexes:drop];
+    YTKACEDebugLog(@"feed", @"removed %lu shorts of %lu in one section", (unsigned long)drop.count,
+                   (unsigned long)([contents count] + drop.count));
+    return YES;
 }
 
 static NSArray *YTKACEFilteredFeedSections(id receiver, NSArray *sections) {
@@ -2151,6 +2612,11 @@ static NSArray *YTKACEFilteredFeedSections(id receiver, NSArray *sections) {
         YTKACEFeedKind kind = wanted != 0 ? YTKACEFeedKindForSection(section, wanted) : 0;
         NSString *cut = nil;
         if ((hideAIBlock || hideAIWarn) && YTKACESectionIsAIChannel(receiver, section, hideAIBlock, hideAIWarn)) {
+            continue;
+        }
+        if (hideShorts && (kind & YTKACEFeedKindShorts) && YTKACEDropShortsEntries(section)) {
+            // Search puts every result in one section; only its Shorts were removed.
+            [filtered addObject:section];
             continue;
         }
         if (hideShorts && (kind & YTKACEFeedKindShorts)) cut = @"shorts";
@@ -2420,6 +2886,7 @@ static void YTKACEDisplayViewDidMove(UIView *receiver, SEL selector) {
     }
     YTKACEApplyContentVisibility(receiver);
     YTKACEConsiderProductDisplayView(receiver, receiver.accessibilityIdentifier);
+    YTKACEReturnDislikeConsiderView(receiver);
 }
 
 

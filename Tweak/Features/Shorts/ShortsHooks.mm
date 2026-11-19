@@ -172,7 +172,8 @@ static BOOL YTKACEIsShortsActionIdentifier(NSString *identifier) {
         [identifier isEqualToString:@"id.reel_comment_button"] ||
         [identifier isEqualToString:@"id.reel_share_button"] ||
         [identifier isEqualToString:@"id.reel_remix_button"] ||
-        [identifier isEqualToString:@"id.reel_pivot_button"];
+        [identifier isEqualToString:@"id.reel_pivot_button"] ||
+        [identifier isEqualToString:@"id.ytkace_dislike_button"];
 }
 
 static BOOL YTKACEIsShortsActionView(UIView *view, UIView *root,
@@ -236,12 +237,22 @@ static void YTKACECollectShortsActions(UIView *view,
     YTKACECollectShortsActionsWalk(view, root, includeHidden, &metrics, views);
 }
 
+static BOOL YTKACEShortsHasDislikeView(NSArray<UIView *> *actions) {
+    for (UIView *action in actions) {
+        if (!action.hidden && [action.accessibilityIdentifier isEqualToString:@"id.ytkace_dislike_button"]) return YES;
+    }
+    return NO;
+}
+
 static UIView *YTKACEVisibleShortsAction(UIView *root) {
     NSMutableArray<UIView *> *actions = [NSMutableArray array];
     YTKACECollectShortsActions(root, root, NO, actions);
     NSString *expected = nil;
     if (!YTKACEFeatureEnabled(@"YTKACE.Preference.Shorts.LikeHidden")) {
         expected = @"id.reel_like_button";
+    } else if (YTKACEFeatureEnabled(@"YTKACE.Preference.Shorts.DislikeCount") &&
+               YTKACEShortsHasDislikeView(actions)) {
+        expected = @"id.ytkace_dislike_button";
     } else if (!YTKACEFeatureEnabled(@"YTKACE.Preference.Shorts.CommentsHidden")) {
         expected = @"id.reel_comment_button";
     } else if (!YTKACEFeatureEnabled(@"YTKACE.Preference.Shorts.ShareHidden")) {

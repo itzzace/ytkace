@@ -18,6 +18,8 @@ void YTKACEInstallSponsorBlockHooks(void);
 void YTKACEInstallDownloadHooks(void);
 void YTKACEInstallQueueHooks(void);
 void YTKACEQueuePrepareMenuRenderers(id _Nullable renderers);
+void YTKACEQueueWrapMenuActions(id _Nullable renderers, id _Nullable actions);
+NSAttributedString *_Nullable YTKACEQueuePremiumText(NSAttributedString *_Nullable value);
 BOOL YTKACEQueueHasItems(void);
 BOOL YTKACEQueueOwnsCurrentVideo(void);
 NSString * _Nullable YTKACELastVideoID(void);
@@ -90,6 +92,7 @@ NSInteger YTKACEPlaybackFixMode(void);
 id _Nullable YTKACEHLSOriginalResponse(NSString * _Nullable videoID);
 BOOL YTKACEHLSBeginFallback(NSString * _Nullable videoID, void (^ _Nonnull ready)(BOOL available));
 void YTKACEInstallShortsHooks(void);
+void YTKACEInstallShortsFeedFilterHooks(void);
 void YTKACEInstallSideloadCompatibilityHooks(void);
 void YTKACEInstallCastCompatibilityHooks(void);
 void YTKACEStartCastDiscovery(void);
@@ -123,11 +126,15 @@ BOOL YTKACEProductOverlayMatches(id overlay);
 NSAttributedString * _Nullable YTKACESubtitleWithoutProductCount(id _Nullable node,
     NSAttributedString * _Nullable text);
 void YTKACEInstallNativeShareHooks(void);
+void YTKACEReturnDislikeConsiderView(UIView *view);
+NSAttributedString *YTKACEDislikeMetaText(id node, NSAttributedString *value);
+void YTKACEInstallReturnDislikeHooks(void);
 void YTKACEProfileConsiderDisplayView(UIView *view, id node);
 void YTKACEScheduleFirstLaunch(void);
 
 NS_ASSUME_NONNULL_END
 void YTKACEInstallPlaybackFixHooks(void);
+BOOL YTKACEShouldBlockPlaybackHeartbeat(NSURL * _Nullable URL);
 NSDictionary<NSString *, NSString *> * _Nullable YTKACESolveChallenges(NSString * _Nullable playerID,
     NSString * _Nullable playerJS, NSString * _Nonnull type, NSArray<NSString *> * _Nonnull challenges);
 NSData * _Nonnull YTKACETVClientInfo(void);

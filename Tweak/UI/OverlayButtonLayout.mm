@@ -4,6 +4,8 @@
 NSString *const YTKACEOverlayZoneTop = @"top";
 NSString *const YTKACEOverlayZoneBelow = @"below";
 NSString *const YTKACEOverlayZoneBottom = @"bottom";
+NSString *const YTKACEOverlayZoneFullscreen = @"fullscreen";
+NSString *const YTKACEOverlayZoneLeft = @"left";
 
 static NSString *const YTKACEOverlayLayoutKey = @"YTKACE.Preference.Player.ButtonLayout";
 static NSString *const YTKACEDownloadPlacementKey = @"YTKACE.Preference.Downloads.Placement";
@@ -18,14 +20,15 @@ NSArray<NSDictionary *> *YTKACEOverlayButtonCatalog(void) {
           @"key": @"YTKACE.Preference.SponsorBlock.OverlayButton"},
         @{@"id": @"sleeptimer", @"title": @"Sleep Timer", @"symbol": @"moon.zzz", @"key": YTKACESleepTimerKey},
         @{@"id": @"pip", @"title": @"Picture in Picture", @"symbol": @"pip", @"key": YTKACEPiPKey},
-        @{@"id": @"transcript", @"title": @"Transcript", @"symbol": @"text.bubble",
+        @{@"id": @"transcript", @"title": @"Transcript", @"symbol": @"doc.plaintext",
           @"key": @"YTKACE.Preference.Playback.Transcript"},
         @{@"id": @"downloads", @"title": @"Download", @"symbol": @"arrow.down.circle"}
     ];
 }
 
 NSArray<NSString *> *YTKACEOverlayZones(void) {
-    return @[YTKACEOverlayZoneTop, YTKACEOverlayZoneBelow, YTKACEOverlayZoneBottom];
+    return @[YTKACEOverlayZoneTop, YTKACEOverlayZoneBelow, YTKACEOverlayZoneBottom, YTKACEOverlayZoneFullscreen,
+             YTKACEOverlayZoneLeft];
 }
 
 // Saved layout with every catalog button in exactly one zone; new or
@@ -104,4 +107,41 @@ void YTKACESetOverlayButtonEnabled(NSString *identifier, BOOL enabled) {
     }
     NSString *key = YTKACEOverlayButtonKey(identifier);
     if (key != nil) YTKACESetPreference(key, enabled);
+}
+
+static NSString *const YTKACENativeTopOrderKey = @"YTKACE.Preference.Player.TopOrder";
+
+NSArray<NSString *> *YTKACENativeTopDefaultOrder(void) {
+    return @[@"autoplay", @"cast", @"captions", @"gear"];
+}
+
+NSDictionary<NSString *, NSString *> *YTKACENativeTopIdentifiers(void) {
+    return @{@"autoplay": @"id.autoplay.toggle.button", @"cast": @"id.mdx.playbackroute.button",
+             @"captions": @"id.player.watch.captions.button", @"gear": @"id.player.overflow.button"};
+}
+
+NSArray<NSString *> *YTKACENativeTopOrder(void) {
+    NSMutableArray *order = [NSMutableArray array];
+    id stored = YTKACEPreferenceObject(YTKACENativeTopOrderKey);
+    for (id name in [stored isKindOfClass:NSArray.class] ? stored : @[]) {
+        if ([YTKACENativeTopDefaultOrder() containsObject:name] && ![order containsObject:name]) [order addObject:name];
+    }
+    for (NSString *name in YTKACENativeTopDefaultOrder()) {
+        if (![order containsObject:name]) [order addObject:name];
+    }
+    return order;
+}
+
+NSArray<NSString *> *YTKACETopRowOrder(void) {
+    NSMutableArray *order = [NSMutableArray array];
+    id stored = YTKACEPreferenceObject(YTKACENativeTopOrderKey);
+    for (id name in [stored isKindOfClass:NSArray.class] ? stored : @[]) {
+        if ([name isKindOfClass:NSString.class] && ![order containsObject:name]) [order addObject:name];
+    }
+    return order;
+}
+
+void YTKACESetNativeTopOrder(NSArray<NSString *> *order) {
+    const BOOL standard = order == nil || [order isEqualToArray:YTKACENativeTopDefaultOrder()];
+    YTKACESetPreferenceObject(YTKACENativeTopOrderKey, standard ? nil : [order copy]);
 }

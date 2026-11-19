@@ -33,7 +33,7 @@ static IMP YTKACEHLSOrigScrubStart;
 static IMP YTKACEHLSOrigScrubEnd;
 
 static NSMutableDictionary<NSString *, NSDictionary *> *YTKACEHLSCache;
-static NSMutableSet<NSString *> *YTKACEHLSPending;
+static NSMutableDictionary<NSString *, NSMutableArray *> *YTKACEHLSPending;
 static NSMutableDictionary<NSString *, id> *YTKACEHLSOriginals;
 
 static NSMutableDictionary<NSString *, NSString *> *YTKACEHLSSources;
@@ -107,10 +107,17 @@ static NSString *YTKACEVisionVisitor(void) {
     [[NSURLSession.sharedSession dataTaskWithRequest:YTKACEVisionRequest(
         @"guide?prettyPrint=false&fields=responseContext.visitorData",
         @{@"context": YTKACEVisionContext(nil)}, nil)
-        completionHandler:^(NSData *data, __unused NSURLResponse *response, __unused NSError *error) {
+        completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         id json = data.length ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
         id found = [json isKindOfClass:NSDictionary.class] ? json[@"responseContext"][@"visitorData"] : nil;
         if ([found isKindOfClass:NSString.class]) visitor = found;
+        if (visitor == nil) {
+            YTKACEDownloadLog(@"hls", @"visitor failed http=%ld bytes=%lu error=%@",
+                              [response isKindOfClass:NSHTTPURLResponse.class] ? (long)((NSHTTPURLResponse *)response).statusCode : 0L,
+                              (unsigned long)data.length,
+                              error != nil ? [NSString stringWithFormat:@"%@ %ld %@", error.domain, (long)error.code,
+                                              error.localizedDescription] : @"none");
+        }
         dispatch_semaphore_signal(done);
     }] resume];
     dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(12 * NSEC_PER_SEC)));
@@ -138,21 +145,19 @@ static void YTKACEHLSFetchVision(NSString *videoID) {
 
 static void YTKACEHLSFetchVisionThen(NSString *videoID, void (^done)(BOOL ready)) {
     @synchronized (YTKACEHLSCache) {
-        const BOOL cached = YTKACEHLSCache[videoID] != nil;
+        const BOOL cached = YTKACEHLSCachedURL(videoID) != nil;
         if (cached) {
             if (done != nil) done(YES);
             return;
         }
-        if ([YTKACEHLSPending containsObject:videoID]) {
-            if (done != nil) {
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
-                               dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-                    done(YTKACEHLSCachedURL(videoID) != nil);
-                });
-            }
+        NSMutableArray *waiters = YTKACEHLSPending[videoID];
+        if (waiters != nil) {
+            if (done != nil) [waiters addObject:[done copy]];
             return;
         }
-        [YTKACEHLSPending addObject:videoID];
+        waiters = [NSMutableArray array];
+        if (done != nil) [waiters addObject:[done copy]];
+        YTKACEHLSPending[videoID] = waiters;
     }
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
         NSString *visitor = YTKACEVisionVisitor();
@@ -163,25 +168,34 @@ static void YTKACEHLSFetchVisionThen(NSString *videoID, void (^done)(BOOL ready)
             @"racyCheckOk": @YES
         };
         [[NSURLSession.sharedSession dataTaskWithRequest:YTKACEVisionRequest(@"player?prettyPrint=false", body, visitor)
-            completionHandler:^(NSData *data, __unused NSURLResponse *response, __unused NSError *error) {
+            completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
             id json = data.length ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
             NSDictionary *root = [json isKindOfClass:NSDictionary.class] ? json : @{};
+            const NSInteger http = [response isKindOfClass:NSHTTPURLResponse.class]
+                ? ((NSHTTPURLResponse *)response).statusCode : 0;
             NSDictionary *playability = [root[@"playabilityStatus"] isKindOfClass:NSDictionary.class]
                 ? root[@"playabilityStatus"] : @{};
             NSDictionary *streaming = [root[@"streamingData"] isKindOfClass:NSDictionary.class]
                 ? root[@"streamingData"] : @{};
             NSString *hls = [streaming[@"hlsManifestUrl"] isKindOfClass:NSString.class] ? streaming[@"hlsManifestUrl"] : nil;
+            NSArray *waiters;
             @synchronized (YTKACEHLSCache) {
-                [YTKACEHLSPending removeObject:videoID];
+                waiters = [YTKACEHLSPending[videoID] copy];
+                [YTKACEHLSPending removeObjectForKey:videoID];
                 if (hls.length != 0) {
                     YTKACEHLSCache[videoID] = @{@"url": hls, @"time": @(NSDate.date.timeIntervalSince1970)};
                 }
             }
             if (hls.length == 0) {
-                YTKACEDownloadLog(@"hls", @"vision video=%@ playability=%@ no manifest", videoID,
-                                  playability[@"status"] ?: @"-");
+                // A missing status means the request itself failed (network,
+                // proxy, non-JSON reply), not that YouTube refused the video.
+                YTKACEDownloadLog(@"hls", @"vision video=%@ playability=%@ reason=%@ http=%ld bytes=%lu visitor=%d error=%@",
+                                  videoID, playability[@"status"] ?: @"-", playability[@"reason"] ?: @"-", (long)http,
+                                  (unsigned long)data.length, visitor.length != 0,
+                                  error != nil ? [NSString stringWithFormat:@"%@ %ld %@", error.domain, (long)error.code,
+                                                  error.localizedDescription] : @"none");
             }
-            if (done != nil) done(hls.length != 0);
+            for (void (^waiter)(BOOL) in waiters) waiter(hls.length != 0);
         }] resume];
     });
 }
@@ -194,13 +208,17 @@ BOOL YTKACEHLSBeginFallback(NSString *videoID, void (^ready)(BOOL available)) {
         // the player has no video yet when the manifest fails on load
         if (videoID.length == 0) videoID = YTKACEHLSLastVideo;
         if (videoID.length == 0) return NO;
-        if (![YTKACEHLSSources[videoID] isEqualToString:@"ios"] || [YTKACEHLSFallbacks containsObject:videoID]) {
-            return NO;
-        }
+        if (![YTKACEHLSSources[videoID] isEqualToString:@"ios"]) return NO;
+        if ([YTKACEHLSFallbacks containsObject:videoID]) return YES;
         [YTKACEHLSFallbacks addObject:videoID];
     }
     YTKACEHLSFetchVisionThen(videoID, ^(BOOL available) {
-        dispatch_async(dispatch_get_main_queue(), ^{ ready(available); });
+        dispatch_async(dispatch_get_main_queue(), ^{
+            ready(available);
+            @synchronized (YTKACEHLSSources) {
+                [YTKACEHLSFallbacks removeObject:videoID];
+            }
+        });
     });
     return YES;
 }
@@ -394,7 +412,7 @@ void YTKACEInstallHLSPlaybackHooks(void) {
     if (!YTKACEHLSEnabled()) return;
     YTKACEDownloadLog(@"hls", @"enabled");
     YTKACEHLSCache = [NSMutableDictionary dictionary];
-    YTKACEHLSPending = [NSMutableSet set];
+    YTKACEHLSPending = [NSMutableDictionary dictionary];
     YTKACEHLSOriginals = [NSMutableDictionary dictionary];
     YTKACEHLSSources = [NSMutableDictionary dictionary];
     YTKACEHLSFallbacks = [NSMutableSet set];

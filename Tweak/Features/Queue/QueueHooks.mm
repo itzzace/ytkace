@@ -2338,7 +2338,8 @@ static id YTKACEQueueConditionalItem(id wrapper) {
 }
 
 void YTKACEQueuePrepareMenuRenderers(id renderers) {
-    if (!YTKACEFeatureEnabled(YTKACEQueueKey) || ![renderers isKindOfClass:NSArray.class]) return;
+    if (![renderers isKindOfClass:NSArray.class]) return;
+    if (!YTKACEFeatureEnabled(YTKACEQueueKey)) return;
     NSMutableDictionary<NSString *, id> *commands = [NSMutableDictionary dictionary];
     NSMutableArray *upsells = [NSMutableArray array];
     for (id wrapper in renderers) {
@@ -2448,6 +2449,8 @@ static BOOL YTKACEQueueTakeMenuCommand(id command, id view, id sender) {
     YTKACEQueueCommandView = view;
     return YTKACEQueueHandleMenuAdd(command, view);
 }
+
+static CFAbsoluteTime YTKACEQueueMenuTapTime;
 
 static void YTKACEImplMenuExecute(id receiver, SEL selector, id command,
                                   id entry, id view, id sender) {
@@ -2677,4 +2680,59 @@ void YTKACEInstallQueueHooks(void) {
                 usingBlock:^(NSNotification *notification) {
         YTKACEQueueHandlePlaybackTime(notification);
     }];
+}
+
+// The Premium page that opens after a queue tap: swap the line under the
+// headline for a pointer to Local Queue. That line is the only long 20pt
+// regular text without numbers (the price line under it has them).
+NSAttributedString *YTKACEQueuePremiumText(NSAttributedString *value) {
+    if (YTKACEQueueMenuTapTime == 0 || CFAbsoluteTimeGetCurrent() - YTKACEQueueMenuTapTime > 8.0) return nil;
+    if (![value isKindOfClass:NSAttributedString.class] || value.length < 20) return nil;
+    NSString *text = value.string;
+    UIFont *font = [value attribute:NSFontAttributeName atIndex:0 effectiveRange:NULL];
+    const BOOL bold = [font isKindOfClass:UIFont.class] &&
+        (font.fontDescriptor.symbolicTraits & UIFontDescriptorTraitBold);
+    const BOOL digits = [text rangeOfCharacterFromSet:NSCharacterSet.decimalDigitCharacterSet].location != NSNotFound;
+    const BOOL lines = [text containsString:@"\n"];
+    const CGFloat size = [font isKindOfClass:UIFont.class] ? font.pointSize : 0.0;
+    if (bold || digits || lines || size < 15.0 || size > 24.0) return nil;
+    YTKACEQueueMenuTapTime = 0;
+    YTKACEDebugLog(@"queue", @"premium line replaced size=%.1f '%@'", size, [text substringToIndex:MIN((NSUInteger)40, text.length)]);
+    NSDictionary *attributes = [value attributesAtIndex:0 effectiveRange:NULL];
+    return [[NSAttributedString alloc] initWithString:
+        YTKACELocalized(@"To queue videos without Premium, turn on Local Queue in YTKACE settings.")
+                                           attributes:attributes];
+}
+
+// Remember queue taps from video menus while Local Queue is off.
+void YTKACEQueueWrapMenuActions(id renderers, id actions) {
+    if (YTKACEFeatureEnabled(YTKACEQueueKey)) return;
+    if (![renderers isKindOfClass:NSArray.class] || ![actions isKindOfClass:NSArray.class]) return;
+    NSMutableSet<NSData *> *tracking = [NSMutableSet set];
+    for (id wrapper in (NSArray *)renderers) {
+        id item = YTKACEQueueConditionalItem(wrapper);
+        NSString *dump = [item description];
+        if (![dump containsString:@"QUEUE_PLAY_NEXT"] && ![dump containsString:@"QUEUE_PLAY_LAST"] &&
+            ![dump containsString:@"ADD_TO_REMOTE_QUEUE"]) continue;
+        id params = nil;
+        @try { params = [item valueForKey:@"trackingParams"]; } @catch (__unused NSException *e) {}
+        if ([params isKindOfClass:NSData.class] && [params length]) [tracking addObject:params];
+    }
+    YTKACEDebugLog(@"queue", @"menu queue items=%lu", (unsigned long)tracking.count);
+    if (tracking.count == 0) return;
+    SEL getHandler = NSSelectorFromString(@"handler");
+    SEL setHandler = NSSelectorFromString(@"setHandler:");
+    for (id action in (NSArray *)actions) {
+        id params = nil;
+        @try { params = [action valueForKey:@"trackingParams"]; } @catch (__unused NSException *e) {}
+        if (![params isKindOfClass:NSData.class] || ![tracking containsObject:params]) continue;
+        if (![action respondsToSelector:getHandler] || ![action respondsToSelector:setHandler]) continue;
+        dispatch_block_t original = ((id (*)(id, SEL))objc_msgSend)(action, getHandler);
+        dispatch_block_t wrapped = ^{
+            YTKACEQueueMenuTapTime = CFAbsoluteTimeGetCurrent();
+            YTKACEDebugLog(@"queue", @"queue tap without Local Queue");
+            if (original) original();
+        };
+        ((void (*)(id, SEL, id))objc_msgSend)(action, setHandler, wrapped);
+    }
 }

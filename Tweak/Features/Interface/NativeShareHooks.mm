@@ -306,7 +306,12 @@ void YTKACEInstallNativeShareHooks(void) {
         @"executeWithCommandContext:handler:",
         (IMP)YTKACEShowShareSheet,
         &OriginalShowShareSheet);
-    YTKACEInstallInstanceHook(@"YTShareEntityEndpointCommandHandler",
+    // Renamed to ...Impl in YouTube 21.46.
+    NSString *shareHandler =
+        NSClassFromString(@"YTShareEntityEndpointCommandHandlerImpl") != Nil
+            ? @"YTShareEntityEndpointCommandHandlerImpl"
+            : @"YTShareEntityEndpointCommandHandler";
+    YTKACEInstallInstanceHook(shareHandler,
                               @"executeWithCommand:entry:fromView:sender:",
                               (IMP)YTKACEShareEntityExecute,
                               &OriginalShareEntityExecute);

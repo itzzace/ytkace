@@ -17,6 +17,11 @@ FOUNDATION_EXPORT UIButton *YTKACEOverlayButton(
     SEL action
 );
 
+// A button's size changed (a new title): lay its row out again so the room
+// made for it in YouTube's bars fits.
+FOUNDATION_EXPORT void YTKACEOverlayButtonResized(UIButton *_Nullable button);
+FOUNDATION_EXPORT void YTKACEFullscreenBarDidLayout(UIView *actions);
+
 FOUNDATION_EXPORT void YTKACEPresentNativeSheet(
     NSString *_Nullable title,
     NSString *_Nullable subtitle,

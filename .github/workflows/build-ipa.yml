@@ -9,9 +9,9 @@ on:
         default: "https://www.dropbox.com/scl/fi/1m7rq3lpkg3mfsone2299/com.google.ios.youtube-21.33.6-eeveedecrypter.ipa?rlkey=b2nsvre89881puprynwkfau8q&st=4fkh7ry8&dl=1"
         type: string
       ipa_url_ios17:
-        description: Second YouTube IPA URL (iOS 17+ base, 21.45.4). Leave empty to build one IPA.
+        description: Second YouTube IPA URL (iOS 17+ base, 21.46.3). Leave empty to build one IPA.
         required: false
-        default: "https://www.dropbox.com/scl/fi/hulqut3vvlwa0x6bpztnz/com.google.ios.youtube-21.45.4-eeveedecrypter.ipa?rlkey=niiw36hgppqdmhz74nm45dagg&st=0wgd5has&dl=1"
+        default: "https://www.dropbox.com/scl/fi/hjbvmjk9xz9krzxrch0if/com.google.ios.youtube-21.46.3-eeveedecrypter.ipa?rlkey=z9di35l0ppjcxf97vwvn2wmvc&st=oeeopdfy&dl=1"
         type: string
 
 permissions:
@@ -103,8 +103,12 @@ jobs:
           else
             output="YTKACE_${tweak_version}_YouTube_${youtube_version}.ipa"
           fi
-          bash Scripts/sideload-repack.sh YouTube.ipa deb-root/var/jb/Library/MobileSubstrate/DynamicLibraries/YTKACE.dylib "$output"
+          # Open in YTKACE Safari extension, off until turned on in Settings.
+          bash Scripts/build-safari-extension.sh safari-extension iphoneos
+          SAFARI_EXTENSION_APPEX=safari-extension/OpenInYTKACE.appex \
+            bash Scripts/sideload-repack.sh YouTube.ipa deb-root/var/jb/Library/MobileSubstrate/DynamicLibraries/YTKACE.dylib "$output"
           bash Tools/verify-artifacts.sh deb-root/var/jb/Library/MobileSubstrate/DynamicLibraries/YTKACE.dylib "$output"
+          unzip -l "$output" | grep -q 'PlugIns/OpenInYTKACE.appex/OpenInYTKACE$'
           echo "ipa=$output" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v7

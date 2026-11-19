@@ -53,6 +53,7 @@ static NSString *YTKACERememberedVSSID;
 static NSString *YTKACERememberedLanguage;
 static long long YTKACERememberedSource;
 static BOOL YTKACEHasRememberedTrack;
+static NSString *const YTKACECaptionsUserOffKey = @"YTKACE.State.CaptionsUserOff";
 
 static NSString *YTKACECaptionString(id track, NSString *name) {
     SEL selector = NSSelectorFromString(name);
@@ -83,6 +84,11 @@ static void YTKACESetActiveCaptionTrack(id receiver,
     YTKACEDownloadLog(@"caption", @"app set track=%@ source=%lld class=%@",
                       YTKACECaptionString(track, @"languageCode") ?: @"nil",
                       source, NSStringFromClass(object_getClass(receiver)));
+    if (track == nil && source == 4) {
+        [NSUserDefaults.standardUserDefaults setBool:YES forKey:YTKACECaptionsUserOffKey];
+    } else if (track != nil && source != 3) {
+        [NSUserDefaults.standardUserDefaults setBool:NO forKey:YTKACECaptionsUserOffKey];
+    }
     if (track != nil) {
         YTKACERememberTrack(track, source);
     } else {
@@ -202,7 +208,30 @@ void YTKACEApplyPreferredCaptionLanguage(id player) {
     }
     id active = YTKACECaptionValueForKey(video, @"activeCaptionTrack");
     if (active != nil &&
+        [NSUserDefaults.standardUserDefaults boolForKey:YTKACECaptionsUserOffKey]) {
+        // captions are showing again, so the user turned them back on
+        [NSUserDefaults.standardUserDefaults setBool:NO forKey:YTKACECaptionsUserOffKey];
+        YTKACEDebugLog(@"caption", @"captions back on, clearing off flag");
+    }
+    if (active != nil &&
         [YTKACETrackLanguage(active) hasPrefix:preferred]) {
+        return;
+    }
+    if (active == nil && YTKACECaptionsMode() != 1 &&
+        [NSUserDefaults.standardUserDefaults boolForKey:YTKACECaptionsUserOffKey]) {
+        YTKACEDebugLog(@"caption", @"skip, user turned captions off");
+        __weak id weakPlayer = player;
+        const double delays[] = { 2.0, 5.0 };
+        for (size_t index = 0; index < 2; index++) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delays[index] * NSEC_PER_SEC)),
+                           dispatch_get_main_queue(), ^{
+                id strong = weakPlayer;
+                id current = YTKACECaptionValueForKey(strong, @"activeVideo");
+                if (YTKACECaptionValueForKey(current, @"activeCaptionTrack") != nil) {
+                    YTKACEApplyPreferredCaptionLanguage(strong);
+                }
+            });
+        }
         return;
     }
 

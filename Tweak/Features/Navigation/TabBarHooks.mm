@@ -1879,6 +1879,26 @@ static UIView *YTKACESelectedPivotItem(UIView *bar) {
     return nil;
 }
 
+static id YTKACEPivotControllerForView(UIView *view);
+
+// The highlighted item, but only if it is the tab YouTube is really showing.
+// With a tab hidden (like Shorts opened from a shelf), YouTube can be on that
+// tab while the bar still highlights Home. A tap on Home must then switch
+// tabs instead of being treated as a tap on the current tab (#231).
+static UIView *YTKACECurrentPivotItem(UIView *bar) {
+    UIView *selected = YTKACESelectedPivotItem(bar);
+    if (selected == nil) return nil;
+    id controller = YTKACEPivotControllerForView(bar);
+    SEL current = NSSelectorFromString(@"selectedPivotIdentifier");
+    if (![controller respondsToSelector:current]) return selected;
+    id identifier = ((id (*)(id, SEL))objc_msgSend)(controller, current);
+    NSString *itemIdentifier = YTKACEPivotItemIdentifier(selected);
+    if (![identifier isKindOfClass:NSString.class] || [identifier length] == 0 || itemIdentifier == nil) return selected;
+    if ([identifier caseInsensitiveCompare:itemIdentifier] == NSOrderedSame) return selected;
+    YTKACEDebugLog(@"tabbar", @"showing %@ but bar highlights %@", identifier, itemIdentifier);
+    return nil;
+}
+
 static NSArray<UIView *> *YTKACESortedPivotItems(UIView *bar) {
     NSMutableArray<UIView *> *items = [NSMutableArray array];
     YTKACECollectPivotItems(bar, items);
@@ -2711,7 +2731,7 @@ static UIView *YTKACEInlinePlayerBar(UIView *bar);
     if (scrub != nil && scrub != YTKACEInlinePlayerBar(bar)) return NO;
     UIView *touched = [self pivotItemNearX:point.x inView:bar bar:bar];
     if (touched != nil && YTKACEPivotItemIdentifier(touched) == nil) return NO;
-    gesture.cancelsTouchesInView = touched == nil || touched != YTKACESelectedPivotItem(bar);
+    gesture.cancelsTouchesInView = touched == nil || touched != YTKACECurrentPivotItem(bar);
     return YES;
 }
 
@@ -3021,13 +3041,13 @@ static UIView *YTKACEInlinePlayerBar(UIView *bar);
     self.heldButton = nil;
     if (!self.lifted) {
         BOOL bump = !dragging && gesture.state == UIGestureRecognizerStateEnded &&
-            self.touchedItem != nil && self.touchedItem == YTKACESelectedPivotItem(bar);
+            self.touchedItem != nil && self.touchedItem == YTKACECurrentPivotItem(bar);
         if (!bump) {
             objc_setAssociatedObject(lens, YTKACEPivotBarFadedAssociation, nil,
                                      OBJC_ASSOCIATION_RETAIN_NONATOMIC);
             UIView *tapped = self.touchedItem;
             if (gesture.state == UIGestureRecognizerStateEnded && tapped != nil &&
-                YTKACEPivotItemIdentifier(tapped) != nil && tapped != YTKACESelectedPivotItem(bar)) {
+                YTKACEPivotItemIdentifier(tapped) != nil && tapped != YTKACECurrentPivotItem(bar)) {
                 YTKACESelectPivotItem(tapped);
             }
             return;
@@ -3101,13 +3121,13 @@ static UIView *YTKACEInlinePlayerBar(UIView *bar);
         });
     });
     if (gesture.state == UIGestureRecognizerStateEnded && nearest != nil &&
-        nearest != YTKACESelectedPivotItem(bar)) {
+        nearest != YTKACECurrentPivotItem(bar)) {
         if (heldButton != nil) {
             __weak UIView *weakNearest = nearest;
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)),
                            dispatch_get_main_queue(), ^{
                 UIView *pick = weakNearest;
-                if (pick != nil && pick != YTKACESelectedPivotItem(bar)) YTKACESelectPivotItem(pick);
+                if (pick != nil && pick != YTKACECurrentPivotItem(bar)) YTKACESelectPivotItem(pick);
             });
         } else {
             YTKACESelectPivotItem(nearest);
@@ -3619,10 +3639,29 @@ static BOOL YTKACEApplyPivotBarGlass(UIView *receiver, UIView *blur) {
     } else {
         [receiver sendSubviewToBack:glass];
     }
-    CGFloat itemHeight = CGRectGetHeight(receiver.bounds) - receiver.safeAreaInsets.bottom;
+    // YouTube's strip along the bottom ("You're Incognito", offline, back
+    // online) sits over the bar's lower part; keep the glass above it.
+    CGFloat covered = 0.0;
+    for (UIView *sibling in receiver.superview.subviews) {
+        if (sibling.hidden || sibling.alpha < 0.01 ||
+            ![NSStringFromClass(sibling.class) isEqualToString:@"YTSlimStatusBarView"]) continue;
+        CGRect strip = [sibling convertRect:sibling.bounds toView:receiver];
+        // Only while the strip is on screen over the bar's lower part. With
+        // the watch page open both slide off screen and the glass must too.
+        UIWindow *window = receiver.window;
+        CGRect onScreen = window != nil ? [sibling convertRect:sibling.bounds toView:nil] : CGRectNull;
+        if (window == nil || CGRectGetMinY(onScreen) >= CGRectGetHeight(window.bounds) - 1.0) continue;
+        if (CGRectGetHeight(strip) > 0.0 && CGRectGetMinY(strip) > 0.0 &&
+            CGRectGetMinY(strip) < CGRectGetHeight(receiver.bounds)) {
+            covered = MAX(covered, CGRectGetHeight(receiver.bounds) - CGRectGetMinY(strip));
+        }
+    }
+    CGFloat itemHeight = CGRectGetHeight(receiver.bounds) - MAX(receiver.safeAreaInsets.bottom, covered);
     CGFloat extra = 7.0;
     CGFloat glassHeight = MAX(itemHeight, 44.0) + extra * 2.0;
-    CGFloat glassTop = MIN(0.0, CGRectGetHeight(receiver.bounds) - glassHeight - 4.0);
+    CGFloat glassTop = covered > 0.0
+        ? CGRectGetHeight(receiver.bounds) - covered - glassHeight - 4.0
+        : MIN(0.0, CGRectGetHeight(receiver.bounds) - glassHeight - 4.0);
     BOOL expanded = [objc_getAssociatedObject(receiver, YTKACEPivotBarExpandedAssociation) boolValue];
     NSUInteger tabs = 0;
     for (UIView *item in YTKACESortedPivotItems(receiver)) {
@@ -4086,7 +4125,58 @@ static void YTKACEPivotItemTraitChanged(UIView *receiver,
     }
 }
 
+// The glass sits above YouTube's bottom strip (incognito, offline, sleep
+// timer), so lay it out again when the strip comes or goes, or the bar moves.
+static IMP OriginalSlimStatusLayout;
+static IMP OriginalSlimStatusMoveToWindow;
+static IMP OriginalPivotSetFrame;
+static IMP OriginalPivotSetCenter;
+
+static void YTKACERelayoutPivotBesideStrip(UIView *strip) {
+    Class bar = NSClassFromString(@"YTPivotBarView");
+    for (UIView *sibling in strip.superview.subviews) {
+        if (bar != Nil && [sibling isKindOfClass:bar]) [sibling setNeedsLayout];
+    }
+}
+
+static BOOL YTKACEHasStripBeside(UIView *bar) {
+    for (UIView *sibling in bar.superview.subviews) {
+        if ([NSStringFromClass(sibling.class) isEqualToString:@"YTSlimStatusBarView"]) return YES;
+    }
+    return NO;
+}
+
+static void YTKACESlimStatusLayout(UIView *receiver, SEL selector) {
+    if (OriginalSlimStatusLayout != NULL) ((void (*)(id, SEL))OriginalSlimStatusLayout)(receiver, selector);
+    YTKACERelayoutPivotBesideStrip(receiver);
+}
+
+static void YTKACESlimStatusMoveToWindow(UIView *receiver, SEL selector) {
+    if (OriginalSlimStatusMoveToWindow != NULL) ((void (*)(id, SEL))OriginalSlimStatusMoveToWindow)(receiver, selector);
+    YTKACERelayoutPivotBesideStrip(receiver);
+}
+
+static void YTKACEPivotSetFrame(UIView *receiver, SEL selector, CGRect frame) {
+    BOOL moved = !CGRectEqualToRect(receiver.frame, frame);
+    ((void (*)(id, SEL, CGRect))OriginalPivotSetFrame)(receiver, selector, frame);
+    if (moved && YTKACEHasStripBeside(receiver)) [receiver setNeedsLayout];
+}
+
+static void YTKACEPivotSetCenter(UIView *receiver, SEL selector, CGPoint center) {
+    BOOL moved = !CGPointEqualToPoint(receiver.center, center);
+    ((void (*)(id, SEL, CGPoint))OriginalPivotSetCenter)(receiver, selector, center);
+    if (moved && YTKACEHasStripBeside(receiver)) [receiver setNeedsLayout];
+}
+
 void YTKACEInstallTabBarHooks(void) {
+    YTKACEInstallInstanceHook(@"YTSlimStatusBarView", @"layoutSubviews",
+                              (IMP)YTKACESlimStatusLayout, &OriginalSlimStatusLayout);
+    YTKACEInstallInstanceHook(@"YTSlimStatusBarView", @"didMoveToWindow",
+                              (IMP)YTKACESlimStatusMoveToWindow, &OriginalSlimStatusMoveToWindow);
+    YTKACEInstallInstanceHook(@"YTPivotBarView", @"setFrame:",
+                              (IMP)YTKACEPivotSetFrame, &OriginalPivotSetFrame);
+    YTKACEInstallInstanceHook(@"YTPivotBarView", @"setCenter:",
+                              (IMP)YTKACEPivotSetCenter, &OriginalPivotSetCenter);
     YTKACERefreshTabTint();
     YTKACEInstallClassHook(@"YTFloatingBarExperiment",
                            @"isIconsOnly",

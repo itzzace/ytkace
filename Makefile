@@ -46,6 +46,7 @@ YTKACE_FILES = \
 	Tweak/Features/Playback/BackgroundPlaybackHooks.mm \
 	Tweak/Features/Playback/PiPControls.mm \
 	Tweak/Features/Playback/PlaybackFixHooks.mm \
+	Tweak/Features/Playback/PlaybackHeartbeat.mm \
 	Tweak/Features/Playback/ChallengeSolver.mm \
 	Tweak/Features/Playback/SpeedControls.mm \
 	Tweak/Features/Playback/LoopControls.mm \
@@ -66,6 +67,7 @@ YTKACE_FILES = \
 	Tweak/UI/ExtraDim.mm \
 	Tweak/Features/Playback/RemoteSkip.mm \
 	Tweak/Features/Shorts/ShortsHooks.mm \
+	Tweak/Features/Shorts/ShortsFeedFilter.mm \
 	Tweak/Features/Shorts/ShortsSessionLimit.mm \
 	Tweak/Features/Shorts/ShortsStartup.mm \
 	Tweak/Features/Shorts/ShortsPinch.mm \
@@ -87,6 +89,7 @@ YTKACE_FILES = \
 	Tweak/Features/Gestures/PlayerGestures.mm \
 	Tweak/Features/Interface/OverlayVisibilityHooks.mm \
 	Tweak/Features/Interface/ContentVisibilityHooks.mm \
+	Tweak/Features/Interface/ActionBarModel.mm \
 	Tweak/Features/Interface/AiSList.mm \
 	Tweak/Features/Interface/AiSListReport.mm \
 	Tweak/Features/Interface/LinkCleaning.mm \
@@ -96,6 +99,7 @@ YTKACE_FILES = \
 	Tweak/Features/Interface/ProfilePictureViewer.mm \
 	Tweak/Features/Interface/PostImageSaver.mm \
 	Tweak/Features/Interface/NativeShareHooks.mm \
+	Tweak/Features/Interface/ReturnDislike.mm \
 	Tweak/Features/Interface/NavigationVisibility.mm \
 	Tweak/Settings/SettingsEntry.mm \
 	Tweak/Settings/NativeSettingsEntry.mm \
@@ -103,6 +107,7 @@ YTKACE_FILES = \
 	Tweak/Settings/YTKACESettingsPages.mm \
 	Tweak/Settings/YTKACESettingsSearch.mm \
 	Tweak/Settings/YTKACETabEditorController.mm \
+	Tweak/Settings/YTKACEActionBarLayoutView.mm \
 	Tweak/Settings/YTKACEButtonLayoutView.mm \
 	Tweak/Settings/YTKACEDownloadsController.mm
 
@@ -114,7 +119,7 @@ YTKACE_CFLAGS += -I$(THEOS_PROJECT_DIR)/Vendor/FFmpeg/include
 YTKACE_CFLAGS += -I$(THEOS_PROJECT_DIR)/Vendor/DuoKit
 YTKACE_CCFLAGS = -std=c++17
 YTKACE_FRAMEWORKS = Foundation UIKit JavaScriptCore AVFoundation AVKit AudioToolbox Photos QuartzCore MediaPlayer Security SystemConfiguration UniformTypeIdentifiers VideoToolbox CoreMedia
-YTKACE_LIBRARIES = z
+YTKACE_LIBRARIES = z icucore
 YTKACE_LDFLAGS = -Wl,-install_name,@rpath/YTKACE.dylib
 YTKACE_LDFLAGS += $(THEOS_PROJECT_DIR)/Vendor/FFmpeg/lib/libavformat.a
 YTKACE_LDFLAGS += $(THEOS_PROJECT_DIR)/Vendor/FFmpeg/lib/libavcodec.a

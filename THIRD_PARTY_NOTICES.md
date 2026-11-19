@@ -14,6 +14,10 @@ SponsorBlock and DeArrow community data is provided by the SponsorBlock service 
 
 Hide AI Channels uses the AiSList blocklist and warnlist from [aisloplist.com](https://aisloplist.com), maintained by the AiSList community at [Override92/AiSList](https://github.com/Override92/AiSList) and licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The lists are downloaded unmodified and only read to match channels in the feed and search. The list locations and the idea of matching channel handles in feed data came from the [Morphe](https://github.com/MorpheApp/morphe-patches) AiSList patch. No Morphe code is used.
 
+## Return YouTube Dislike
+
+Return YouTube Dislike counts on the watch page and in Shorts come from the [Return YouTube Dislike](https://www.returnyoutubedislike.com) API. Only the video ID is sent to fetch a count. With Submit Votes on, the video ID, the vote and a random ID made on the device are sent, after the proof-of-work puzzle the API requires. The vote client was written for YTKACE from the API's behaviour; no code from the [Return YouTube Dislike](https://github.com/Anarios/return-youtube-dislike) extension is used.
+
 ## SABR reference
 
 The download path implements YouTube's SABR streaming protocol. It was written for YTKACE, developed against an iPad on iOS 16. Protocol understanding came in part from reading [LuanRT/googlevideo](https://github.com/LuanRT/googlevideo), an MIT-licensed library implementing UMP and SABR. No code from that project is included.

@@ -54,6 +54,7 @@ static void YTKACEInstallModules(void) {
     YTKACEInstallStreamingHooks();
     YTKACEInstallHLSPlaybackHooks();
     YTKACEInstallShortsHooks();
+    YTKACEInstallShortsFeedFilterHooks();
     YTKACEInstallTabBarHooks();
     YTKACEInstallDuoTabBarHooks();
     YTKACEInstallDuoDeskPlayerHooks();
@@ -68,6 +69,7 @@ static void YTKACEInstallModules(void) {
     YTKACEInstallProfilePictureHooks();
     YTKACEInstallPostImageSaverHooks();
     YTKACEInstallNativeShareHooks();
+    YTKACEInstallReturnDislikeHooks();
     YTKACEInstallSettingsEntryHooks();
     YTKACEInstallNativeSettingsHooks();
 }

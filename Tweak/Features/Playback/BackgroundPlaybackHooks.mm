@@ -26,7 +26,7 @@ static BOOL YTKACEBackgroundBoolean(id receiver, SEL selector) {
 }
 
 static BOOL YTKACEPlayableInPiP(id receiver, SEL selector) {
-    if (YTKACEFeatureEnabled(YTKACEBackgroundPlaybackKey)) return YES;
+    if (YTKACEFeatureEnabled(YTKACEBackgroundPlaybackKey) || YTKACEFeatureEnabled(YTKACEPiPKey)) return YES;
     return OriginalPlayableInPiP != NULL &&
         ((BOOL (*)(id, SEL))OriginalPlayableInPiP)(receiver, selector);
 }

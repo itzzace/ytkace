@@ -52,6 +52,29 @@ mkdir -p "$APP/Frameworks"
 cp "$DYLIB" "$APP/Frameworks/YTKACE.dylib"
 cp -R "$ROOT/Resources/YTKACE.bundle" "$APP/YTKACE.bundle"
 
+# Optional Open in YTKACE Safari extension (Scripts/build-safari-extension.sh).
+if [[ -n "${SAFARI_EXTENSION_APPEX:-}" ]]; then
+  test -f "$SAFARI_EXTENSION_APPEX/Info.plist"
+  EXTENSION="$APP/PlugIns/OpenInYTKACE.appex"
+  mkdir -p "$APP/PlugIns"
+  rm -rf "$EXTENSION"
+  cp -R "$SAFARI_EXTENSION_APPEX" "$EXTENSION"
+  python3 - "$APP/Info.plist" "$EXTENSION/Info.plist" <<'PY'
+import plistlib
+import sys
+with open(sys.argv[1], "rb") as handle:
+    app = plistlib.load(handle)
+with open(sys.argv[2], "rb") as handle:
+    ext = plistlib.load(handle)
+# The extension has to sit under the app's bundle id and match its version.
+ext["CFBundleIdentifier"] = app["CFBundleIdentifier"] + ".OpenInYTKACE"
+ext["CFBundleShortVersionString"] = app["CFBundleShortVersionString"]
+ext["CFBundleVersion"] = app["CFBundleVersion"]
+with open(sys.argv[2], "wb") as handle:
+    plistlib.dump(ext, handle)
+PY
+fi
+
 bash "$ROOT/Scripts/sign-bundle.sh" "$APP"
 
 mkdir -p "$(dirname "$OUTPUT")"
