@@ -441,11 +441,110 @@ NSArray<NSString *> *YTKACEBarNames(void) {
              @"Remix", @"Thanks", @"Hype", @"Report"];
 }
 
+// Products tagged on a video show in two places on its lockup:
+// - a row under the title with a bag icon, "1 product · Earns commission",
+//   in the lockup's list of metadata rows;
+// - an attachment next to the video (field 18) in field 33, with the product
+//   card. Field 34 only comes with it and leaves an empty expand arrow.
+const uint64_t YTKACELockupVideoField = 18;
+const uint64_t YTKACELockupProductsField = 33;
+const uint64_t YTKACELockupProductsTokenField = 34;
+const uint64_t YTKACEMetadataRowsField = 514549827;
+const uint64_t YTKACEMetadataRowField = 1;
+
+const char *const YTKACEProductMarkers[] = {
+    "gstatic.com/shopping", "answer/6342839", "/bag_24pt",
+};
+
+bool YTKACEHasProductMarker(const std::string &data) {
+    for (const char *marker : YTKACEProductMarkers) {
+        if (PBContains(data, marker)) return true;
+    }
+    return false;
+}
+
+// Drops the bag-icon row, and the empty row YouTube puts before it as a gap.
+int YTKACEStripProductRows(std::string &rows) {
+    std::vector<PBField> fields;
+    if (!PBParse(rows, fields)) return 0;
+    int removed = 0;
+    std::vector<PBField> kept;
+    kept.reserve(fields.size());
+    for (PBField &field : fields) {
+        if (field.number == YTKACEMetadataRowField && field.type == 2 &&
+            PBContains(field.bytes, "/bag_24pt")) {
+            if (!kept.empty() && kept.back().number == YTKACEMetadataRowField &&
+                kept.back().type == 2 && kept.back().bytes.empty()) {
+                kept.pop_back();
+            }
+            removed++;
+            continue;
+        }
+        kept.push_back(std::move(field));
+    }
+    if (removed != 0) rows = PBSerialize(kept);
+    return removed;
+}
+
+int YTKACEStripProducts(std::string &message, int depth) {
+    if (depth > 40) return 0;
+    std::vector<PBField> fields;
+    if (!PBParse(message, fields)) return 0;
+    bool lockup = false;
+    bool attachment = false;
+    for (const PBField &field : fields) {
+        if (field.type != 2) continue;
+        if (field.number == YTKACELockupVideoField) lockup = true;
+        if (field.number == YTKACELockupProductsField && YTKACEHasProductMarker(field.bytes)) {
+            attachment = true;
+        }
+    }
+    attachment = attachment && lockup;
+    int removed = 0;
+    std::vector<PBField> kept;
+    kept.reserve(fields.size());
+    for (PBField &field : fields) {
+        if (attachment && (field.number == YTKACELockupProductsField ||
+                           field.number == YTKACELockupProductsTokenField)) {
+            if (field.number == YTKACELockupProductsField) removed++;
+            continue;
+        }
+        if (field.type == 2 && YTKACEHasProductMarker(field.bytes)) {
+            removed += field.number == YTKACEMetadataRowsField
+                ? YTKACEStripProductRows(field.bytes)
+                : YTKACEStripProducts(field.bytes, depth + 1);
+        }
+        kept.push_back(std::move(field));
+    }
+    if (removed != 0) message = PBSerialize(kept);
+    return removed;
+}
+
 }  // namespace
+
+static NSData *YTKACEWithoutProducts(NSData *data, NSString *source) {
+    if (data.length == 0 || !YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden")) {
+        return data;
+    }
+    bool found = false;
+    for (const char *marker : YTKACEProductMarkers) {
+        if (memmem(data.bytes, data.length, marker, strlen(marker)) != NULL) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) return data;
+    std::string message((const char *)data.bytes, data.length);
+    int removed = YTKACEStripProducts(message, 0);
+    YTKACEDebugLog(@"products", @"%@ removed %d product items", source, removed);
+    if (removed == 0) return data;
+    return [NSData dataWithBytes:message.data() length:message.size()];
+}
 
 static NSData *YTKACERewrittenResponse(NSData *data) {
     static const char marker[] = "id.video.like.button";
     if (data.length == 0 || !YTKACEFeatureEnabled(@"YTKACE.Preference.Enabled")) return data;
+    data = YTKACEWithoutProducts(data, @"watch");
     NSArray *order = YTKACEPreferenceObject(@"YTKACE.Preference.ActionBar.Order");
     if (![order isKindOfClass:NSArray.class]) order = @[];
     NSMutableSet *hidden = [NSMutableSet set];
@@ -464,6 +563,8 @@ static NSData *YTKACERewrittenResponse(NSData *data) {
 static IMP OriginalGetWatchInit;
 static IMP OriginalGetWatchMerge;
 static IMP OriginalWatchNextInit;
+static IMP OriginalSearchInit;
+static IMP OriginalBrowseInit;
 
 static id YTKACEGetWatchInit(id receiver, SEL selector, NSData *data, id registry, NSError **error) {
     return ((id (*)(id, SEL, id, id, NSError **))OriginalGetWatchInit)(
@@ -479,7 +580,21 @@ static id YTKACEWatchNextInit(id receiver, SEL selector, NSData *data, id regist
         receiver, selector, YTKACERewrittenResponse(data), registry, error);
 }
 
+static id YTKACESearchInit(id receiver, SEL selector, NSData *data, id registry, NSError **error) {
+    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Enabled")) data = YTKACEWithoutProducts(data, @"search");
+    return ((id (*)(id, SEL, id, id, NSError **))OriginalSearchInit)(receiver, selector, data, registry, error);
+}
+
+static id YTKACEBrowseInit(id receiver, SEL selector, NSData *data, id registry, NSError **error) {
+    if (YTKACEFeatureEnabled(@"YTKACE.Preference.Enabled")) data = YTKACEWithoutProducts(data, @"browse");
+    return ((id (*)(id, SEL, id, id, NSError **))OriginalBrowseInit)(receiver, selector, data, registry, error);
+}
+
 __attribute__((constructor)) static void YTKACEInstallActionBarModelHooks(void) {
+    YTKACEInstallInstanceHook(@"YTISearchResponse", @"initWithData:extensionRegistry:error:",
+                              (IMP)YTKACESearchInit, &OriginalSearchInit);
+    YTKACEInstallInstanceHook(@"YTIBrowseResponse", @"initWithData:extensionRegistry:error:",
+                              (IMP)YTKACEBrowseInit, &OriginalBrowseInit);
     YTKACEInstallInstanceHook(@"YTIGetWatchResponse", @"initWithData:extensionRegistry:error:",
                               (IMP)YTKACEGetWatchInit, &OriginalGetWatchInit);
     YTKACEInstallInstanceHook(@"YTIGetWatchResponse", @"mergeFromData:extensionRegistry:",
