@@ -73,6 +73,7 @@ void YTKACERegisterDefaults(void) {
         YTKACEFullscreenOrientationKey: @(YTKACEFullscreenOrientationNeither),
         @"YTKACE.Preference.Player.ExitFullscreenAtEnd": @NO,
         @"YTKACE.Preference.Player.NotchSafeVideo": @NO,
+        @"YTKACE.Preference.Feed.AISummariesHidden": @NO,
         @"YTKACE.Preference.Gestures.SwipeToSeek": @NO,
         @"YTKACE.Preference.Gestures.SwipeSeekRange": @90,
         @"YTKACE.Preference.Playback.CustomDoubleTap": @NO,

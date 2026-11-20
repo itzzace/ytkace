@@ -1190,3 +1190,5 @@ Concesso in licenza CC BY-NC-SA 4.0.";
 "Keep landscape fullscreen on one side." = "Mantieni lo schermo intero orizzontale su un lato.";
 "Fit Video Around Notch" = "Adatta video al notch";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Evita che il notch o la Dynamic Island coprano i video larghi a schermo intero.";
+"Remove AI Summaries" = "Rimuovi riepiloghi IA";
+"Hide the AI summary under videos in Home, search and suggestions." = "Nasconde il riepilogo IA sotto i video in Home, ricerca e suggerimenti.";

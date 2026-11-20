@@ -1190,3 +1190,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE داتای SponsorBlock بەکارد�
 "Keep landscape fullscreen on one side." = "پڕشاشەی ئاسۆیی لە یەک لادا بهێڵەوە.";
 "Fit Video Around Notch" = "ڤیدیۆ لە دەوری نۆچ ڕێکبخە";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "مەهێڵە نۆچ یان Dynamic Island ڤیدیۆ پانەکان لە پڕاوپڕی شاشەدا داپۆشێت.";
+"Remove AI Summaries" = "لابردنی پوختەکانی AI";
+"Hide the AI summary under videos in Home, search and suggestions." = "پوختەی AI لە ژێر ڤیدیۆکان لە سەرەکی، گەڕان و پێشنیارەکاندا بشارەوە.";

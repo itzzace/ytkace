@@ -441,26 +441,51 @@ NSArray<NSString *> *YTKACEBarNames(void) {
              @"Remix", @"Thanks", @"Hype", @"Report"];
 }
 
-// Products tagged on a video show in two places on its lockup:
-// - a row under the title with a bag icon, "1 product · Earns commission",
-//   in the lockup's list of metadata rows;
-// - an attachment next to the video (field 18) in field 33, with the product
-//   card. Field 34 only comes with it and leaves an empty expand arrow.
+// Extras YouTube attaches to a video in lists (search, Home, suggestions):
+// - products: a row under the title with a bag icon, "1 product · Earns
+//   commission", in the lockup's list of metadata rows, and the product card;
+// - AI summaries: the "Summary" box under the video.
+// The product card and the summary both come next to the video (field 18) in
+// field 33. Field 34 only comes with them and leaves an empty expand arrow.
 const uint64_t YTKACELockupVideoField = 18;
-const uint64_t YTKACELockupProductsField = 33;
-const uint64_t YTKACELockupProductsTokenField = 34;
+const uint64_t YTKACELockupAttachmentField = 33;
+const uint64_t YTKACELockupAttachmentTokenField = 34;
 const uint64_t YTKACEMetadataRowsField = 514549827;
 const uint64_t YTKACEMetadataRowField = 1;
 
 const char *const YTKACEProductMarkers[] = {
     "gstatic.com/shopping", "answer/6342839", "/bag_24pt",
 };
+// The summary's help link and feedback tag.
+const char *const YTKACESummaryMarkers[] = {
+    "answer/14089423", "PAfeedback_genai",
+};
 
-bool YTKACEHasProductMarker(const std::string &data) {
-    for (const char *marker : YTKACEProductMarkers) {
-        if (PBContains(data, marker)) return true;
+struct YTKACELockupStrip {
+    bool products;
+    bool summaries;
+};
+
+bool YTKACEHasAny(const std::string &data, const char *const *markers, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        if (PBContains(data, markers[i])) return true;
     }
     return false;
+}
+
+bool YTKACEHasProductMarker(const std::string &data) {
+    return YTKACEHasAny(data, YTKACEProductMarkers,
+                        sizeof(YTKACEProductMarkers) / sizeof(*YTKACEProductMarkers));
+}
+
+bool YTKACEHasSummaryMarker(const std::string &data) {
+    return YTKACEHasAny(data, YTKACESummaryMarkers,
+                        sizeof(YTKACESummaryMarkers) / sizeof(*YTKACESummaryMarkers));
+}
+
+bool YTKACEHasStripMarker(const std::string &data, const YTKACELockupStrip &strip) {
+    return (strip.products && YTKACEHasProductMarker(data)) ||
+        (strip.summaries && YTKACEHasSummaryMarker(data));
 }
 
 // Drops the bag-icon row, and the empty row YouTube puts before it as a gap.
@@ -486,7 +511,7 @@ int YTKACEStripProductRows(std::string &rows) {
     return removed;
 }
 
-int YTKACEStripProducts(std::string &message, int depth) {
+int YTKACEStripLockups(std::string &message, int depth, const YTKACELockupStrip &strip) {
     if (depth > 40) return 0;
     std::vector<PBField> fields;
     if (!PBParse(message, fields)) return 0;
@@ -495,7 +520,7 @@ int YTKACEStripProducts(std::string &message, int depth) {
     for (const PBField &field : fields) {
         if (field.type != 2) continue;
         if (field.number == YTKACELockupVideoField) lockup = true;
-        if (field.number == YTKACELockupProductsField && YTKACEHasProductMarker(field.bytes)) {
+        if (field.number == YTKACELockupAttachmentField && YTKACEHasStripMarker(field.bytes, strip)) {
             attachment = true;
         }
     }
@@ -504,15 +529,17 @@ int YTKACEStripProducts(std::string &message, int depth) {
     std::vector<PBField> kept;
     kept.reserve(fields.size());
     for (PBField &field : fields) {
-        if (attachment && (field.number == YTKACELockupProductsField ||
-                           field.number == YTKACELockupProductsTokenField)) {
-            if (field.number == YTKACELockupProductsField) removed++;
+        if (attachment && (field.number == YTKACELockupAttachmentField ||
+                           field.number == YTKACELockupAttachmentTokenField)) {
+            if (field.number == YTKACELockupAttachmentField) removed++;
             continue;
         }
-        if (field.type == 2 && YTKACEHasProductMarker(field.bytes)) {
-            removed += field.number == YTKACEMetadataRowsField
-                ? YTKACEStripProductRows(field.bytes)
-                : YTKACEStripProducts(field.bytes, depth + 1);
+        if (field.type == 2 && YTKACEHasStripMarker(field.bytes, strip)) {
+            if (field.number == YTKACEMetadataRowsField) {
+                if (strip.products) removed += YTKACEStripProductRows(field.bytes);
+            } else {
+                removed += YTKACEStripLockups(field.bytes, depth + 1, strip);
+            }
         }
         kept.push_back(std::move(field));
     }
@@ -522,21 +549,27 @@ int YTKACEStripProducts(std::string &message, int depth) {
 
 }  // namespace
 
+static bool YTKACEDataHasAny(NSData *data, const char *const *markers, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        if (memmem(data.bytes, data.length, markers[i], strlen(markers[i])) != NULL) return true;
+    }
+    return false;
+}
+
 static NSData *YTKACEWithoutProducts(NSData *data, NSString *source) {
-    if (data.length == 0 || !YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden")) {
-        return data;
-    }
-    bool found = false;
-    for (const char *marker : YTKACEProductMarkers) {
-        if (memmem(data.bytes, data.length, marker, strlen(marker)) != NULL) {
-            found = true;
-            break;
-        }
-    }
-    if (!found) return data;
+    if (data.length == 0) return data;
+    YTKACELockupStrip strip;
+    strip.products = YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.ProductsHidden") &&
+        YTKACEDataHasAny(data, YTKACEProductMarkers,
+                         sizeof(YTKACEProductMarkers) / sizeof(*YTKACEProductMarkers));
+    strip.summaries = YTKACEFeatureEnabled(@"YTKACE.Preference.Feed.AISummariesHidden") &&
+        YTKACEDataHasAny(data, YTKACESummaryMarkers,
+                         sizeof(YTKACESummaryMarkers) / sizeof(*YTKACESummaryMarkers));
+    if (!strip.products && !strip.summaries) return data;
     std::string message((const char *)data.bytes, data.length);
-    int removed = YTKACEStripProducts(message, 0);
-    YTKACEDebugLog(@"products", @"%@ removed %d product items", source, removed);
+    int removed = YTKACEStripLockups(message, 0, strip);
+    YTKACEDebugLog(@"products", @"%@ removed %d items (products=%d summaries=%d)",
+                   source, removed, strip.products, strip.summaries);
     if (removed == 0) return data;
     return [NSData dataWithBytes:message.data() length:message.size()];
 }

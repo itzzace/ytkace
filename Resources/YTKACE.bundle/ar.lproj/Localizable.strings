@@ -1190,3 +1190,5 @@ Licensed under CC BY-NC-SA 4.0." = "يستخدم YTKACE بيانات SponsorBloc
 "Keep landscape fullscreen on one side." = "إبقاء ملء الشاشة الأفقي على جانب واحد.";
 "Fit Video Around Notch" = "ملاءمة الفيديو حول النتوء";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "لا تدع النتوء أو الجزيرة الديناميكية يغطيان الفيديوهات العريضة في وضع ملء الشاشة.";
+"Remove AI Summaries" = "إزالة ملخصات الذكاء الاصطناعي";
+"Hide the AI summary under videos in Home, search and suggestions." = "إخفاء ملخص الذكاء الاصطناعي أسفل الفيديوهات في الصفحة الرئيسية والبحث والاقتراحات.";

@@ -1190,3 +1190,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE использует данные Spo
 "Keep landscape fullscreen on one side." = "Держать горизонтальный полноэкранный режим на одной стороне.";
 "Fit Video Around Notch" = "Вписать видео вокруг выреза";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Вырез и Dynamic Island не закрывают широкие видео в полноэкранном режиме.";
+"Remove AI Summaries" = "Убрать ИИ-сводки";
+"Hide the AI summary under videos in Home, search and suggestions." = "Скрывает ИИ-сводку под видео на главной, в поиске и рекомендациях.";

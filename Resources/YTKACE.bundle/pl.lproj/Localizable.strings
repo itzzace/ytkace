@@ -1172,3 +1172,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE korzysta z danych SponsorBlock.\nLice
 "Keep landscape fullscreen on one side." = "Utrzymuj poziomy pełny ekran po jednej stronie.";
 "Fit Video Around Notch" = "Dopasuj wideo do notcha";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Notch ani Dynamic Island nie zasłonią szerokich filmów na pełnym ekranie.";
+"Remove AI Summaries" = "Usuń podsumowania AI";
+"Hide the AI summary under videos in Home, search and suggestions." = "Ukrywa podsumowanie AI pod filmami na stronie głównej, w wyszukiwaniu i sugestiach.";

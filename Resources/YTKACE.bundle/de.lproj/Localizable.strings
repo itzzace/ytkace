@@ -1190,3 +1190,5 @@ Lizenziert unter CC BY-NC-SA 4.0.";
 "Keep landscape fullscreen on one side." = "Querformat-Vollbild immer auf einer Seite halten.";
 "Fit Video Around Notch" = "Video um Notch einpassen";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Notch oder Dynamic Island verdecken breite Videos im Vollbild nicht.";
+"Remove AI Summaries" = "KI-Zusammenfassungen entfernen";
+"Hide the AI summary under videos in Home, search and suggestions." = "Blendet die KI-Zusammenfassung unter Videos auf der Startseite, in der Suche und in Vorschlägen aus.";

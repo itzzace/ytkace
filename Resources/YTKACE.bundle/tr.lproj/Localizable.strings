@@ -1190,3 +1190,5 @@ CC BY-NC-SA 4.0 ile lisanslanmıştır.";
 "Keep landscape fullscreen on one side." = "Yatay tam ekranı tek tarafta tut.";
 "Fit Video Around Notch" = "Videoyu çentiğe göre sığdır";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Tam ekranda çentik veya Dynamic Island geniş videoları kapatmasın.";
+"Remove AI Summaries" = "Yapay zekâ özetlerini kaldır";
+"Hide the AI summary under videos in Home, search and suggestions." = "Ana sayfa, arama ve önerilerde videoların altındaki yapay zekâ özetini gizler.";

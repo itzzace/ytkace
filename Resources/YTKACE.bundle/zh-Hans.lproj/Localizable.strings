@@ -1190,3 +1190,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE 使用 SponsorBlock 数据。
 "Keep landscape fullscreen on one side." = "横屏全屏时固定在一侧。";
 "Fit Video Around Notch" = "视频避开刘海";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "全屏时不让刘海或灵动岛遮挡宽屏视频。";
+"Remove AI Summaries" = "移除 AI 摘要";
+"Hide the AI summary under videos in Home, search and suggestions." = "隐藏首页、搜索和推荐中视频下方的 AI 摘要。";
