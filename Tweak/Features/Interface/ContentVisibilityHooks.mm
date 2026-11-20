@@ -29,7 +29,6 @@ static IMP OriginalChipBarUpdate;
 static IMP OriginalChipCloudSetEntry;
 static IMP OriginalSubsChipFilter;
 static IMP OriginalChipCloudLayout;
-static IMP OriginalFeedHeaderScrollMode;
 static IMP OriginalSubsSetChipFilterView;
 static IMP OriginalMaximumSubheaderHeight;
 static IMP OriginalMaximumSubheaderHeightGetter;
@@ -2920,8 +2919,23 @@ static void YTKACEDisplayViewSetIdentifier(UIView *receiver,
     YTKACEConsiderProductDisplayView(receiver, identifier);
 }
 
+BOOL YTKACEHomeTabsLayoutActive(void);
+
 static BOOL YTKACEHideTopics(void) {
     return YTKACEFeatureEnabled(@"YTKACE.Preference.Navigation.TopicsHidden");
+}
+
+// The header hooks fold away the bar under the top bar. With the Home and
+// Subscriptions tabs layout that bar holds the tabs, and folding it hangs or
+// crashes YouTube at launch.
+static BOOL YTKACEHideTopicsHeader(void) {
+    if (!YTKACEHideTopics()) return NO;
+    if (YTKACEHomeTabsLayoutActive()) {
+        static dispatch_once_t once;
+        dispatch_once(&once, ^{ YTKACEDebugLog(@"topics", @"tabs layout, header left alone"); });
+        return NO;
+    }
+    return YES;
 }
 
 static void YTKACECollapseSubheader(id receiver) {
@@ -2944,7 +2958,7 @@ static void YTKACECollapseSubheader(id receiver) {
 }
 
 static double YTKACEMaximumSubheaderHeightGetter(id receiver, SEL selector) {
-    if (YTKACEHideTopics()) return 0.0;
+    if (YTKACEHideTopicsHeader()) return 0.0;
     return OriginalMaximumSubheaderHeightGetter == NULL
         ? 0.0
         : ((double (*)(id, SEL))OriginalMaximumSubheaderHeightGetter)(
@@ -2952,7 +2966,7 @@ static double YTKACEMaximumSubheaderHeightGetter(id receiver, SEL selector) {
 }
 
 static double YTKACESubheaderDefaultHeight(id receiver, SEL selector) {
-    if (YTKACEHideTopics()) return 0.0;
+    if (YTKACEHideTopicsHeader()) return 0.0;
     return OriginalSubheaderDefaultHeight == NULL
         ? 0.0
         : ((double (*)(id, SEL))OriginalSubheaderDefaultHeight)(
@@ -3073,7 +3087,7 @@ static void YTKACEDidInsertPlayerOverlay(id receiver, SEL selector,
 
 static void YTKACEEnableSubheaderBar(__unsafe_unretained id receiver, SEL selector,
                                      __unsafe_unretained id view) {
-    BOOL hide = YTKACEHideTopics();
+    BOOL hide = YTKACEHideTopicsHeader();
     if (hide) {
         YTKACECollapseSubheader(receiver);
         return;
@@ -3083,19 +3097,38 @@ static void YTKACEEnableSubheaderBar(__unsafe_unretained id receiver, SEL select
     }
 }
 
+static IMP OriginalChipBarImplUpdate;
+
+static void YTKACEChipBarForward(IMP original, id receiver, SEL selector, id collectionViewController,
+                                 id host, id renderer, id browseIdentifier, id sectionList) {
+    if (YTKACEHideTopicsHeader()) return;
+    if (original != NULL) {
+        ((void (*)(id, SEL, id, id, id, id, id))original)(
+            receiver, selector, collectionViewController, host, renderer,
+            browseIdentifier, sectionList);
+    }
+}
+
 static void YTKACEChipBarUpdate(__unsafe_unretained id receiver, SEL selector,
                                 __unsafe_unretained id collectionViewController,
                                 __unsafe_unretained id host,
                                 __unsafe_unretained id renderer,
                                 __unsafe_unretained id browseIdentifier,
                                 __unsafe_unretained id sectionList) {
-    BOOL hide = YTKACEHideTopics();
-    if (hide) return;
-    if (OriginalChipBarUpdate != NULL) {
-        ((void (*)(id, SEL, id, id, id, id, id))OriginalChipBarUpdate)(
-            receiver, selector, collectionViewController, host, renderer,
-            browseIdentifier, sectionList);
-    }
+    YTKACEChipBarForward(OriginalChipBarUpdate, receiver, selector, collectionViewController,
+                         host, renderer, browseIdentifier, sectionList);
+}
+
+// Newer YouTube renamed the chip bar controller. Loading it reserves the chip
+// row above the feed even when the chips are hidden.
+static void YTKACEChipBarImplUpdate(__unsafe_unretained id receiver, SEL selector,
+                                    __unsafe_unretained id collectionViewController,
+                                    __unsafe_unretained id host,
+                                    __unsafe_unretained id renderer,
+                                    __unsafe_unretained id browseIdentifier,
+                                    __unsafe_unretained id sectionList) {
+    YTKACEChipBarForward(OriginalChipBarImplUpdate, receiver, selector, collectionViewController,
+                         host, renderer, browseIdentifier, sectionList);
 }
 
 static void YTKACEChipCloudSetEntry(__unsafe_unretained id receiver, SEL selector,
@@ -3132,14 +3165,6 @@ static void YTKACEChipCloudLayout(__unsafe_unretained id receiver, SEL selector)
     }
 }
 
-static void YTKACEFeedHeaderScrollMode(__unsafe_unretained id receiver, SEL selector,
-                                       int mode) {
-    if (OriginalFeedHeaderScrollMode != NULL) {
-        ((void (*)(id, SEL, int))OriginalFeedHeaderScrollMode)(
-            receiver, selector, YTKACEHideTopics() ? 0 : mode);
-    }
-}
-
 static IMP OriginalChipViewFrames;
 
 static id YTKACEChipViewFrames(__unsafe_unretained id receiver, SEL selector, double width) {
@@ -3168,7 +3193,7 @@ static void YTKACESubsChipFilter(__unsafe_unretained id receiver, SEL selector,
 
 static void YTKACEMaximumSubheaderHeight(__unsafe_unretained id receiver,
                                         SEL selector, double height) {
-    BOOL hide = YTKACEHideTopics();
+    BOOL hide = YTKACEHideTopicsHeader();
     if (hide) height = 0.0;
     if (OriginalMaximumSubheaderHeight != NULL) {
         ((void (*)(id, SEL, double))OriginalMaximumSubheaderHeight)(
@@ -3181,7 +3206,7 @@ static void YTKACESetHeaderHeights(id receiver, SEL selector,
                                     double subheaderHeight,
                                     double topOffset,
                                     BOOL animated) {
-    if (YTKACEHideTopics()) {
+    if (YTKACEHideTopicsHeader()) {
         subheaderHeight = 0.0;
     }
     if (OriginalSetHeaderHeights != NULL) {
@@ -3191,7 +3216,7 @@ static void YTKACESetHeaderHeights(id receiver, SEL selector,
 }
 
 static BOOL YTKACEShouldHideSubheader(id receiver, SEL selector) {
-    if (YTKACEHideTopics()) return YES;
+    if (YTKACEHideTopicsHeader()) return YES;
     return OriginalShouldHideSubheader != NULL &&
         ((BOOL (*)(id, SEL))OriginalShouldHideSubheader)(receiver, selector);
 }
@@ -3322,6 +3347,10 @@ void YTKACEInstallContentVisibilityHooks(void) {
                               @"updateWithCollectionViewController:feedFilterChipBarHost:feedFilterChipBarRenderer:browseIdentifier:sectionList:",
                               (IMP)YTKACEChipBarUpdate,
                               &OriginalChipBarUpdate);
+    YTKACEInstallInstanceHook(@"YTFeedFilterChipBarControllerImpl",
+                              @"updateWithCollectionViewController:feedFilterChipBarHost:feedFilterChipBarRenderer:browseIdentifier:sectionList:",
+                              (IMP)YTKACEChipBarImplUpdate,
+                              &OriginalChipBarImplUpdate);
     YTKACEInstallInstanceHook(@"YTChipCloudCell",
                               @"setEntry:",
                               (IMP)YTKACEChipCloudSetEntry,
@@ -3338,10 +3367,6 @@ void YTKACEInstallContentVisibilityHooks(void) {
                               @"framesForChipViewsWithWidth:",
                               (IMP)YTKACEChipViewFrames,
                               &OriginalChipViewFrames);
-    YTKACEInstallInstanceHook(@"YTHeaderContentComboView",
-                              @"setFeedHeaderScrollMode:",
-                              (IMP)YTKACEFeedHeaderScrollMode,
-                              &OriginalFeedHeaderScrollMode);
     YTKACEInstallInstanceHook(@"YTHeaderContentComboView",
                               @"setMaximumSubheaderHeight:",
                               (IMP)YTKACEMaximumSubheaderHeight,

@@ -33,9 +33,19 @@ static IMP OriginalFoxScrollableTabs;
 static IMP OriginalFoxCollapsingTabs;
 static IMP OriginalFoxIosCollapsingTabs;
 
+static BOOL YTKACEFoxTabsSeen;
+
+// Home and Subscriptions tabs at the top of Home, which sit where the filter
+// chips used to be.
+BOOL YTKACEHomeTabsLayoutActive(void) {
+    return YTKACEFoxTabsSeen && !YTKACEFeatureEnabled(@"YTKACE.Preference.Feed.HomeTabsHidden");
+}
+
 static BOOL YTKACEFoxFlag(IMP original, id receiver, SEL selector) {
+    BOOL value = original != NULL && ((BOOL (*)(id, SEL))original)(receiver, selector);
+    if (value) YTKACEFoxTabsSeen = YES;
     if (YTKACEFeatureEnabled(@"YTKACE.Preference.Feed.HomeTabsHidden")) return NO;
-    return original != NULL && ((BOOL (*)(id, SEL))original)(receiver, selector);
+    return value;
 }
 
 static BOOL YTKACEFoxScrollableTabs(id receiver, SEL selector) {
