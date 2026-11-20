@@ -205,7 +205,24 @@ static void YTKACEHomeBuildChips(NSArray *tabs, id home) {
     YTKACEHomeSet(list, @"setHeader:", newHeader);
 }
 
+// Notes when Home comes with its Home and Subscriptions tabs. YouTube can turn
+// that layout on from the server without the flags above.
+static void YTKACENoteHomeTabs(id single) {
+    NSArray *tabs = YTKACEHomeObject(single, @"tabsArray");
+    if (![tabs isKindOfClass:NSArray.class] || tabs.count < 2) return;
+    for (id tab in tabs) {
+        NSString *browseID = YTKACEHomeTabBrowseID(tab);
+        if ([browseID isEqualToString:@"FEwhat_to_watch"] ||
+            [browseID isEqualToString:@"FEsubscriptions"]) {
+            if (!YTKACEFoxTabsSeen) YTKACEDebugLog(@"topics", @"home tabs layout seen");
+            YTKACEFoxTabsSeen = YES;
+            return;
+        }
+    }
+}
+
 static void YTKACETrimHomeTabsInRenderer(id single) {
+    YTKACENoteHomeTabs(single);
     if (!YTKACEFeatureEnabled(@"YTKACE.Preference.Feed.HomeTabsHidden")) return;
     NSMutableArray *tabs = YTKACEHomeObject(single, @"tabsArray");
     if (![tabs isKindOfClass:NSMutableArray.class] || tabs.count < 2) return;

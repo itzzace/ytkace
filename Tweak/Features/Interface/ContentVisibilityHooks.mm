@@ -2938,6 +2938,33 @@ static BOOL YTKACEHideTopicsHeader(void) {
     return YES;
 }
 
+static char YTKACETabsHeaderKey;
+
+static BOOL YTKACEIsTabTitlesView(id view) {
+    if (![view isKindOfClass:UIView.class]) return NO;
+    if ([NSStringFromClass([view class]) containsString:@"TabTitles"]) return YES;
+    for (UIResponder *r = view; r; r = r.nextResponder) {
+        if ([r isKindOfClass:UIViewController.class]) {
+            return [NSStringFromClass(r.class) containsString:@"TabTitles"];
+        }
+    }
+    return NO;
+}
+
+// Same as above for one header: also leaves it alone when its bar holds the
+// Home and Subscriptions tabs, which YouTube can turn on from the server.
+static BOOL YTKACEHideTopicsHeaderFor(id header) {
+    if (!YTKACEHideTopicsHeader()) return NO;
+    if (header == nil) return YES;
+    if (objc_getAssociatedObject(header, &YTKACETabsHeaderKey) != nil) return NO;
+    SEL subheader = NSSelectorFromString(@"subheaderView");
+    if ([header respondsToSelector:subheader] &&
+        YTKACEIsTabTitlesView(((id (*)(id, SEL))objc_msgSend)(header, subheader))) {
+        return NO;
+    }
+    return YES;
+}
+
 static void YTKACECollapseSubheader(id receiver) {
     SEL height = NSSelectorFromString(@"setMaximumSubheaderHeight:");
     if ([receiver respondsToSelector:height]) {
@@ -2958,7 +2985,7 @@ static void YTKACECollapseSubheader(id receiver) {
 }
 
 static double YTKACEMaximumSubheaderHeightGetter(id receiver, SEL selector) {
-    if (YTKACEHideTopicsHeader()) return 0.0;
+    if (YTKACEHideTopicsHeaderFor(receiver)) return 0.0;
     return OriginalMaximumSubheaderHeightGetter == NULL
         ? 0.0
         : ((double (*)(id, SEL))OriginalMaximumSubheaderHeightGetter)(
@@ -2966,7 +2993,7 @@ static double YTKACEMaximumSubheaderHeightGetter(id receiver, SEL selector) {
 }
 
 static double YTKACESubheaderDefaultHeight(id receiver, SEL selector) {
-    if (YTKACEHideTopicsHeader()) return 0.0;
+    if (YTKACEHideTopicsHeaderFor(receiver)) return 0.0;
     return OriginalSubheaderDefaultHeight == NULL
         ? 0.0
         : ((double (*)(id, SEL))OriginalSubheaderDefaultHeight)(
@@ -3085,9 +3112,25 @@ static void YTKACEDidInsertPlayerOverlay(id receiver, SEL selector,
     }
 }
 
+static NSString *YTKACEOwnerName(id view) {
+    for (UIResponder *r = [view isKindOfClass:UIResponder.class] ? view : nil; r; r = r.nextResponder) {
+        if ([r isKindOfClass:UIViewController.class]) return NSStringFromClass(r.class);
+    }
+    return @"-";
+}
+
 static void YTKACEEnableSubheaderBar(__unsafe_unretained id receiver, SEL selector,
                                      __unsafe_unretained id view) {
-    BOOL hide = YTKACEHideTopicsHeader();
+    YTKACEDebugLog(@"topics", @"enable subheader view=%@ owner=%@ sub0=%@ tabsActive=%d",
+                   NSStringFromClass([view class]), YTKACEOwnerName(view),
+                   [view isKindOfClass:UIView.class] && [(UIView *)view subviews].count
+                       ? NSStringFromClass([(UIView *)view subviews].firstObject.class) : @"-",
+                   YTKACEHomeTabsLayoutActive());
+    if (YTKACEIsTabTitlesView(view)) {
+        objc_setAssociatedObject(receiver, &YTKACETabsHeaderKey, @YES,
+                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    BOOL hide = YTKACEHideTopicsHeaderFor(receiver);
     if (hide) {
         YTKACECollapseSubheader(receiver);
         return;
@@ -3193,7 +3236,7 @@ static void YTKACESubsChipFilter(__unsafe_unretained id receiver, SEL selector,
 
 static void YTKACEMaximumSubheaderHeight(__unsafe_unretained id receiver,
                                         SEL selector, double height) {
-    BOOL hide = YTKACEHideTopicsHeader();
+    BOOL hide = YTKACEHideTopicsHeaderFor(receiver);
     if (hide) height = 0.0;
     if (OriginalMaximumSubheaderHeight != NULL) {
         ((void (*)(id, SEL, double))OriginalMaximumSubheaderHeight)(
@@ -3206,7 +3249,7 @@ static void YTKACESetHeaderHeights(id receiver, SEL selector,
                                     double subheaderHeight,
                                     double topOffset,
                                     BOOL animated) {
-    if (YTKACEHideTopicsHeader()) {
+    if (YTKACEHideTopicsHeaderFor(receiver)) {
         subheaderHeight = 0.0;
     }
     if (OriginalSetHeaderHeights != NULL) {
@@ -3216,7 +3259,7 @@ static void YTKACESetHeaderHeights(id receiver, SEL selector,
 }
 
 static BOOL YTKACEShouldHideSubheader(id receiver, SEL selector) {
-    if (YTKACEHideTopicsHeader()) return YES;
+    if (YTKACEHideTopicsHeaderFor(receiver)) return YES;
     return OriginalShouldHideSubheader != NULL &&
         ((BOOL (*)(id, SEL))OriginalShouldHideSubheader)(receiver, selector);
 }
