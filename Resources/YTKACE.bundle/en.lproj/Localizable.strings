@@ -1199,3 +1199,5 @@ Licensed under CC BY-NC-SA 4.0.";
 "1 file · %@" = "1 file · %@";
 "Charging Port in Fullscreen" = "Charging Port in Fullscreen";
 "Keep landscape fullscreen on one side." = "Keep landscape fullscreen on one side.";
+"Fit Video Around Notch" = "Fit Video Around Notch";
+"Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Don't let the notch or Dynamic Island cover wide videos in fullscreen.";

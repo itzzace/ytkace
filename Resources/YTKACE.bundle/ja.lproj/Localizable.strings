@@ -1188,3 +1188,5 @@ CC BY-NC-SA 4.0 でライセンスされています。";
 "1 file · %@" = "1 ファイル · %@";
 "Charging Port in Fullscreen" = "全画面での充電ポート";
 "Keep landscape fullscreen on one side." = "横向きの全画面を片側に固定します。";
+"Fit Video Around Notch" = "ノッチを避けて表示";
+"Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "全画面で横長の動画がノッチや Dynamic Island に隠れないようにします。";

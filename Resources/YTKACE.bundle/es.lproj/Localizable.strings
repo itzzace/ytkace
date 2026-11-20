@@ -1170,3 +1170,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE usa datos de SponsorBlock.\nCon licen
 "1 file · %@" = "1 archivo · %@";
 "Charging Port in Fullscreen" = "Puerto de carga en pantalla completa";
 "Keep landscape fullscreen on one side." = "Mantén la pantalla completa horizontal en un lado.";
+"Fit Video Around Notch" = "Ajustar video al notch";
+"Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Evita que el notch o la Dynamic Island tapen los videos anchos en pantalla completa.";

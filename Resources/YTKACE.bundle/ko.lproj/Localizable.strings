@@ -1188,3 +1188,5 @@ CC BY-NC-SA 4.0 라이선스가 적용됩니다.";
 "1 file · %@" = "파일 1개 · %@";
 "Charging Port in Fullscreen" = "전체 화면 충전 포트";
 "Keep landscape fullscreen on one side." = "가로 전체 화면을 한쪽 방향으로 유지합니다.";
+"Fit Video Around Notch" = "노치를 피해 영상 맞추기";
+"Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "전체 화면에서 노치나 Dynamic Island가 넓은 영상을 가리지 않게 합니다.";

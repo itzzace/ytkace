@@ -1188,3 +1188,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE داتای SponsorBlock بەکارد�
 "1 file · %@" = "1 فایل · %@";
 "Charging Port in Fullscreen" = "دەرچەی شەحن لە پڕشاشەدا";
 "Keep landscape fullscreen on one side." = "پڕشاشەی ئاسۆیی لە یەک لادا بهێڵەوە.";
+"Fit Video Around Notch" = "ڤیدیۆ لە دەوری نۆچ ڕێکبخە";
+"Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "مەهێڵە نۆچ یان Dynamic Island ڤیدیۆ پانەکان لە پڕاوپڕی شاشەدا داپۆشێت.";

@@ -1188,3 +1188,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE 使用 SponsorBlock 資料。
 "1 file · %@" = "1 個檔案 · %@";
 "Charging Port in Fullscreen" = "全螢幕時充電埠位置";
 "Keep landscape fullscreen on one side." = "橫向全螢幕時固定在一側。";
+"Fit Video Around Notch" = "影片避開瀏海";
+"Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "全螢幕時不讓瀏海或動態島遮住寬螢幕影片。";

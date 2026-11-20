@@ -1188,3 +1188,5 @@ Licensed under CC BY-NC-SA 4.0." = "يستخدم YTKACE بيانات SponsorBloc
 "1 file · %@" = "ملف واحد · %@";
 "Charging Port in Fullscreen" = "منفذ الشحن في ملء الشاشة";
 "Keep landscape fullscreen on one side." = "إبقاء ملء الشاشة الأفقي على جانب واحد.";
+"Fit Video Around Notch" = "ملاءمة الفيديو حول النتوء";
+"Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "لا تدع النتوء أو الجزيرة الديناميكية يغطيان الفيديوهات العريضة في وضع ملء الشاشة.";

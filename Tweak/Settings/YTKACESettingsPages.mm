@@ -1486,6 +1486,7 @@ static NSArray *YTKACEFilterDeviceRows(NSArray *sections) {
     }
     if (UIDevice.currentDevice.userInterfaceIdiom != UIUserInterfaceIdiomPhone) {
         [hiddenKeys addObject:YTKACEFullscreenOrientationKey];
+        [hiddenKeys addObject:@"YTKACE.Preference.Player.NotchSafeVideo"];
     }
     if (hiddenKeys.count == 0) return sections;
     NSMutableArray *filtered = [NSMutableArray arrayWithCapacity:sections.count];
@@ -1814,6 +1815,9 @@ static NSDictionary *YTKACEPlayerDefinition(void) {
                                @[@"Off", @"Left", @"Right"],
                                @[@(YTKACEFullscreenOrientationNeither), @(YTKACEFullscreenOrientationLeft),
                                  @(YTKACEFullscreenOrientationRight)], 0),
+            YTKACEToggleDetail(@"Fit Video Around Notch",
+                               @"Don't let the notch or Dynamic Island cover wide videos in fullscreen.",
+                               @"YTKACE.Preference.Player.NotchSafeVideo"),
             YTKACEToggleDetail(@"Exit Fullscreen at End",
                                @"Leave fullscreen when a video ends.",
                                @"YTKACE.Preference.Player.ExitFullscreenAtEnd"),

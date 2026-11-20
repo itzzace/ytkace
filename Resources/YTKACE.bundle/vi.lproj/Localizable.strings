@@ -1188,3 +1188,5 @@ Cấp phép theo CC BY-NC-SA 4.0.";
 "1 file · %@" = "1 tệp · %@";
 "Charging Port in Fullscreen" = "Cổng sạc khi toàn màn hình";
 "Keep landscape fullscreen on one side." = "Giữ toàn màn hình ngang ở một phía.";
+"Fit Video Around Notch" = "Căn video tránh tai thỏ";
+"Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Không để tai thỏ hay Dynamic Island che video rộng khi toàn màn hình.";

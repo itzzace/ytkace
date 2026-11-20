@@ -1188,3 +1188,5 @@ Lizenziert unter CC BY-NC-SA 4.0.";
 "1 file · %@" = "1 Datei · %@";
 "Charging Port in Fullscreen" = "Ladeanschluss im Vollbild";
 "Keep landscape fullscreen on one side." = "Querformat-Vollbild immer auf einer Seite halten.";
+"Fit Video Around Notch" = "Video um Notch einpassen";
+"Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Notch oder Dynamic Island verdecken breite Videos im Vollbild nicht.";

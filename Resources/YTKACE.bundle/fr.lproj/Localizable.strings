@@ -1188,3 +1188,5 @@ Sous licence CC BY-NC-SA 4.0.";
 "1 file · %@" = "1 fichier · %@";
 "Charging Port in Fullscreen" = "Port de charge en plein écran";
 "Keep landscape fullscreen on one side." = "Garder le plein écran paysage d'un seul côté.";
+"Fit Video Around Notch" = "Adapter la vidéo à l’encoche";
+"Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Empêche l’encoche ou la Dynamic Island de masquer les vidéos larges en plein écran.";

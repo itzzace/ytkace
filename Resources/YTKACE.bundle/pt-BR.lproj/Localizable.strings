@@ -1143,3 +1143,5 @@
 "1 file · %@" = "1 arquivo · %@";
 "Charging Port in Fullscreen" = "Entrada de carga em tela cheia";
 "Keep landscape fullscreen on one side." = "Mantém a tela cheia horizontal de um lado.";
+"Fit Video Around Notch" = "Ajustar vídeo ao notch";
+"Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Impede que o notch ou a Dynamic Island cubram vídeos largos em tela cheia.";
