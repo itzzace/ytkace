@@ -9,9 +9,9 @@ on:
         default: "https://www.dropbox.com/scl/fi/1m7rq3lpkg3mfsone2299/com.google.ios.youtube-21.33.6-eeveedecrypter.ipa?rlkey=b2nsvre89881puprynwkfau8q&st=4fkh7ry8&dl=1"
         type: string
       ipa_url_ios17:
-        description: Second YouTube IPA URL (iOS 17+ base, 21.46.3). Leave empty to build one IPA.
+        description: Second YouTube IPA URL (iOS 17+ base, 21.47.6). Leave empty to build one IPA.
         required: false
-        default: "https://www.dropbox.com/scl/fi/hjbvmjk9xz9krzxrch0if/com.google.ios.youtube-21.46.3-eeveedecrypter.ipa?rlkey=z9di35l0ppjcxf97vwvn2wmvc&st=oeeopdfy&dl=1"
+        default: "https://www.dropbox.com/scl/fi/0pa15ymo1crqoh37ua14v/com.google.ios.youtube-21.47.6-eeveedecrypter.ipa?rlkey=q66okvz57iox2harvkra17cij&st=kj9fensp&dl=1"
         type: string
 
 permissions:
