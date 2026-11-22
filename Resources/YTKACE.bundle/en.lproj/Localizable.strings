@@ -1199,7 +1199,7 @@ Licensed under CC BY-NC-SA 4.0.";
 "1 file · %@" = "1 file · %@";
 "Charging Port in Fullscreen" = "Charging Port in Fullscreen";
 "Keep landscape fullscreen on one side." = "Keep landscape fullscreen on one side.";
-"Fit Video Around Notch" = "Fit Video Around Notch";
+"Avoid Notch Cutoff" = "Avoid Notch Cutoff";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Don't let the notch or Dynamic Island cover wide videos in fullscreen.";
 "Remove AI Summaries" = "Remove AI Summaries";
 "Hide the AI summary under videos in Home, search and suggestions." = "Hide the AI summary under videos in Home, search and suggestions.";

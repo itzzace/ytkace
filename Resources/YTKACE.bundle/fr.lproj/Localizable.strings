@@ -1188,7 +1188,7 @@ Sous licence CC BY-NC-SA 4.0.";
 "1 file · %@" = "1 fichier · %@";
 "Charging Port in Fullscreen" = "Port de charge en plein écran";
 "Keep landscape fullscreen on one side." = "Garder le plein écran paysage d'un seul côté.";
-"Fit Video Around Notch" = "Adapter la vidéo à l’encoche";
+"Avoid Notch Cutoff" = "Éviter la coupure de l’encoche";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Empêche l’encoche ou la Dynamic Island de masquer les vidéos larges en plein écran.";
 "Remove AI Summaries" = "Retirer les résumés IA";
 "Hide the AI summary under videos in Home, search and suggestions." = "Masque le résumé IA sous les vidéos dans l’accueil, la recherche et les suggestions.";

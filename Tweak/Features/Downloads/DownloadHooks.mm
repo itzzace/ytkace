@@ -215,6 +215,12 @@ void YTKACEBuildNativeOnesieRequest(
     });
 }
 
+// Newer YouTube versions renamed this to MLOnesieRequestFactoryImpl.
+static NSString *YTKACEOnesieFactoryClass(void) {
+    return NSClassFromString(@"MLOnesieRequestFactoryImpl") != Nil ? @"MLOnesieRequestFactoryImpl"
+                                                                    : @"MLOnesieRequestFactory";
+}
+
 static id YTKACEOnesieRequest(id receiver,
                               SEL selector,
                               id playerRequest,
@@ -728,13 +734,13 @@ static void YTKACEInstallPlayerServiceHook(void) {
         &OriginalFactoryRequestExtended
     );
     BOOL onesieInstalled = YTKACEInstallInstanceHook(
-        @"MLOnesieRequestFactory",
+        YTKACEOnesieFactoryClass(),
         @"onesieRequestForPlayerRequest:dataLoader:context:cryptor:requestNumber:error:",
         (IMP)YTKACEOnesieRequest,
         &OriginalOnesieRequest
     );
     BOOL onesieAsyncInstalled = YTKACEInstallInstanceHook(
-        @"MLOnesieRequestFactory",
+        YTKACEOnesieFactoryClass(),
         @"onesieRequestForPlayerRequest:authorization:dataLoader:context:cryptor:requestNumber:completionHandler:",
         (IMP)YTKACEOnesieRequestAsync,
         &OriginalOnesieRequestAsync
@@ -1431,7 +1437,7 @@ void YTKACEInstallDownloadHooks(void) {
                               (IMP)YTKACESetPoToken,
                               &OriginalSetPoToken);
     YTKACEInstallPlayerServiceHook();
-    YTKACEInstallInstanceHook(@"MLOnesieRequestFactory",
+    YTKACEInstallInstanceHook(YTKACEOnesieFactoryClass(),
                               @"onesieRequestForPlayerRequest:dataLoader:context:cryptor:requestNumber:error:",
                               (IMP)YTKACEOnesieRequest,
                               &OriginalOnesieRequest);

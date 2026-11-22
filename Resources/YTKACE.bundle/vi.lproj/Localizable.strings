@@ -1188,7 +1188,7 @@ Cấp phép theo CC BY-NC-SA 4.0.";
 "1 file · %@" = "1 tệp · %@";
 "Charging Port in Fullscreen" = "Cổng sạc khi toàn màn hình";
 "Keep landscape fullscreen on one side." = "Giữ toàn màn hình ngang ở một phía.";
-"Fit Video Around Notch" = "Căn video tránh tai thỏ";
+"Avoid Notch Cutoff" = "Tránh tai thỏ che video";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Không để tai thỏ hay Dynamic Island che video rộng khi toàn màn hình.";
 "Remove AI Summaries" = "Xóa tóm tắt AI";
 "Hide the AI summary under videos in Home, search and suggestions." = "Ẩn tóm tắt AI dưới video ở Trang chủ, tìm kiếm và đề xuất.";

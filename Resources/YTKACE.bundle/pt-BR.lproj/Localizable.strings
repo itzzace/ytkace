@@ -1143,7 +1143,7 @@
 "1 file · %@" = "1 arquivo · %@";
 "Charging Port in Fullscreen" = "Entrada de carga em tela cheia";
 "Keep landscape fullscreen on one side." = "Mantém a tela cheia horizontal de um lado.";
-"Fit Video Around Notch" = "Ajustar vídeo ao notch";
+"Avoid Notch Cutoff" = "Evitar corte do notch";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Impede que o notch ou a Dynamic Island cubram vídeos largos em tela cheia.";
 "Remove AI Summaries" = "Remover resumos de IA";
 "Hide the AI summary under videos in Home, search and suggestions." = "Oculta o resumo de IA abaixo dos vídeos no Início, na busca e nas sugestões.";

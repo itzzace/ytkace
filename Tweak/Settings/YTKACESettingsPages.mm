@@ -1815,7 +1815,7 @@ static NSDictionary *YTKACEPlayerDefinition(void) {
                                @[@"Off", @"Left", @"Right"],
                                @[@(YTKACEFullscreenOrientationNeither), @(YTKACEFullscreenOrientationLeft),
                                  @(YTKACEFullscreenOrientationRight)], 0),
-            YTKACEToggleDetail(@"Fit Video Around Notch",
+            YTKACEToggleDetail(@"Avoid Notch Cutoff",
                                @"Don't let the notch or Dynamic Island cover wide videos in fullscreen.",
                                @"YTKACE.Preference.Player.NotchSafeVideo"),
             YTKACEToggleDetail(@"Exit Fullscreen at End",
