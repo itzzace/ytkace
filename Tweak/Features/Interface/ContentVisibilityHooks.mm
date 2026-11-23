@@ -1221,6 +1221,27 @@ static NSString *YTKACEBarSlotPreference(UIView *slot) {
     return nil;
 }
 
+// What a bar slot draws, for the debug log: layers with contents or a
+// shape, with their size, opacity and whether they're hidden.
+static NSString *YTKACESlotDrawing(UIView *slot) {
+    NSMutableArray<NSString *> *parts = [NSMutableArray array];
+    NSMutableArray<CALayer *> *pending = [NSMutableArray arrayWithObject:slot.layer];
+    for (NSUInteger visited = 0; pending.count != 0 && visited < 60; visited++) {
+        CALayer *layer = pending.firstObject;
+        [pending removeObjectAtIndex:0];
+        BOOL shape = [layer isKindOfClass:CAShapeLayer.class] && ((CAShapeLayer *)layer).path != NULL;
+        if (layer.contents != nil || shape) {
+            [parts addObject:[NSString stringWithFormat:@"%@%@ %.0fx%.0f o=%.2f%@",
+                NSStringFromClass(layer.class), shape ? @"(path)" : @"",
+                CGRectGetWidth(layer.bounds), CGRectGetHeight(layer.bounds), layer.opacity,
+                layer.hidden ? @" hidden" : @""]];
+        }
+        if (layer.sublayers.count != 0) [pending addObjectsFromArray:layer.sublayers];
+    }
+    return parts.count == 0 ? [NSString stringWithFormat:@"nothing (%lu layers)", (unsigned long)slot.layer.sublayers.count]
+                            : [parts componentsJoinedByString:@" | "];
+}
+
 static void YTKACEFixedBarLayoutSubviews(UIView *receiver, SEL selector) {
     if (OriginalFixedBarLayout != NULL) {
         ((void (*)(id, SEL))OriginalFixedBarLayout)(receiver, selector);
@@ -1303,7 +1324,9 @@ static void YTKACEFixedBarLayoutSubviews(UIView *receiver, SEL selector) {
         NSMutableArray<UIView *> *named = [NSMutableArray array];
         NSMutableIndexSet *namedPositions = [NSMutableIndexSet indexSet];
         for (NSUInteger index = 0; index < keep.count; index++) {
-            if ([names objectForKey:keep[index]] == nil) continue;
+            // ⋯ stays where YouTube put it, at the end.
+            NSString *name = [names objectForKey:keep[index]];
+            if (name == nil || [name isEqualToString:@"Overflow"]) continue;
             [named addObject:keep[index]];
             [namedPositions addIndex:index];
         }
@@ -1343,6 +1366,21 @@ static void YTKACEFixedBarLayoutSubviews(UIView *receiver, SEL selector) {
         lastLog = now;
         lastTrace = line;
         YTKACEDebugLog(@"actionbar", @"%@", line);
+        // The buttons draw in the background; look once they're done.
+        NSPointerArray *slotsLater = [NSPointerArray weakObjectsPointerArray];
+        NSMutableArray<NSString *> *namesLater = [NSMutableArray array];
+        for (UIView *slot in keep) {
+            [slotsLater addPointer:(__bridge void *)slot];
+            [namesLater addObject:[names objectForKey:slot] ?: @"?"];
+        }
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            for (NSUInteger index = 0; index < slotsLater.count; index++) {
+                UIView *slot = (__bridge UIView *)[slotsLater pointerAtIndex:index];
+                if (slot == nil) continue;
+                YTKACEDebugLog(@"actionbar", @"slot %@ %.0fx%.0f draws %@", namesLater[index],
+                               CGRectGetWidth(slot.frame), CGRectGetHeight(slot.frame), YTKACESlotDrawing(slot));
+            }
+        });
     }
 }
 

@@ -275,6 +275,17 @@ bool YTKACERewriteBar(std::string &bar, NSArray<NSString *> *order, NSSet<NSStri
     }
     YTKACENoteActionBarButtons(names);
     YTKACEDebugLog(@"actionbar", @"model bar=%@", [names componentsJoinedByString:@","]);
+    if (YTKACEDebugLogsEnabled()) {
+        for (const YTKACEBarItem &item : items) {
+            if (![item.name isEqualToString:@"Save"]) continue;
+            std::vector<PBField> parts;
+            const uint64_t kind = PBParse(item.barRenderer, parts) && !parts.empty() ? parts.front().number : 0;
+            NSData *raw = [NSData dataWithBytes:item.barRenderer.data() length:item.barRenderer.size()];
+            YTKACEDebugLog(@"actionbar", @"save kind=%llu bytes=%lu bookmark=%d data=%@", kind,
+                           (unsigned long)item.barRenderer.size(), PBContains(item.barRenderer, "bookmark"),
+                           [raw base64EncodedStringWithOptions:0]);
+        }
+    }
     if (order.count == 0 && hidden.count == 0) return false;
 
     // Hidden ones go; the rest follow the saved order, then YouTube's.
@@ -547,6 +558,20 @@ int YTKACEStripLockups(std::string &message, int depth, const YTKACELockupStrip 
     return removed;
 }
 
+// The bar model under the like button, for the debug log.
+std::string YTKACEFindBar(const std::string &message, int depth) {
+    if (depth > 40) return std::string();
+    std::vector<PBField> fields;
+    if (!PBParse(message, fields)) return std::string();
+    for (const PBField &field : fields) {
+        if (field.type != 2 || !PBContains(field.bytes, "id.video.like.button")) continue;
+        if (field.number == YTKACEBarModelField || field.number == YTKACEChipBarModelField) return field.bytes;
+        std::string bar = YTKACEFindBar(field.bytes, depth + 1);
+        if (!bar.empty()) return bar;
+    }
+    return std::string();
+}
+
 }  // namespace
 
 static bool YTKACEDataHasAny(NSData *data, const char *const *markers, size_t count) {
@@ -571,6 +596,14 @@ static NSData *YTKACEWithoutProducts(NSData *data, NSString *source) {
     YTKACEDebugLog(@"products", @"%@ removed %d items (products=%d summaries=%d)",
                    source, removed, strip.products, strip.summaries);
     if (removed == 0) return data;
+    if (YTKACEDebugLogsEnabled()) {
+        const std::string before = YTKACEFindBar(std::string((const char *)data.bytes, data.length), 0);
+        const std::string after = YTKACEFindBar(message, 0);
+        if (before != after) {
+            YTKACEDebugLog(@"products", @"%@ strip changed the action bar %lu -> %lu bytes",
+                           source, (unsigned long)before.size(), (unsigned long)after.size());
+        }
+    }
     return [NSData dataWithBytes:message.data() length:message.size()];
 }
 

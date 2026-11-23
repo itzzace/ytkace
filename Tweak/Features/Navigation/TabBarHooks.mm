@@ -714,11 +714,6 @@ static void YTKACESetPivotRenderer(id receiver, SEL selector, id renderer) {
                     [NSUserDefaults.standardUserDefaults boolForKey:hideKey]) {
                     continue;
                 }
-                if (YTKACEMasterEnabled() &&
-                    [YTKACECanonicalTabToken(token) isEqualToString:@"create"]) {
-                    [filtered addObject:candidate];
-                    continue;
-                }
                 if (YTKACEMasterEnabled()) {
                     candidate = YTKACELabeledTab(candidate);
                     YTKACEApplyTabName(candidate, token);
