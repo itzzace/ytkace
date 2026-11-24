@@ -6,6 +6,7 @@ NSString *const YTKACEOverlayZoneBelow = @"below";
 NSString *const YTKACEOverlayZoneBottom = @"bottom";
 NSString *const YTKACEOverlayZoneFullscreen = @"fullscreen";
 NSString *const YTKACEOverlayZoneLeft = @"left";
+NSString *const YTKACEOverlayZoneMenu = @"menu";
 
 static NSString *const YTKACEOverlayLayoutKey = @"YTKACE.Preference.Player.ButtonLayout";
 static NSString *const YTKACEDownloadPlacementKey = @"YTKACE.Preference.Downloads.Placement";
@@ -28,7 +29,7 @@ NSArray<NSDictionary *> *YTKACEOverlayButtonCatalog(void) {
 
 NSArray<NSString *> *YTKACEOverlayZones(void) {
     return @[YTKACEOverlayZoneTop, YTKACEOverlayZoneBelow, YTKACEOverlayZoneBottom, YTKACEOverlayZoneFullscreen,
-             YTKACEOverlayZoneLeft];
+             YTKACEOverlayZoneLeft, YTKACEOverlayZoneMenu];
 }
 
 // Saved layout with every catalog button in exactly one zone; new or

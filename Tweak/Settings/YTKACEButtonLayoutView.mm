@@ -13,11 +13,14 @@
 // player in the Hidden tray hides it.
 
 static NSString *const YTKACEHiddenZone = @"hidden";
+// YouTube's fullscreen buttons put in its ⋯ menu.
+static NSString *const YTKACEMenuZone = @"menu";  // same as YTKACEOverlayZoneMenu
 static NSString *const YTKACECenterZone = @"center";
 static const CGFloat YTKACEChipHeight = 32.0;
 static const CGFloat YTKACEChipSpacing = 6.0;
 
 static NSString *const YTKACEFullscreenOrderKey = @"YTKACE.Preference.Fullscreen.Order";
+static NSString *const YTKACEFullscreenMenuKey = @"YTKACE.Preference.Fullscreen.InMenu";
 static NSString *const YTKACEMoreVideosKey = @"YTKACE.Preference.Overlay.MoreVideosHidden";
 
 typedef NS_ENUM(NSInteger, YTKACEItemKind) {
@@ -38,6 +41,15 @@ static UIColor *YTKACELayoutSurface(void) {
 
 static NSArray<NSString *> *YTKACEPillDefaultOrder(void) {
     return @[@"Like", @"Dislike", @"Comments", @"Save", @"Share", @"Ask", @"Overflow"];
+}
+
+static YTKACEItemKind YTKACEKindOf(NSString *identifier);
+
+// The buttons that can go in or out of ⋯: YouTube's fullscreen ones and ours.
+static BOOL YTKACEMenuable(NSString *identifier) {
+    if (YTKACEKindOf(identifier) == YTKACEItemOurs) return YES;
+    return [@[@"yt.pill.Like", @"yt.pill.Dislike", @"yt.pill.Comments", @"yt.pill.Save", @"yt.pill.Share", @"yt.pill.Ask"]
+        containsObject:identifier];
 }
 
 static NSArray<NSString *> *YTKACEPillOrder(void) {
@@ -308,6 +320,9 @@ static BOOL YTKACESpeedChipIsMenu(void) {
 @property(nonatomic, strong) UILabel *fullscreenLabel;
 @property(nonatomic, strong) UIView *fullscreenView;
 @property(nonatomic, strong) UIView *pillBackground;
+@property(nonatomic, strong) UIView *menuView;
+@property(nonatomic, strong) UILabel *menuLabel;
+@property(nonatomic, strong) UILabel *menuEmptyLabel;
 @property(nonatomic, strong) UIView *trayView;
 @property(nonatomic, strong) UILabel *trayLabel;
 @property(nonatomic, strong) UILabel *trayEmptyLabel;
@@ -359,6 +374,26 @@ static BOOL YTKACESpeedChipIsMenu(void) {
     self.zoneHighlight.alpha = 0.0;
     self.zoneHighlight.userInteractionEnabled = NO;
     [self addSubview:self.zoneHighlight];
+
+    self.menuView = [UIView new];
+    self.menuView.backgroundColor = YTKACELayoutSurface();
+    self.menuView.layer.cornerRadius = 14.0;
+    self.menuView.layer.cornerCurve = kCACornerCurveContinuous;
+    self.menuView.layer.borderWidth = 1.0;
+    self.menuView.layer.borderColor = [self trayBorderColor].CGColor;
+    [self addSubview:self.menuView];
+    self.menuLabel = [UILabel new];
+    self.menuLabel.text = YTKACELocalized(@"In ⋯ Menu");
+    self.menuLabel.font = [UIFont systemFontOfSize:13.0 weight:UIFontWeightSemibold];
+    self.menuLabel.textColor = UIColor.secondaryLabelColor;
+    [self.menuView addSubview:self.menuLabel];
+    self.menuEmptyLabel = [UILabel new];
+    self.menuEmptyLabel.text = YTKACELocalized(@"Drop a button here to put it in ⋯.");
+    self.menuEmptyLabel.font = [UIFont systemFontOfSize:14.0];
+    self.menuEmptyLabel.textColor = UIColor.tertiaryLabelColor;
+    self.menuEmptyLabel.textAlignment = NSTextAlignmentCenter;
+    self.menuEmptyLabel.adjustsFontSizeToFitWidth = YES;
+    [self.menuView addSubview:self.menuEmptyLabel];
 
     self.trayView = [UIView new];
     self.trayView.backgroundColor = YTKACELayoutSurface();
@@ -445,7 +480,7 @@ static BOOL YTKACESpeedChipIsMenu(void) {
 
 - (NSArray<NSString *> *)allZones {
     return @[YTKACEOverlayZoneTop, YTKACEOverlayZoneBelow, YTKACECenterZone, YTKACEOverlayZoneBottom,
-             YTKACEOverlayZoneLeft, YTKACEOverlayZoneFullscreen, YTKACEHiddenZone];
+             YTKACEOverlayZoneLeft, YTKACEOverlayZoneFullscreen, YTKACEMenuZone, YTKACEHiddenZone];
 }
 
 - (void)loadModel {
@@ -490,6 +525,7 @@ static BOOL YTKACESpeedChipIsMenu(void) {
     // The fullscreen bar: YouTube's pill buttons and ours in the saved order,
     // then More videos.
     NSArray *ours = self.zones[YTKACEOverlayZoneFullscreen] ?: @[];
+    NSArray *oursMenu = [self.zones[YTKACEMenuZone] copy] ?: @[];
     NSMutableArray *bar = [NSMutableArray array];
     id stored = YTKACEPreferenceObject(YTKACEFullscreenOrderKey);
     NSMutableArray *names = [NSMutableArray arrayWithArray:[stored isKindOfClass:NSArray.class] ? stored : @[]];
@@ -506,6 +542,20 @@ static BOOL YTKACESpeedChipIsMenu(void) {
         }
         if (identifier != nil && ![bar containsObject:identifier]) [bar addObject:identifier];
     }
+    // YouTube's buttons put in ⋯.
+    NSMutableArray *menu = [NSMutableArray array];
+    id storedMenu = YTKACEPreferenceObject(YTKACEFullscreenMenuKey);
+    for (id name in [storedMenu isKindOfClass:NSArray.class] ? storedMenu : @[]) {
+        if (![name isKindOfClass:NSString.class]) continue;
+        NSString *identifier = [@"yt.pill." stringByAppendingString:name];
+        if (YTKACEMenuable(identifier) && [bar containsObject:identifier]) {
+            [bar removeObject:identifier];
+            [menu addObject:identifier];
+        }
+    }
+    // Then ours placed in ⋯.
+    [menu addObjectsFromArray:oursMenu];
+    self.zones[YTKACEMenuZone] = menu;
     if (!YTKACEStoredBool(YTKACEMoreVideosKey)) [bar addObject:@"yt.more"];
     self.zones[YTKACEOverlayZoneFullscreen] = bar;
     for (NSDictionary *item in YTKACENativeItems()) {
@@ -525,6 +575,7 @@ static BOOL YTKACESpeedChipIsMenu(void) {
         case YTKACEItemCenter:
             return [zone isEqualToString:YTKACECenterZone];
         case YTKACEItemPill:
+            return [zone isEqualToString:YTKACEOverlayZoneFullscreen] || [zone isEqualToString:YTKACEMenuZone];
         case YTKACEItemMore:
             return [zone isEqualToString:YTKACEOverlayZoneFullscreen];
     }
@@ -555,7 +606,8 @@ static BOOL YTKACESpeedChipIsMenu(void) {
     index = MIN(index, ids.count);
     if ([zone isEqualToString:YTKACEOverlayZoneFullscreen]) {
         if (kind == YTKACEItemMore) return ids.count;
-        return MIN(index, pill + ours);
+        index = MIN(index, pill + ours);
+        return index;
     }
     if ([zone isEqualToString:YTKACECenterZone]) {
         NSArray *canonical = @[@"yt.previous", @"yt.play", @"yt.next"];
@@ -661,7 +713,7 @@ static BOOL YTKACESpeedChipIsMenu(void) {
 - (CGFloat)heightForWidth:(CGFloat)width {
     const CGFloat inner = [self playerWidthForWidth:width];
     return 44.0 + [self playerHeightForWidth:inner] + 12.0 + 18.0 + 6.0 + [self fullscreenHeightForWidth:inner] +
-        16.0 + [self trayHeightForWidth:inner] + 12.0;
+        10.0 + [self menuHeightForWidth:inner] + 16.0 + [self trayHeightForWidth:inner] + 12.0;
 }
 
 - (void)layoutSubviews {
@@ -674,8 +726,12 @@ static BOOL YTKACESpeedChipIsMenu(void) {
     self.fullscreenLabel.frame = CGRectMake(left + 4.0, CGRectGetMaxY(self.playerView.frame) + 12.0, width - 8.0, 18.0);
     self.fullscreenView.frame = CGRectMake(left, CGRectGetMaxY(self.fullscreenLabel.frame) + 6.0, width,
                                            [self fullscreenHeightForWidth:width]);
+    self.menuView.frame = CGRectMake(left, CGRectGetMaxY(self.fullscreenView.frame) + 10.0, width,
+                                     [self menuHeightForWidth:width]);
+    self.menuLabel.frame = CGRectMake(16.0, 10.0, width - 32.0, 18.0);
+    self.menuEmptyLabel.frame = CGRectMake(16.0, 34.0, width - 32.0, YTKACEChipHeight);
     const CGFloat trayHeight = [self trayHeightForWidth:width];
-    self.trayView.frame = CGRectMake(left, CGRectGetMaxY(self.fullscreenView.frame) + 16.0, width, trayHeight);
+    self.trayView.frame = CGRectMake(left, CGRectGetMaxY(self.menuView.frame) + 16.0, width, trayHeight);
     self.trayLabel.frame = CGRectMake(16.0, 10.0, width - 120.0, 18.0);
     self.resetButton.frame = CGRectMake(width - 96.0, 5.0, 80.0, 28.0);
     self.trayEmptyLabel.frame = CGRectMake(16.0, 34.0, width - 32.0, YTKACEChipHeight);
@@ -687,6 +743,14 @@ static BOOL YTKACESpeedChipIsMenu(void) {
         if ([view isKindOfClass:UIScrollView.class]) return (UIScrollView *)view;
     }
     return nil;
+}
+
+- (CGFloat)menuHeightForWidth:(CGFloat)width {
+    NSArray *frames = [self flowFrames:self.zones[YTKACEMenuZone] ?: @[] gap:NSNotFound gapWidth:0.0
+                                 width:width top:34.0];
+    CGFloat bottom = 34.0 + YTKACEChipHeight;
+    for (NSValue *frame in frames) bottom = MAX(bottom, CGRectGetMaxY(frame.CGRectValue));
+    return bottom + 14.0;
 }
 
 - (CGFloat)trayHeightForWidth:(CGFloat)width {
@@ -856,6 +920,9 @@ static BOOL YTKACESpeedChipIsMenu(void) {
     if ([zone isEqualToString:YTKACEHiddenZone]) {
         panel = self.trayView;
         top = 34.0;
+    } else if ([zone isEqualToString:YTKACEMenuZone]) {
+        panel = self.menuView;
+        top = 34.0;
     } else if ([zone isEqualToString:YTKACEOverlayZoneFullscreen]) {
         panel = self.fullscreenView;
         top = 10.0;
@@ -889,7 +956,7 @@ static BOOL YTKACESpeedChipIsMenu(void) {
                 ? [self barScaleForWidth:CGRectGetWidth(self.fullscreenView.bounds)] : 1.0;
             for (NSUInteger index = 0; index < ids.count && index < frames.count; index++) {
                 YTKACELayoutChip *chip = self.chips[ids[index]];
-                chip.inTray = [zone isEqualToString:YTKACEHiddenZone];
+                chip.inTray = [zone isEqualToString:YTKACEHiddenZone] || [zone isEqualToString:YTKACEMenuZone];
                 chip.vertical = [zone isEqualToString:YTKACEOverlayZoneLeft];
                 const CGSize size = frames[index].CGRectValue.size;
                 chip.bounds = (CGRect){CGPointZero, CGSizeMake(size.width / scale, size.height / scale)};
@@ -901,6 +968,8 @@ static BOOL YTKACESpeedChipIsMenu(void) {
         [self layoutPillBackground];
         self.trayEmptyLabel.alpha = [self.zones[YTKACEHiddenZone] count] == 0 &&
             ![self.targetZone isEqualToString:YTKACEHiddenZone] ? 1.0 : 0.0;
+        self.menuEmptyLabel.alpha = [self.zones[YTKACEMenuZone] count] == 0 &&
+            ![self.targetZone isEqualToString:YTKACEMenuZone] ? 1.0 : 0.0;
     };
     if (!animated) {
         apply();
@@ -942,13 +1011,17 @@ static BOOL YTKACESpeedChipIsMenu(void) {
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previous {
     [super traitCollectionDidChange:previous];
-    if (self.dragging == nil) self.trayView.layer.borderColor = [self trayBorderColor].CGColor;
+    if (self.dragging == nil) {
+        self.trayView.layer.borderColor = [self trayBorderColor].CGColor;
+        self.menuView.layer.borderColor = [self trayBorderColor].CGColor;
+    }
 }
 
 - (NSString *)zoneAtPoint:(CGPoint)point {
-    if (CGRectContainsPoint(CGRectInset(self.fullscreenView.frame, -4.0, -8.0), point)) {
+    if (CGRectContainsPoint(CGRectInset(self.fullscreenView.frame, -4.0, -4.0), point)) {
         return YTKACEOverlayZoneFullscreen;
     }
+    if (CGRectContainsPoint(CGRectInset(self.menuView.frame, -4.0, -4.0), point)) return YTKACEMenuZone;
     if (point.y > CGRectGetMaxY(self.playerView.frame) + 6.0) return YTKACEHiddenZone;
     if (point.x < CGRectGetMinX(self.playerView.frame) - 20.0 || point.x > CGRectGetMaxX(self.playerView.frame) + 20.0 ||
         point.y < CGRectGetMinY(self.playerView.frame) - 30.0) {
@@ -970,7 +1043,8 @@ static BOOL YTKACESpeedChipIsMenu(void) {
 
 - (NSUInteger)indexInZone:(NSString *)zone atPoint:(CGPoint)point {
     NSArray<NSValue *> *frames = [self framesForZone:zone gap:NSNotFound gapWidth:0.0];
-    const BOOL flow = [zone isEqualToString:YTKACEHiddenZone] || [zone isEqualToString:YTKACEOverlayZoneFullscreen];
+    const BOOL flow = [zone isEqualToString:YTKACEHiddenZone] || [zone isEqualToString:YTKACEMenuZone] ||
+        [zone isEqualToString:YTKACEOverlayZoneFullscreen];
     NSUInteger index = 0;
     if ([zone isEqualToString:YTKACEOverlayZoneLeft]) {
         for (NSValue *value in frames) {
@@ -993,7 +1067,10 @@ static BOOL YTKACESpeedChipIsMenu(void) {
 
 - (void)updateZoneHighlight {
     const BOOL panel = [self.targetZone isEqualToString:YTKACEHiddenZone] ||
+                       [self.targetZone isEqualToString:YTKACEMenuZone] ||
                        [self.targetZone isEqualToString:YTKACEOverlayZoneFullscreen];
+    self.menuView.layer.borderColor = (self.dragging != nil && [self.targetZone isEqualToString:YTKACEMenuZone]
+        ? UIColor.systemBlueColor : [self trayBorderColor]).CGColor;
     self.trayView.layer.borderColor = (self.dragging != nil && [self.targetZone isEqualToString:YTKACEHiddenZone]
         ? UIColor.systemBlueColor : [self trayBorderColor]).CGColor;
     self.fullscreenView.layer.borderColor = (self.dragging != nil && [self.targetZone isEqualToString:YTKACEOverlayZoneFullscreen]
@@ -1057,13 +1134,16 @@ static BOOL YTKACESpeedChipIsMenu(void) {
             NSString *zone = [self zoneAtPoint:point];
             // YouTube's buttons stay in their own row; anywhere else on the
             // player puts them back there.
-            if (![self kind:chip.kind allowsZone:zone]) zone = [self homeZoneForKind:chip.kind];
+            if (![self kind:chip.kind allowsZone:zone] ||
+                ([zone isEqualToString:YTKACEMenuZone] && !YTKACEMenuable(chip.identifier))) {
+                zone = [self homeZoneForKind:chip.kind];
+            }
             NSUInteger index = [self indexInZone:zone atPoint:point];
             index = [self clampIndex:index zone:zone kind:chip.kind identifier:chip.identifier];
             if (![zone isEqualToString:self.targetZone] || index != self.targetIndex) {
                 self.targetZone = zone;
                 self.targetIndex = index;
-                chip.inTray = [zone isEqualToString:YTKACEHiddenZone];
+                chip.inTray = [zone isEqualToString:YTKACEHiddenZone] || [zone isEqualToString:YTKACEMenuZone];
                 const BOOL vertical = [zone isEqualToString:YTKACEOverlayZoneLeft];
                 if (chip.vertical != vertical) {
                     chip.vertical = vertical;
@@ -1182,8 +1262,15 @@ static NSArray<NSString *> *YTKACEMergeOrder(NSArray<NSString *> *old, NSArray<N
     // ours after the YouTube button before it.
     YTKACESetNativeTopOrder([self savedOrderForZone:YTKACEOverlayZoneTop kind:YTKACEItemNativeTop prefix:3
                                                base:YTKACENativeTopOrder()]);
-    NSArray *order = [self savedOrderForZone:YTKACEOverlayZoneFullscreen kind:YTKACEItemPill prefix:8
-                                        base:YTKACEPillOrder()];
+    NSMutableArray *order = [[self savedOrderForZone:YTKACEOverlayZoneFullscreen kind:YTKACEItemPill prefix:8
+                                                base:YTKACEPillOrder()] mutableCopy];
+    // What's in the ⋯ panel, YouTube's buttons by name; ours are saved with
+    // the layout above.
+    NSMutableArray *menu = [NSMutableArray array];
+    for (NSString *identifier in self.zones[YTKACEMenuZone]) {
+        if (YTKACEKindOf(identifier) == YTKACEItemPill) [menu addObject:[identifier substringFromIndex:8]];
+    }
+    YTKACESetPreferenceObject(YTKACEFullscreenMenuKey, menu.count != 0 ? menu : nil);
     YTKACESetPreferenceObject(YTKACEFullscreenOrderKey,
                               [order isEqualToArray:YTKACEPillDefaultOrder()] ? nil : order);
     self.saving = NO;
@@ -1205,6 +1292,7 @@ static NSArray<NSString *> *YTKACEMergeOrder(NSArray<NSString *> *old, NSArray<N
     YTKACESetOverlayLayout(nil);
     YTKACESetNativeTopOrder(nil);
     YTKACESetPreferenceObject(YTKACEFullscreenOrderKey, nil);
+    YTKACESetPreferenceObject(YTKACEFullscreenMenuKey, nil);
     self.saving = NO;
     [self loadModel];
     [[[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight] impactOccurred];

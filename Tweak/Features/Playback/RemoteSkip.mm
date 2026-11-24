@@ -7,6 +7,7 @@
 #import <objc/message.h>
 
 static NSString *const YTKACERemoteSkipKey = @"YTKACE.Preference.Playback.RemoteSkip";
+static NSString *const YTKACENowPlayingScrubKey = @"YTKACE.Preference.Playback.NowPlayingScrubDisabled";
 static IMP OriginalRemoteSetEnabled;
 static BOOL YTKACERemoteTargetsAdded;
 
@@ -58,7 +59,16 @@ static BOOL YTKACEIsTrackCommand(id command) {
     return command == center.nextTrackCommand || command == center.previousTrackCommand;
 }
 
+// Lock screen and Control Center scrubbing, off so it can't be dragged by accident.
+static BOOL YTKACENowPlayingScrubOff(void) {
+    return YTKACEFeatureEnabled(YTKACENowPlayingScrubKey);
+}
+
 static void YTKACERemoteSetEnabled(id receiver, SEL selector, BOOL enabled) {
+    if (YTKACENowPlayingScrubOff() &&
+        receiver == MPRemoteCommandCenter.sharedCommandCenter.changePlaybackPositionCommand) {
+        enabled = NO;
+    }
     if (YTKACERemoteSkipInterval() > 0) {
         MPRemoteCommandCenter *center = MPRemoteCommandCenter.sharedCommandCenter;
         if (YTKACEIsTrackCommand(receiver)) enabled = NO;
@@ -70,6 +80,7 @@ static void YTKACERemoteSetEnabled(id receiver, SEL selector, BOOL enabled) {
 static void YTKACEConfigureRemoteSkip(void) {
     NSInteger interval = YTKACERemoteSkipInterval();
     MPRemoteCommandCenter *center = MPRemoteCommandCenter.sharedCommandCenter;
+    if (YTKACENowPlayingScrubOff()) center.changePlaybackPositionCommand.enabled = NO;
     if (interval > 0 && !YTKACERemoteTargetsAdded) {
         YTKACERemoteTargetsAdded = YES;
         [center.skipForwardCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(__unused MPRemoteCommandEvent *event) {
@@ -97,7 +108,7 @@ __attribute__((constructor)) static void YTKACEInstallRemoteSkip(void) {
             YTKACEConfigureRemoteSkip();
             return;
         }
-        if (YTKACERemoteSkipInterval() <= 0) return;
+        if (YTKACERemoteSkipInterval() <= 0 && !YTKACENowPlayingScrubOff()) return;
         installed = YES;
         YTKACEInstallInstanceHook(@"MPRemoteCommand", @"setEnabled:",
                                   (IMP)YTKACERemoteSetEnabled, &OriginalRemoteSetEnabled);

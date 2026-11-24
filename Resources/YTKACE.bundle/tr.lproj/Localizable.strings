@@ -1192,3 +1192,8 @@ CC BY-NC-SA 4.0 ile lisanslanmıştır.";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Tam ekranda çentik veya Dynamic Island geniş videoları kapatmasın.";
 "Remove AI Summaries" = "Yapay zekâ özetlerini kaldır";
 "Hide the AI summary under videos in Home, search and suggestions." = "Ana sayfa, arama ve önerilerde videoların altındaki yapay zekâ özetini gizler.";
+"Hide Voice Search" = "Sesli aramayı gizle";
+"Disable Lock Screen Scrubbing" = "Kilit ekranında sarmayı kapat";
+"Stops the progress bar on the lock screen and in Control Center from seeking." = "Kilit ekranı ve Denetim Merkezi'ndeki ilerleme çubuğunun videoyu sarmasını engeller.";
+"In ⋯ Menu" = "⋯ menüsünde";
+"Drop a button here to put it in ⋯." = "Bir düğmeyi ⋯ içine koymak için buraya bırakın.";

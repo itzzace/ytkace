@@ -11,6 +11,8 @@ FOUNDATION_EXPORT NSString *const YTKACEOverlayZoneBottom;
 FOUNDATION_EXPORT NSString *const YTKACEOverlayZoneFullscreen;
 // A column down the left edge of the player.
 FOUNDATION_EXPORT NSString *const YTKACEOverlayZoneLeft;
+// Rows in the fullscreen bar's ⋯ menu instead of buttons on the player.
+FOUNDATION_EXPORT NSString *const YTKACEOverlayZoneMenu;
 
 // Each entry: id (the overlay configurator id), title, symbol, optional text.
 FOUNDATION_EXPORT NSArray<NSDictionary *> *YTKACEOverlayButtonCatalog(void);

@@ -1828,6 +1828,9 @@ static NSDictionary *YTKACEPlayerDefinition(void) {
                 @"Replace next and previous on the lock screen and in Control Center with skip buttons.",
                 @"YTKACE.Preference.Playback.RemoteSkip",
                 @[@"Off", @"10 seconds", @"15 seconds", @"30 seconds"], @[@0, @10, @15, @30], 0),
+            YTKACEToggleDetail(@"Disable Lock Screen Scrubbing",
+                               @"Stops the progress bar on the lock screen and in Control Center from seeking.",
+                               @"YTKACE.Preference.Playback.NowPlayingScrubDisabled"),
             YTKACEToggle(@"Remove Ads", YTKACENoAdsKey, @"", @""),
             YTKACEPickerDetail(@"Playback Fix",
                 @"Try this if videos won't load or keep buffering. Restart YouTube after changing.",
@@ -2226,6 +2229,7 @@ static NSDictionary *YTKACEGeneralDefinition(void) {
         @[
             YTKACEToggleDetail(@"Remove Search History", @"Hides past searches. Searches are still saved.",
                                @"YTKACE.Preference.Privacy.SearchHistoryDisabled"),
+            YTKACEToggle(@"Hide Voice Search", @"YTKACE.Preference.Search.VoiceButtonHidden", @"", @""),
             YTKACEToggleDetail(@"Block Premium Prompts", @"Also hides \"Are you still watching?\" and upgrade dialogs.",
                                @"YTKACE.Preference.Ads.PremiumPromosHidden"),
             YTKACEToggleDetail(@"Hide YouTube Pop-up Messages",

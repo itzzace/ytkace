@@ -1192,3 +1192,8 @@ Cấp phép theo CC BY-NC-SA 4.0.";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Không để tai thỏ hay Dynamic Island che video rộng khi toàn màn hình.";
 "Remove AI Summaries" = "Xóa tóm tắt AI";
 "Hide the AI summary under videos in Home, search and suggestions." = "Ẩn tóm tắt AI dưới video ở Trang chủ, tìm kiếm và đề xuất.";
+"Hide Voice Search" = "Ẩn tìm kiếm bằng giọng nói";
+"Disable Lock Screen Scrubbing" = "Tắt tua trên màn hình khóa";
+"Stops the progress bar on the lock screen and in Control Center from seeking." = "Không cho thanh tiến trình trên màn hình khóa và Trung tâm điều khiển tua video.";
+"In ⋯ Menu" = "Trong menu ⋯";
+"Drop a button here to put it in ⋯." = "Thả một nút vào đây để đưa vào ⋯.";

@@ -1192,3 +1192,8 @@ CC BY-NC-SA 4.0 でライセンスされています。";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "全画面で横長の動画がノッチや Dynamic Island に隠れないようにします。";
 "Remove AI Summaries" = "AI 要約を削除";
 "Hide the AI summary under videos in Home, search and suggestions." = "ホーム、検索、おすすめで動画の下に出る AI 要約を非表示にします。";
+"Hide Voice Search" = "音声検索を非表示";
+"Disable Lock Screen Scrubbing" = "ロック画面のシークを無効化";
+"Stops the progress bar on the lock screen and in Control Center from seeking." = "ロック画面とコントロールセンターの再生バーでシークできないようにします。";
+"In ⋯ Menu" = "⋯ メニュー内";
+"Drop a button here to put it in ⋯." = "ボタンをここにドロップすると ⋯ に入ります。";

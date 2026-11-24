@@ -503,6 +503,22 @@ static UIStackView *YTKACENewZoneStack(UIView *overlay) {
 
 // One row per zone: the old row under YouTube's buttons, plus one placed in
 // YouTube's top row and one next to the fullscreen button.
+// Buttons put in the ⋯ menu are still made, in a stack that never shows;
+// the menu's rows tap them.
+static NSHashTable<UIStackView *> *YTKACEMenuStacks;
+
+NSArray<UIButton *> *YTKACEOverlayMenuButtons(void) {
+    for (UIStackView *stack in YTKACEMenuStacks.allObjects) {
+        if (stack.window == nil) continue;
+        NSMutableArray<UIButton *> *buttons = [NSMutableArray array];
+        for (UIView *view in stack.arrangedSubviews) {
+            if ([view isKindOfClass:UIButton.class] && !view.hidden) [buttons addObject:(UIButton *)view];
+        }
+        return buttons;
+    }
+    return @[];
+}
+
 static NSDictionary<NSString *, UIStackView *> *YTKACEZoneStacks(UIView *overlay) {
     NSDictionary *stacks = objc_getAssociatedObject(overlay, YTKACEOverlayZoneStacksAssociation);
     if (stacks != nil) return stacks;
@@ -511,8 +527,11 @@ static NSDictionary<NSString *, UIStackView *> *YTKACEZoneStacks(UIView *overlay
         YTKACEOverlayZoneTop: YTKACENewZoneStackOfClass(overlay, YTKACEPassThroughStackView.class),
         YTKACEOverlayZoneBottom: YTKACENewZoneStack(overlay),
         YTKACEOverlayZoneFullscreen: YTKACENewZoneStackOfClass(overlay, YTKACEPassThroughStackView.class),
-        YTKACEOverlayZoneLeft: YTKACENewZoneStackOfClass(overlay, YTKACEColumnStackView.class)
+        YTKACEOverlayZoneLeft: YTKACENewZoneStackOfClass(overlay, YTKACEColumnStackView.class),
+        YTKACEOverlayZoneMenu: YTKACENewZoneStack(overlay)
     };
+    if (YTKACEMenuStacks == nil) YTKACEMenuStacks = [NSHashTable weakObjectsHashTable];
+    [YTKACEMenuStacks addObject:stacks[YTKACEOverlayZoneMenu]];
     if (YTKACEFullscreenStacks == nil) {
         YTKACEFullscreenStacks = [NSHashTable weakObjectsHashTable];
         YTKACEInstallInstanceHook(@"YTFullscreenActionsView", @"hitTest:withEvent:",
@@ -1396,6 +1415,7 @@ static void YTKACEControlsOverlayLayout(UIView *receiver, SEL selector) {
     UIStackView *fullscreen = stacks[YTKACEOverlayZoneFullscreen];
     // Always laid out: it also clears the room in YouTube's pill when empty.
     fullscreen.hidden = !YTKACELayoutFullscreenStack(receiver, fullscreen);
+    stacks[YTKACEOverlayZoneMenu].hidden = YES;
 
     // Last, so the laptop-posture split moves the final positions.
     YTKACEDuoDeskControlsLayout(receiver);
@@ -1570,4 +1590,133 @@ void YTKACEPresentNativeSheet(NSString *title,
     }
 
     YTKACEShowSheet(sheet, YTKACESheetPresenter(sourceView));
+}
+
+#pragma mark - Buttons in the fullscreen ⋯ menu
+
+#import "../Runtime/Localization.h"
+
+static IMP OriginalSheetPresentFromView;
+static IMP OriginalSheetPresentFromViewScrim;
+static IMP OriginalSheetPresentFromController;
+
+static BOOL YTKACEInFullscreenBar(UIView *view) {
+    for (UIView *current = view; current != nil; current = current.superview) {
+        if ([NSStringFromClass(current.class) isEqualToString:@"YTFullscreenActionsView"]) return YES;
+    }
+    return NO;
+}
+
+// The made button for one of ours in the ⋯ zone. A group (speed's - 1x +)
+// is reached through its titled button, which opens its menu.
+static UIButton *YTKACEMenuButtonFor(NSString *identifier) {
+    NSMutableArray<UIButton *> *group = [NSMutableArray array];
+    for (UIButton *button in YTKACEOverlayMenuButtons()) {
+        NSString *owner = objc_getAssociatedObject(button, YTKACEOverlayGroupAssociation);
+        if ([button.accessibilityIdentifier isEqualToString:identifier] || [owner isEqualToString:identifier]) {
+            [group addObject:button];
+        }
+    }
+    for (UIButton *button in group) {
+        if ([button titleForState:UIControlStateNormal].length != 0) return button;
+    }
+    return group.firstObject;
+}
+
+// Adds a row per YTKACE button the user put in ⋯ to the sheet YouTube opens
+// from the fullscreen bar's ⋯.
+static char YTKACEMenuRowsAddedKey;
+static NSMutableSet<NSString *> *YTKACEMenuRowTitles;
+static IMP OriginalDialogActionLayout;
+
+// Our rows are native sheet rows; YouTube's are drawn by its Elements code
+// with semibold white text closer to the icon. Match them.
+static void YTKACEDialogActionLayout(UIButton *receiver, SEL selector) {
+    ((void (*)(id, SEL))OriginalDialogActionLayout)(receiver, selector);
+    UILabel *label = receiver.titleLabel;
+    if (label.text.length == 0 || ![YTKACEMenuRowTitles containsObject:label.text]) return;
+    label.font = [UIFont systemFontOfSize:16.0 weight:UIFontWeightSemibold];
+    label.textColor = UIColor.labelColor;
+    UIImageView *icon = receiver.imageView;
+    if (icon.image != nil) {
+        CGRect frame = label.frame;
+        const CGFloat x = CGRectGetMinX(icon.frame) + 36.0;
+        frame.size.width += CGRectGetMinX(frame) - x;
+        frame.origin.x = x;
+        label.frame = frame;
+        CGRect iconFrame = icon.frame;
+        iconFrame.origin.x = CGRectGetMinX(icon.frame) + (22.0 - CGRectGetWidth(iconFrame)) / 2.0;
+        icon.frame = iconFrame;
+        icon.tintColor = UIColor.labelColor;
+    }
+}
+
+static void YTKACEAddMenuRows(id sheet, UIView *source) {
+    if (!YTKACEMasterEnabled() || !YTKACEInFullscreenBar(source)) return;
+    if (objc_getAssociatedObject(sheet, &YTKACEMenuRowsAddedKey) != nil) return;
+    objc_setAssociatedObject(sheet, &YTKACEMenuRowsAddedKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    Class actionClass = NSClassFromString(@"YTActionSheetAction");
+    SEL make = NSSelectorFromString(@"actionWithTitle:iconImage:style:handler:");
+    SEL add = NSSelectorFromString(@"addAction:");
+    SEL style = NSSelectorFromString(@"maybeApplyBuenosAiresStyleToAction:");
+    if (actionClass == Nil || ![actionClass respondsToSelector:make] || ![sheet respondsToSelector:add]) return;
+    for (NSString *identifier in YTKACEOverlayZoneOrder(YTKACEOverlayZoneMenu)) {
+        if (!YTKACEOverlayButtonEnabled(identifier) || YTKACEMenuButtonFor(identifier) == nil) continue;
+        NSDictionary *entry = nil;
+        for (NSDictionary *candidate in YTKACEOverlayButtonCatalog()) {
+            if ([candidate[@"id"] isEqualToString:identifier]) entry = candidate;
+        }
+        if (entry == nil) continue;
+        // The image the player button uses, so the row looks like the button.
+        UIImage *icon = [YTKACEMenuButtonFor(identifier) imageForState:UIControlStateNormal] ?:
+            [UIImage systemImageNamed:entry[@"symbol"]];
+        icon = [icon imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+        void (^handler)(id) = ^(__unused id action) {
+            // After YouTube's sheet is gone, so ours can show.
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.4 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [YTKACEMenuButtonFor(identifier) sendActionsForControlEvents:UIControlEventTouchUpInside];
+            });
+        };
+        NSString *title = YTKACELocalized(entry[@"title"]);
+        if (YTKACEMenuRowTitles == nil) {
+            YTKACEMenuRowTitles = [NSMutableSet set];
+            YTKACEInstallInstanceHook(@"GOODialogActionMDCButton", @"layoutSubviews",
+                                      (IMP)YTKACEDialogActionLayout, &OriginalDialogActionLayout);
+        }
+        [YTKACEMenuRowTitles addObject:title];
+        id action = ((id (*)(id, SEL, id, id, NSInteger, id))objc_msgSend)(
+            actionClass, make, title, icon, 0, handler);
+        if (action == nil) continue;
+        if ([sheet respondsToSelector:style]) ((void (*)(id, SEL, id))objc_msgSend)(sheet, style, action);
+        ((void (*)(id, SEL, id))objc_msgSend)(sheet, add, action);
+    }
+}
+
+static void YTKACESheetPresentFromView(id receiver, SEL selector, UIView *view, BOOL animated, id completion) {
+    YTKACEAddMenuRows(receiver, view);
+    ((void (*)(id, SEL, id, BOOL, id))OriginalSheetPresentFromView)(receiver, selector, view, animated, completion);
+}
+
+static void YTKACESheetPresentFromViewScrim(id receiver, SEL selector, UIView *view, BOOL animated, id completion,
+                                            id scrim) {
+    YTKACEAddMenuRows(receiver, view);
+    ((void (*)(id, SEL, id, BOOL, id, id))OriginalSheetPresentFromViewScrim)(receiver, selector, view, animated,
+                                                                              completion, scrim);
+}
+
+static void YTKACESheetPresentFromController(id receiver, SEL selector, id controller, BOOL animated, id completion) {
+    SEL source = NSSelectorFromString(@"sourceView");
+    UIView *view = [receiver respondsToSelector:source] ? ((id (*)(id, SEL))objc_msgSend)(receiver, source) : nil;
+    YTKACEAddMenuRows(receiver, view);
+    ((void (*)(id, SEL, id, BOOL, id))OriginalSheetPresentFromController)(receiver, selector, controller, animated,
+                                                                           completion);
+}
+
+__attribute__((constructor)) static void YTKACEInstallMenuRowHooks(void) {
+    YTKACEInstallInstanceHook(@"YTDefaultSheetController", @"presentFromView:animated:completion:",
+                              (IMP)YTKACESheetPresentFromView, &OriginalSheetPresentFromView);
+    YTKACEInstallInstanceHook(@"YTDefaultSheetController", @"presentFromView:animated:completion:scrimColor:",
+                              (IMP)YTKACESheetPresentFromViewScrim, &OriginalSheetPresentFromViewScrim);
+    YTKACEInstallInstanceHook(@"YTDefaultSheetController", @"presentFromViewController:animated:completion:",
+                              (IMP)YTKACESheetPresentFromController, &OriginalSheetPresentFromController);
 }

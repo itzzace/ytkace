@@ -298,6 +298,8 @@ shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)other 
         BOOL right = location.x <= CGRectGetMaxX(activeBounds) &&
             location.x >= CGRectGetMaxX(activeBounds) - edge;
         if (!left && !right) return NO;
+        // Holding for speed: swiping changes the speed, not brightness or volume.
+        if (YTKACEHoldSpeedActive()) return NO;
         NSString *key = left
             ? @"YTKACE.Preference.Gestures.LeftAction"
             : @"YTKACE.Preference.Gestures.RightAction";
@@ -317,9 +319,8 @@ shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)other 
     UIView *view = gestureRecognizer.view;
     CGPoint location = [gestureRecognizer locationInView:view];
     CGRect bounds = view.bounds;
-    return location.x > CGRectGetWidth(bounds) * 0.2 &&
-        location.x < CGRectGetWidth(bounds) * 0.8 &&
-        location.y > CGRectGetHeight(bounds) * 0.15 &&
+    // The whole width counts: the edges are where people hold to seek.
+    return location.y > CGRectGetHeight(bounds) * 0.15 &&
         location.y < CGRectGetHeight(bounds) * 0.85;
 }
 

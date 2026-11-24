@@ -1221,27 +1221,6 @@ static NSString *YTKACEBarSlotPreference(UIView *slot) {
     return nil;
 }
 
-// What a bar slot draws, for the debug log: layers with contents or a
-// shape, with their size, opacity and whether they're hidden.
-static NSString *YTKACESlotDrawing(UIView *slot) {
-    NSMutableArray<NSString *> *parts = [NSMutableArray array];
-    NSMutableArray<CALayer *> *pending = [NSMutableArray arrayWithObject:slot.layer];
-    for (NSUInteger visited = 0; pending.count != 0 && visited < 60; visited++) {
-        CALayer *layer = pending.firstObject;
-        [pending removeObjectAtIndex:0];
-        BOOL shape = [layer isKindOfClass:CAShapeLayer.class] && ((CAShapeLayer *)layer).path != NULL;
-        if (layer.contents != nil || shape) {
-            [parts addObject:[NSString stringWithFormat:@"%@%@ %.0fx%.0f o=%.2f%@",
-                NSStringFromClass(layer.class), shape ? @"(path)" : @"",
-                CGRectGetWidth(layer.bounds), CGRectGetHeight(layer.bounds), layer.opacity,
-                layer.hidden ? @" hidden" : @""]];
-        }
-        if (layer.sublayers.count != 0) [pending addObjectsFromArray:layer.sublayers];
-    }
-    return parts.count == 0 ? [NSString stringWithFormat:@"nothing (%lu layers)", (unsigned long)slot.layer.sublayers.count]
-                            : [parts componentsJoinedByString:@" | "];
-}
-
 static void YTKACEFixedBarLayoutSubviews(UIView *receiver, SEL selector) {
     if (OriginalFixedBarLayout != NULL) {
         ((void (*)(id, SEL))OriginalFixedBarLayout)(receiver, selector);
@@ -1366,21 +1345,6 @@ static void YTKACEFixedBarLayoutSubviews(UIView *receiver, SEL selector) {
         lastLog = now;
         lastTrace = line;
         YTKACEDebugLog(@"actionbar", @"%@", line);
-        // The buttons draw in the background; look once they're done.
-        NSPointerArray *slotsLater = [NSPointerArray weakObjectsPointerArray];
-        NSMutableArray<NSString *> *namesLater = [NSMutableArray array];
-        for (UIView *slot in keep) {
-            [slotsLater addPointer:(__bridge void *)slot];
-            [namesLater addObject:[names objectForKey:slot] ?: @"?"];
-        }
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            for (NSUInteger index = 0; index < slotsLater.count; index++) {
-                UIView *slot = (__bridge UIView *)[slotsLater pointerAtIndex:index];
-                if (slot == nil) continue;
-                YTKACEDebugLog(@"actionbar", @"slot %@ %.0fx%.0f draws %@", namesLater[index],
-                               CGRectGetWidth(slot.frame), CGRectGetHeight(slot.frame), YTKACESlotDrawing(slot));
-            }
-        });
     }
 }
 
@@ -3157,6 +3121,39 @@ static NSString *YTKACEOwnerName(id view) {
     return @"-";
 }
 
+// With the Home tabs layout the tabs row is the page's subheader. Handing
+// YouTube no subheader takes its normal path for pages without one, so the
+// row and its space are gone without folding the header, which hangs launch.
+static IMP OriginalActiveSubheaderView;
+
+static id YTKACEActiveSubheaderView(id receiver, SEL selector) {
+    id view = OriginalActiveSubheaderView == NULL ? nil
+        : ((id (*)(id, SEL))OriginalActiveSubheaderView)(receiver, selector);
+    if (view != nil && YTKACEHideTopics() &&
+        [NSStringFromClass([view class]) containsString:@"TabTitles"]) {
+        return nil;
+    }
+    return view;
+}
+
+// The page under it still counts the row's height in its header; leave it out.
+static IMP OriginalTotalHeaderHeight;
+
+static double YTKACETotalHeaderHeight(id receiver, SEL selector, double parent, double header,
+                                      double subheader) {
+    if (subheader > 0.0 && YTKACEHideTopics()) {
+        SEL getter = NSSelectorFromString(@"subheaderViewController");
+        id controller = [receiver respondsToSelector:getter]
+            ? ((id (*)(id, SEL))objc_msgSend)(receiver, getter) : nil;
+        if (controller != nil && [NSStringFromClass([controller class]) containsString:@"TabTitles"]) {
+            subheader = 0.0;
+        }
+    }
+    return OriginalTotalHeaderHeight == NULL ? parent + header + subheader
+        : ((double (*)(id, SEL, double, double, double))OriginalTotalHeaderHeight)(
+              receiver, selector, parent, header, subheader);
+}
+
 static void YTKACEEnableSubheaderBar(__unsafe_unretained id receiver, SEL selector,
                                      __unsafe_unretained id view) {
     YTKACEDebugLog(@"topics", @"enable subheader view=%@ owner=%@ sub0=%@ tabsActive=%d",
@@ -3252,6 +3249,159 @@ static id YTKACEChipViewFrames(__unsafe_unretained id receiver, SEL selector, do
     if (YTKACEHideTopics()) return nil;
     return OriginalChipViewFrames == NULL ? nil
         : ((id (*)(id, SEL, double))OriginalChipViewFrames)(receiver, selector, width);
+}
+
+// Newer Subscriptions headers draw the chips as an element row under the
+// channel avatars. Mark that row when it's built, then hide it and leave its
+// height out of the header.
+static char YTKACESubsChipRowKey;
+static IMP OriginalSubsLoadElement;
+static IMP OriginalSubsHeaderSize;
+static IMP OriginalSubsHeaderLayout;
+
+static NSArray *YTKACESubsElementViews(id header) {
+    Ivar ivar = header != nil ? class_getInstanceVariable(object_getClass(header), "_elementViews") : NULL;
+    id views = ivar != NULL ? object_getIvar(header, ivar) : nil;
+    return [views isKindOfClass:NSArray.class] ? [views copy] : @[];
+}
+
+static void YTKACESubsLoadElement(id receiver, SEL selector, id renderer) {
+    UIView *header = [receiver isKindOfClass:UIViewController.class] && [(UIViewController *)receiver isViewLoaded]
+        ? [(UIViewController *)receiver view] : nil;
+    NSArray *before = YTKACESubsElementViews(header);
+    if (OriginalSubsLoadElement != NULL) {
+        ((void (*)(id, SEL, id))OriginalSubsLoadElement)(receiver, selector, renderer);
+    }
+    NSData *bytes = YTKACESectionBytes(renderer);
+    static const char marker[] = "subscriptions_chip_bar";
+    if (bytes.length == 0 || memmem(bytes.bytes, bytes.length, marker, sizeof(marker) - 1) == NULL) return;
+    for (id view in YTKACESubsElementViews(header)) {
+        if (![before containsObject:view]) {
+            objc_setAssociatedObject(view, &YTKACESubsChipRowKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
+    }
+    [header setNeedsLayout];
+}
+
+static BOOL YTKACEIsSubsChipRow(UIView *view) {
+    return YTKACEHideTopics() && objc_getAssociatedObject(view, &YTKACESubsChipRowKey) != nil;
+}
+
+static CGSize YTKACESubsHeaderSize(id receiver, SEL selector, CGSize size) {
+    CGSize result = OriginalSubsHeaderSize == NULL ? CGSizeZero
+        : ((CGSize (*)(id, SEL, CGSize))OriginalSubsHeaderSize)(receiver, selector, size);
+    for (UIView *view in YTKACESubsElementViews(receiver)) {
+        if (!YTKACEIsSubsChipRow(view)) continue;
+        CGFloat height = CGRectGetHeight(view.frame);
+        if (height <= 0.0) height = [view sizeThatFits:size].height;
+        result.height = MAX(0.0, result.height - height);
+    }
+    return result;
+}
+
+static void YTKACESubsHeaderLayout(id receiver, SEL selector) {
+    if (OriginalSubsHeaderLayout != NULL) {
+        ((void (*)(id, SEL))OriginalSubsHeaderLayout)(receiver, selector);
+    }
+    if (!YTKACEHideTopics()) return;
+    BOOL found = NO;
+    for (UIView *view in YTKACESubsElementViews(receiver)) {
+        if (objc_getAssociatedObject(view, &YTKACESubsChipRowKey) == nil) {
+            for (UIView *child in view.subviews) {
+                if ([child.accessibilityIdentifier containsString:@"subscriptions_chip_bar"]) {
+                    objc_setAssociatedObject(view, &YTKACESubsChipRowKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                    found = YES;
+                }
+            }
+        }
+        if (YTKACEIsSubsChipRow(view)) view.hidden = YES;
+    }
+    // The rows are laid out from the bottom up; with the chips gone, stack
+    // the rest from the top so the avatars don't end up above the header.
+    BOOL hiding = NO;
+    for (UIView *view in YTKACESubsElementViews(receiver)) hiding = hiding || YTKACEIsSubsChipRow(view);
+    if (hiding) {
+        CGFloat y = 0.0;
+        for (UIView *view in YTKACESubsElementViews(receiver)) {
+            if (view.hidden) continue;
+            CGRect frame = view.frame;
+            frame.origin.y = y;
+            view.frame = frame;
+            y += CGRectGetHeight(frame);
+        }
+    }
+    if (!found) return;
+    // The header's height was measured with the chips; measure it again.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        for (UIResponder *r = receiver; r != nil; r = r.nextResponder) {
+            SEL refresh = NSSelectorFromString(@"refreshHeaderHeight");
+            if ([r respondsToSelector:refresh]) {
+                ((void (*)(id, SEL))objc_msgSend)(r, refresh);
+                break;
+            }
+        }
+    });
+}
+
+// Voice search: the mic next to search in the top bar and in the search bar.
+static IMP OriginalRightButtonsLayout;
+static IMP OriginalSearchBarLayout;
+
+static BOOL YTKACEVoiceSearchHidden(void) {
+    return YTKACEFeatureEnabled(@"YTKACE.Preference.Search.VoiceButtonHidden");
+}
+
+static BOOL YTKACEIsVoiceButton(UIView *view) {
+    if (![view isKindOfClass:UIControl.class]) return NO;
+    UIControl *control = (UIControl *)view;
+    for (id target in control.allTargets) {
+        for (NSString *action in [control actionsForTarget:target forControlEvent:UIControlEventTouchUpInside]) {
+            if ([action.lowercaseString containsString:@"voice"]) return YES;
+        }
+    }
+    return NO;
+}
+
+static void YTKACERightButtonsLayout(id receiver, SEL selector) {
+    if (YTKACEVoiceSearchHidden() && [receiver isKindOfClass:UIView.class]) {
+        for (UIView *button in ((UIView *)receiver).subviews) {
+            if (YTKACEIsVoiceButton(button)) button.hidden = YES;
+        }
+    }
+    if (OriginalRightButtonsLayout != NULL) ((void (*)(id, SEL))OriginalRightButtonsLayout)(receiver, selector);
+}
+
+static IMP OriginalSearchViewLayout;
+
+// The search screen's round mic sits right of the search bar; hide it and
+// let the bar take its space.
+static void YTKACESearchViewLayout(id receiver, SEL selector) {
+    if (OriginalSearchViewLayout != NULL) ((void (*)(id, SEL))OriginalSearchViewLayout)(receiver, selector);
+    if (!YTKACEVoiceSearchHidden() || ![receiver isKindOfClass:UIView.class]) return;
+    for (UIView *row in ((UIView *)receiver).subviews) {
+        UIView *mic = nil;
+        for (UIView *child in row.subviews) {
+            if (YTKACEIsVoiceButton(child)) mic = child;
+        }
+        if (mic == nil) continue;
+        mic.hidden = YES;
+        for (UIView *child in row.subviews) {
+            if (child == mic || child.hidden) continue;
+            CGRect frame = child.frame;
+            if (CGRectGetMaxX(frame) <= CGRectGetMinX(mic.frame) && CGRectGetWidth(frame) > 100.0) {
+                frame.size.width = CGRectGetMaxX(mic.frame) - CGRectGetMinX(frame);
+                child.frame = frame;
+            }
+        }
+    }
+}
+
+static void YTKACESearchBarLayout(id receiver, SEL selector) {
+    if (OriginalSearchBarLayout != NULL) ((void (*)(id, SEL))OriginalSearchBarLayout)(receiver, selector);
+    if (!YTKACEVoiceSearchHidden()) return;
+    SEL getter = NSSelectorFromString(@"voiceButton");
+    id button = [receiver respondsToSelector:getter] ? ((id (*)(id, SEL))objc_msgSend)(receiver, getter) : nil;
+    if ([button isKindOfClass:UIView.class]) ((UIView *)button).hidden = YES;
 }
 
 static void YTKACESubsSetChipFilterView(__unsafe_unretained id receiver, SEL selector,
@@ -3420,6 +3570,11 @@ void YTKACEInstallContentVisibilityHooks(void) {
                               @"sectionControllersForSectionRenderers:reloadingSectionControllerByRenderer:",
                               (IMP)YTKACESectionControllers,
                               &OriginalSectionControllers);
+    YTKACEInstallInstanceHook(@"YTVariableHeightHeaderViewController",
+                              @"totalHeaderHeightWithParentHeight:headerHeight:subheaderHeight:",
+                              (IMP)YTKACETotalHeaderHeight, &OriginalTotalHeaderHeight);
+    YTKACEInstallInstanceHook(@"YTHeaderContentComboViewController", @"activeSubheaderViewFromProvider",
+                              (IMP)YTKACEActiveSubheaderView, &OriginalActiveSubheaderView);
     YTKACEInstallInstanceHook(@"YTHeaderContentComboView",
                               @"enableSubheaderBarWithView:",
                               (IMP)YTKACEEnableSubheaderBar,
@@ -3468,6 +3623,18 @@ void YTKACEInstallContentVisibilityHooks(void) {
                               @"shouldHideSubHeader",
                               (IMP)YTKACEShouldHideSubheader,
                               &OriginalShouldHideSubheader);
+    YTKACEInstallInstanceHook(@"YTRightNavigationButtons", @"layoutSubviews",
+                              (IMP)YTKACERightButtonsLayout, &OriginalRightButtonsLayout);
+    YTKACEInstallInstanceHook(@"YTSearchView", @"layoutSubviews",
+                              (IMP)YTKACESearchViewLayout, &OriginalSearchViewLayout);
+    YTKACEInstallInstanceHook(@"YTSearchBarView", @"layoutSubviews",
+                              (IMP)YTKACESearchBarLayout, &OriginalSearchBarLayout);
+    YTKACEInstallInstanceHook(@"YTMySubsFilterHeaderViewController", @"loadElementRenderer:",
+                              (IMP)YTKACESubsLoadElement, &OriginalSubsLoadElement);
+    YTKACEInstallInstanceHook(@"YTMySubsFilterHeaderView", @"sizeThatFits:",
+                              (IMP)YTKACESubsHeaderSize, &OriginalSubsHeaderSize);
+    YTKACEInstallInstanceHook(@"YTMySubsFilterHeaderView", @"layoutSubviews",
+                              (IMP)YTKACESubsHeaderLayout, &OriginalSubsHeaderLayout);
     YTKACEInstallInstanceHook(@"YTMySubsFilterHeaderView",
                               @"setChipFilterView:",
                               (IMP)YTKACESubsSetChipFilterView,

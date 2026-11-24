@@ -1147,3 +1147,8 @@
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Impede que o notch ou a Dynamic Island cubram vídeos largos em tela cheia.";
 "Remove AI Summaries" = "Remover resumos de IA";
 "Hide the AI summary under videos in Home, search and suggestions." = "Oculta o resumo de IA abaixo dos vídeos no Início, na busca e nas sugestões.";
+"Hide Voice Search" = "Ocultar busca por voz";
+"Disable Lock Screen Scrubbing" = "Desativar avanço na tela de bloqueio";
+"Stops the progress bar on the lock screen and in Control Center from seeking." = "Impede que a barra de progresso da tela de bloqueio e da Central de Controle avance ou volte o vídeo.";
+"In ⋯ Menu" = "No menu ⋯";
+"Drop a button here to put it in ⋯." = "Solte um botão aqui para colocá-lo no ⋯.";

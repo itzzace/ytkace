@@ -1192,3 +1192,8 @@ Sous licence CC BY-NC-SA 4.0.";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Empêche l’encoche ou la Dynamic Island de masquer les vidéos larges en plein écran.";
 "Remove AI Summaries" = "Retirer les résumés IA";
 "Hide the AI summary under videos in Home, search and suggestions." = "Masque le résumé IA sous les vidéos dans l’accueil, la recherche et les suggestions.";
+"Hide Voice Search" = "Masquer la recherche vocale";
+"Disable Lock Screen Scrubbing" = "Désactiver la navigation sur l’écran verrouillé";
+"Stops the progress bar on the lock screen and in Control Center from seeking." = "Empêche la barre de progression de l’écran verrouillé et du centre de contrôle de déplacer la lecture.";
+"In ⋯ Menu" = "Dans le menu ⋯";
+"Drop a button here to put it in ⋯." = "Déposez un bouton ici pour le mettre dans ⋯.";

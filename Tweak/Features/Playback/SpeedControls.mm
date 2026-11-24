@@ -643,6 +643,15 @@ static void YTKACEHoldSwipeChanged(UILongPressGestureRecognizer *recognizer) {
     [[UISelectionFeedbackGenerator new] selectionChanged];
     [[YTKACESpeedCoordinator sharedCoordinator] setRate:rate];
     id node = YTKACEHoldPillNode;
+    // The pill resizes right away but its text draws in the background, so
+    // one frame shows the new size with the old text. Draw them together.
+    SEL async = NSSelectorFromString(@"setDisplaysAsynchronously:");
+    SEL parent = NSSelectorFromString(@"supernode");
+    id current = node;
+    for (int level = 0; current != nil && level < 3; level++) {
+        if ([current respondsToSelector:async]) ((void (*)(id, SEL, BOOL))objc_msgSend)(current, async, NO);
+        current = [current respondsToSelector:parent] ? ((id (*)(id, SEL))objc_msgSend)(current, parent) : nil;
+    }
     if (node != nil && OriginalTextNodeSetAttributedText != NULL) {
         NSAttributedString *text = [[NSAttributedString alloc]
             initWithString:YTKACEWithPillMarks(YTKACEHoldPillOriginalText ?: @"", YTKACESpeedText(rate))

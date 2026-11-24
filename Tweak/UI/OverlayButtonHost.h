@@ -21,6 +21,8 @@ FOUNDATION_EXPORT UIButton *YTKACEOverlayButton(
 // made for it in YouTube's bars fits.
 FOUNDATION_EXPORT void YTKACEOverlayButtonResized(UIButton *_Nullable button);
 FOUNDATION_EXPORT void YTKACEFullscreenBarDidLayout(UIView *actions);
+// The buttons placed in the fullscreen ⋯ menu, for the current player.
+FOUNDATION_EXPORT NSArray<UIButton *> *YTKACEOverlayMenuButtons(void);
 
 FOUNDATION_EXPORT void YTKACEPresentNativeSheet(
     NSString *_Nullable title,

@@ -1203,3 +1203,8 @@ Licensed under CC BY-NC-SA 4.0.";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "Don't let the notch or Dynamic Island cover wide videos in fullscreen.";
 "Remove AI Summaries" = "Remove AI Summaries";
 "Hide the AI summary under videos in Home, search and suggestions." = "Hide the AI summary under videos in Home, search and suggestions.";
+"Hide Voice Search" = "Hide Voice Search";
+"Disable Lock Screen Scrubbing" = "Disable Lock Screen Scrubbing";
+"Stops the progress bar on the lock screen and in Control Center from seeking." = "Stops the progress bar on the lock screen and in Control Center from seeking.";
+"In ⋯ Menu" = "In ⋯ Menu";
+"Drop a button here to put it in ⋯." = "Drop a button here to put it in ⋯.";

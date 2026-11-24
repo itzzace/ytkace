@@ -6,6 +6,7 @@
 #import <objc/message.h>
 #import "../Downloads/DownloadLog.h"
 #import <objc/runtime.h>
+extern "C" NSArray<NSString *> *YTKACEFullscreenBarNames(void);
 #import <math.h>
 
 static const void *YTKACEOverlayHiddenAssociation = &YTKACEOverlayHiddenAssociation;
@@ -1496,6 +1497,20 @@ static void YTKACEApplyFullscreenBar(UIView *bar) {
     for (NSUInteger index = 0; index < buttons.count; index++) {
         if ([YTKACEFullscreenID(buttons[index]) isEqualToString:@"id.elements.button"]) last = index;
     }
+    // When the response's bar was read, the shared-id buttons are named in
+    // the order it listed them; that also works when Dislike isn't there.
+    NSMutableArray<NSString *> *elementNames = [NSMutableArray array];
+    for (NSString *name in YTKACEFullscreenBarNames() ?: @[]) {
+        if (![@[@"Like", @"Dislike", @"Save", @"Share"] containsObject:name]) {
+            [elementNames addObject:[name isEqualToString:@"?"] ? @"" : name];
+        }
+    }
+    NSUInteger elementCount = 0;
+    for (id button in buttons) {
+        if ([YTKACEFullscreenID(button) isEqualToString:@"id.elements.button"]) elementCount++;
+    }
+    if (elementNames.count != elementCount) [elementNames removeAllObjects];
+    NSUInteger elementIndex = 0;
     BOOL afterDislike = NO;
     NSUInteger shown = 0;
     NSMutableArray<NSString *> *keys = [NSMutableArray array];
@@ -1509,10 +1524,12 @@ static void YTKACEApplyFullscreenBar(UIView *bar) {
             else if ([identifier isEqualToString:@"id.video.add_to.button"]) key = @"Save";
             else if ([identifier isEqualToString:@"id.video.share.button"]) key = @"Share";
             else if ([identifier isEqualToString:@"id.elements.button"]) {
-                key = afterDislike ? @"Comments" : (index == last ? @"Overflow" : @"Ask");
+                key = elementIndex < elementNames.count ? elementNames[elementIndex]
+                    : (afterDislike ? @"Comments" : (index == last ? @"Overflow" : @"Ask"));
             }
             if (key != nil) objc_setAssociatedObject(button, YTKACEFullscreenNameKey, key, OBJC_ASSOCIATION_COPY_NONATOMIC);
         }
+        if ([identifier isEqualToString:@"id.elements.button"]) elementIndex++;
         [keys addObject:key ?: @""];
         afterDislike = [identifier isEqualToString:@"id.video.dislike.button"];
         BOOL hide = key != nil && YTKACEFeatureEnabled(

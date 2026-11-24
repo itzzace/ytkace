@@ -1192,3 +1192,8 @@ CC BY-NC-SA 4.0 라이선스가 적용됩니다.";
 "Don't let the notch or Dynamic Island cover wide videos in fullscreen." = "전체 화면에서 노치나 Dynamic Island가 넓은 영상을 가리지 않게 합니다.";
 "Remove AI Summaries" = "AI 요약 제거";
 "Hide the AI summary under videos in Home, search and suggestions." = "홈, 검색, 추천에서 영상 아래의 AI 요약을 숨깁니다.";
+"Hide Voice Search" = "음성 검색 숨기기";
+"Disable Lock Screen Scrubbing" = "잠금 화면 탐색 끄기";
+"Stops the progress bar on the lock screen and in Control Center from seeking." = "잠금 화면과 제어 센터의 진행 막대로 탐색하지 않도록 합니다.";
+"In ⋯ Menu" = "⋯ 메뉴 안";
+"Drop a button here to put it in ⋯." = "버튼을 여기에 놓으면 ⋯에 들어갑니다.";
