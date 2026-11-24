@@ -713,8 +713,11 @@ static void YTKACEConfigureReelView(UIView *receiver, BOOL showDownload);
 static IMP OriginalReelElementLayout;
 
 // The Shorts top bar is its own element, so the Top Bar toggles for
-// Messages and Search are applied here too. The buttons only have labels,
-// which are localized, so fall back to their order next to More.
+// Messages and Search are applied here too. The buttons have no ids and
+// localized labels, so they're matched by icon name.
+extern "C" NSString *YTKACEElementIconName(UIView *view);
+extern "C" void YTKACEEnsureElementIconNames(void);
+
 static UIView *YTKACEShortsTopBar(UIView *view, NSUInteger depth) {
     if ([view.accessibilityIdentifier isEqualToString:@"eml.top_bar"]) return view;
     if (depth >= 4) return nil;
@@ -725,10 +728,15 @@ static UIView *YTKACEShortsTopBar(UIView *view, NSUInteger depth) {
     return nil;
 }
 
+static NSString *YTKACEShortsTopBarHideKey(UIView *icon) {
+    NSString *name = YTKACEElementIconName(icon).lastPathComponent.lowercaseString;
+    if ([name hasPrefix:@"bubble_stack"]) return @"YTKACE.Preference.Navigation.MessagesHidden";
+    if ([name containsString:@"search"]) return @"YTKACE.Preference.Navigation.SearchHidden";
+    return nil;
+}
+
 extern "C" void YTKACEApplyShortsTopBarView(UIView *bar) {
     if (bar == nil) return;
-    BOOL hideMessages = YTKACEFeatureEnabled(@"YTKACE.Preference.Navigation.MessagesHidden");
-    BOOL hideSearch = YTKACEFeatureEnabled(@"YTKACE.Preference.Navigation.SearchHidden");
     NSMutableArray<UIView *> *icons = [NSMutableArray array];
     for (UIView *child in bar.subviews) {
         CGSize size = child.bounds.size;
@@ -738,35 +746,23 @@ extern "C" void YTKACEApplyShortsTopBarView(UIView *bar) {
         return a.center.x < b.center.x ? NSOrderedAscending
             : (a.center.x > b.center.x ? NSOrderedDescending : NSOrderedSame);
     }];
-    NSUInteger moreIndex = NSNotFound;
-    for (NSUInteger i = 0; i < icons.count; i++) {
-        if ([icons[i].accessibilityIdentifier isEqualToString:@"id.reel_more_button"]) moreIndex = i;
+    NSMutableSet<UIView *> *removed = [NSMutableSet set];
+    for (UIView *icon in icons) {
+        NSString *key = YTKACEShortsTopBarHideKey(icon);
+        if (key == nil) continue;
+        BOOL hidden = YTKACEFeatureEnabled(key);
+        YTKACESetShortsHidden(icon, hidden);
+        if (hidden) [removed addObject:icon];
     }
-    if (moreIndex == NSNotFound) return;
-    UIView *messages = nil;
-    UIView *search = nil;
-    for (NSUInteger i = 0; i < moreIndex; i++) {
-        NSString *label = icons[i].accessibilityLabel.lowercaseString ?: @"";
-        if ([label containsString:@"inbox"] || [label containsString:@"message"]) messages = icons[i];
-        else if ([label containsString:@"search"]) search = icons[i];
-    }
-    if (messages == nil && search == nil && moreIndex >= 2 &&
-        icons[moreIndex - 1].accessibilityIdentifier.length == 0 &&
-        icons[moreIndex - 2].accessibilityIdentifier.length == 0) {
-        search = icons[moreIndex - 1];
-        messages = icons[moreIndex - 2];
-    }
-    if (messages != nil) YTKACESetShortsHidden(messages, hideMessages);
-    if (search != nil) YTKACESetShortsHidden(search, hideSearch);
     // Slide the buttons left of a hidden one over so there's no gap.
     CGFloat shift = 0.0;
-    for (NSInteger i = (NSInteger)moreIndex; i >= 0; i--) {
+    for (NSInteger i = (NSInteger)icons.count - 1; i >= 0; i--) {
         UIView *icon = icons[(NSUInteger)i];
-        BOOL removed = (icon == messages && hideMessages) || (icon == search && hideSearch);
-        if (removed && (NSUInteger)i + 1 < icons.count) {
+        BOOL gone = [removed containsObject:icon];
+        if (gone && (NSUInteger)i + 1 < icons.count) {
             shift += icons[(NSUInteger)i + 1].center.x - icon.center.x;
         }
-        icon.transform = removed || shift == 0.0
+        icon.transform = gone || shift == 0.0
             ? CGAffineTransformIdentity
             : CGAffineTransformMakeTranslation(shift, 0.0);
     }
@@ -1179,6 +1175,7 @@ static void YTKACEShortsTimeChanged(NSNotification *notification) {
 }
 
 void YTKACEInstallShortsHooks(void) {
+    YTKACEEnsureElementIconNames();
     if (YTKACEReelViews == nil) {
         YTKACEReelViews = [NSHashTable weakObjectsHashTable];
         YTKACEShortsOriginals = [NSMutableDictionary dictionary];

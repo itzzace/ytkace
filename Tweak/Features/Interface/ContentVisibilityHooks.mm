@@ -357,14 +357,38 @@ static BOOL YTKACEIsActionButtonIdentifier(NSString *identifier);
 static IMP OriginalLocalImage;
 static IMP OriginalResourceImage;
 static IMP OriginalResourceImageBoost;
+extern "C" void YTKACEShortsTopBarChildMoved(UIView *view);
+
 static __thread void *YTKACELoadingImageNode;
 static const void *YTKACEIconNameAssociation = &YTKACEIconNameAssociation;
+
+static BOOL YTKACEIsShortsTopBarIcon(NSString *name) {
+    NSString *icon = name.lastPathComponent.lowercaseString;
+    return [icon hasPrefix:@"bubble_stack"] || [icon containsString:@"search"];
+}
 
 static void YTKACETagLoadingNode(NSString *name) {
     void *node = YTKACELoadingImageNode;
     if (node == NULL || ![name isKindOfClass:NSString.class]) return;
     objc_setAssociatedObject((__bridge id)node, YTKACEIconNameAssociation,
                              name, OBJC_ASSOCIATION_COPY_NONATOMIC);
+    // The icon can arrive after the button is on screen.
+    if (YTKACEIsShortsTopBarIcon(name)) {
+        __weak id weakNode = (__bridge id)node;
+        [NSOperationQueue.mainQueue addOperationWithBlock:^{
+            id strongNode = weakNode;
+            if (strongNode == nil ||
+                !((BOOL (*)(id, SEL))objc_msgSend)(strongNode, NSSelectorFromString(@"isNodeLoaded"))) return;
+            UIView *view = ((UIView *(*)(id, SEL))objc_msgSend)(strongNode, NSSelectorFromString(@"view"));
+            if (view.window != nil) YTKACEShortsTopBarChildMoved(view);
+        }];
+    }
+}
+
+extern "C" NSString *YTKACEElementIconName(UIView *view) {
+    if (![view respondsToSelector:NSSelectorFromString(@"asyncdisplaykit_node")]) return nil;
+    id node = ((id (*)(id, SEL))objc_msgSend)(view, NSSelectorFromString(@"asyncdisplaykit_node"));
+    return node == nil ? nil : objc_getAssociatedObject(node, YTKACEIconNameAssociation);
 }
 
 static id YTKACELocalImage(id node, SEL selector, const void *image,
@@ -390,6 +414,9 @@ static id YTKACEResourceImageBoost(id loader, SEL selector, NSString *name,
     return ((id (*)(id, SEL, id, id, id, float))OriginalResourceImageBoost)(
         loader, selector, name, color, bundle, ratio);
 }
+
+static void YTKACEEnsureIconNameHooks(void);
+extern "C" void YTKACEEnsureElementIconNames(void) { YTKACEEnsureIconNameHooks(); }
 
 static void YTKACEEnsureIconNameHooks(void) {
     static dispatch_once_t onceToken;
@@ -859,7 +886,6 @@ static CGFloat YTKACECellLeadingInset(UIView *cell) {
 }
 
 extern "C" void YTKACENoteActionBarButtons(NSArray<NSString *> *names);
-extern "C" void YTKACEShortsTopBarChildMoved(UIView *view);
 
 // Which action bar this device gets, for the editor's mock: "fixed" (the
 // iPhone row of icons) or "chips" (the scrolling row of chips).
