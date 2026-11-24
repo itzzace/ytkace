@@ -140,11 +140,17 @@ static void YTKACERefitVideo(UIView *player) {
     video.frame = base != nil ? base.CGRectValue : video.frame;
 }
 
+// iPhone Duo player layout (DuoDeskPlayer.mm). It shares this hook because
+// YTKACE hooks a method once, and runs last so the laptop-posture split sets
+// the final video frame.
+void YTKACEDuoPlayerLayout(UIView *player);
+
 static void YTKACEPlayerLayout(UIView *receiver, SEL selector) {
     ((void (*)(id, SEL))OriginalPlayerLayout)(receiver, selector);
     if (YTKACEFeatureEnabled(YTKACENotchSafeKey) || YTKACEVideoSetFrameOriginals.count != 0) {
         YTKACERefitVideo(receiver);
     }
+    YTKACEDuoPlayerLayout(receiver);
 }
 
 static void YTKACEPlayerSetAspectRatio(UIView *receiver, SEL selector, CGFloat aspectRatio) {

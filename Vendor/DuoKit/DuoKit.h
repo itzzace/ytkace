@@ -65,11 +65,30 @@ FOUNDATION_EXPORT BOOL DUOHasHinge(void);
 // hinge seen on an earlier launch. Cached after the first call.
 FOUNDATION_EXPORT BOOL DUOIsDuo(void);
 
-// Fills `host` below the crease with a live, mirrored, blurred and darkened
-// copy of `source` (the video's view), behind the controls, the way Netflix
-// fills the lower half. Pass CGRectNull for `fold` to hide it. Call from the
-// host's layout. Uses UIKit's private _UIPortalView; does nothing without it.
+// Fills `host` below the crease with a reflection of `source` (the video's
+// view): its picture mirrored and slightly soft, brightest where it starts and
+// fading into a dark surface, behind the controls. Pass CGRectNull for `fold`
+// to hide it. Call from the host's layout. Uses UIKit's private _UIPortalView;
+// does nothing without it.
 FOUNDATION_EXPORT void DUOUpdateDeskReflection(UIView *_Nullable host, UIView *_Nullable source, CGRect fold);
+
+// The same, for a picture that does not fill `source`: `topInset` and
+// `bottomInset` are the empty strips (letterbox bars) between the picture's top
+// and bottom edges and the edges of `source`. The crease stays black. The
+// mirrored picture starts right below it, from the picture's own bottom edge,
+// and is stretched so its top edge reaches the bottom of the screen: the bars are
+// cropped off, so the picture itself fills the whole lower half.
+FOUNDATION_EXPORT void DUOUpdateDeskReflectionBelowPicture(UIView *_Nullable host, UIView *_Nullable source,
+                                                           CGRect fold, CGFloat topInset, CGFloat bottomInset);
+
+// Limits the reflection to rounded rectangles (`rects`, CGRect values in `host`'s
+// coordinates, with a corner radius each in `radii`), such as the glass controls
+// it shows through. Outside them the reflection is clear, so what is behind it
+// (the app's own background) shows, and the crease stays as it is. An empty array
+// shows none of it. Pass nil to go back to a reflection that fills the lower half
+// on a black surface.
+FOUNDATION_EXPORT void DUOSetDeskReflectionRegions(UIView *_Nullable host, NSArray<NSValue *> *_Nullable rects,
+                                                   NSArray<NSNumber *> *_Nullable radii);
 
 // One tab of an app's own tab bar, as the system's vertical tab bar shows it.
 // Images may be any size or color; they are redrawn as same-size templates.

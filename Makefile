@@ -82,6 +82,7 @@ YTKACE_FILES = \
 	Vendor/DuoKit/DuoMirroredTabBar.m \
 	Vendor/DuoKit/DuoDeskPosture.m \
 	Tweak/Features/Playback/DuoDeskPlayer.mm \
+	Tweak/Features/Playback/DuoDeskPanel.mm \
 	Tweak/Features/Playback/DuoStatusBar.mm \
 	Tweak/Features/Navigation/GlassChrome.mm \
 	Tweak/Features/Navigation/GlassSheets.mm \
