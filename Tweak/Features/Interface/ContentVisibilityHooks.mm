@@ -859,6 +859,7 @@ static CGFloat YTKACECellLeadingInset(UIView *cell) {
 }
 
 extern "C" void YTKACENoteActionBarButtons(NSArray<NSString *> *names);
+extern "C" void YTKACEShortsTopBarChildMoved(UIView *view);
 
 // Which action bar this device gets, for the editor's mock: "fixed" (the
 // iPhone row of icons) or "chips" (the scrolling row of chips).
@@ -2888,6 +2889,7 @@ static void YTKACEDisplayViewDidMove(UIView *receiver, SEL selector) {
     YTKACEApplyContentVisibility(receiver);
     YTKACEConsiderProductDisplayView(receiver, receiver.accessibilityIdentifier);
     YTKACEReturnDislikeConsiderView(receiver);
+    if (receiver.window != nil) YTKACEShortsTopBarChildMoved(receiver);
 }
 
 

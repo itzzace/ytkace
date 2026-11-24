@@ -712,8 +712,82 @@ static const void *YTKACEShortsRetryAssociation = &YTKACEShortsRetryAssociation;
 static void YTKACEConfigureReelView(UIView *receiver, BOOL showDownload);
 static IMP OriginalReelElementLayout;
 
+// The Shorts top bar is its own element, so the Top Bar toggles for
+// Messages and Search are applied here too. The buttons only have labels,
+// which are localized, so fall back to their order next to More.
+static UIView *YTKACEShortsTopBar(UIView *view, NSUInteger depth) {
+    if ([view.accessibilityIdentifier isEqualToString:@"eml.top_bar"]) return view;
+    if (depth >= 4) return nil;
+    for (UIView *child in view.subviews) {
+        UIView *bar = YTKACEShortsTopBar(child, depth + 1);
+        if (bar != nil) return bar;
+    }
+    return nil;
+}
+
+extern "C" void YTKACEApplyShortsTopBarView(UIView *bar) {
+    if (bar == nil) return;
+    BOOL hideMessages = YTKACEFeatureEnabled(@"YTKACE.Preference.Navigation.MessagesHidden");
+    BOOL hideSearch = YTKACEFeatureEnabled(@"YTKACE.Preference.Navigation.SearchHidden");
+    NSMutableArray<UIView *> *icons = [NSMutableArray array];
+    for (UIView *child in bar.subviews) {
+        CGSize size = child.bounds.size;
+        if (size.width > 0.0 && size.width <= 48.0 && size.height <= 48.0) [icons addObject:child];
+    }
+    [icons sortUsingComparator:^NSComparisonResult(UIView *a, UIView *b) {
+        return a.center.x < b.center.x ? NSOrderedAscending
+            : (a.center.x > b.center.x ? NSOrderedDescending : NSOrderedSame);
+    }];
+    NSUInteger moreIndex = NSNotFound;
+    for (NSUInteger i = 0; i < icons.count; i++) {
+        if ([icons[i].accessibilityIdentifier isEqualToString:@"id.reel_more_button"]) moreIndex = i;
+    }
+    if (moreIndex == NSNotFound) return;
+    UIView *messages = nil;
+    UIView *search = nil;
+    for (NSUInteger i = 0; i < moreIndex; i++) {
+        NSString *label = icons[i].accessibilityLabel.lowercaseString ?: @"";
+        if ([label containsString:@"inbox"] || [label containsString:@"message"]) messages = icons[i];
+        else if ([label containsString:@"search"]) search = icons[i];
+    }
+    if (messages == nil && search == nil && moreIndex >= 2 &&
+        icons[moreIndex - 1].accessibilityIdentifier.length == 0 &&
+        icons[moreIndex - 2].accessibilityIdentifier.length == 0) {
+        search = icons[moreIndex - 1];
+        messages = icons[moreIndex - 2];
+    }
+    if (messages != nil) YTKACESetShortsHidden(messages, hideMessages);
+    if (search != nil) YTKACESetShortsHidden(search, hideSearch);
+    // Slide the buttons left of a hidden one over so there's no gap.
+    CGFloat shift = 0.0;
+    for (NSInteger i = (NSInteger)moreIndex; i >= 0; i--) {
+        UIView *icon = icons[(NSUInteger)i];
+        BOOL removed = (icon == messages && hideMessages) || (icon == search && hideSearch);
+        if (removed && (NSUInteger)i + 1 < icons.count) {
+            shift += icons[(NSUInteger)i + 1].center.x - icon.center.x;
+        }
+        icon.transform = removed || shift == 0.0
+            ? CGAffineTransformIdentity
+            : CGAffineTransformMakeTranslation(shift, 0.0);
+    }
+}
+
+// The buttons are often added after this layout, so the display view
+// hook in ContentVisibilityHooks also calls in when one is added.
+extern "C" void YTKACEShortsTopBarChildMoved(UIView *view) {
+    UIView *bar = [view.accessibilityIdentifier isEqualToString:@"eml.top_bar"]
+        ? view
+        : ([view.superview.accessibilityIdentifier isEqualToString:@"eml.top_bar"] ? view.superview : nil);
+    if (bar == nil) return;
+    __weak UIView *weakBar = bar;
+    [NSOperationQueue.mainQueue addOperationWithBlock:^{
+        YTKACEApplyShortsTopBarView(weakBar);
+    }];
+}
+
 static void YTKACEReelElementLayout(UIView *receiver, SEL selector) {
     if (OriginalReelElementLayout != NULL) ((void (*)(id, SEL))OriginalReelElementLayout)(receiver, selector);
+    YTKACEApplyShortsTopBarView(YTKACEShortsTopBar(receiver, 0));
     if (!YTKACEShortsNewFullscreenActive() || receiver.alpha <= 0.01 || receiver.window == nil) return;
     Class containerClass = NSClassFromString(@"YTReelContainerView");
     UIView *container = receiver.superview;
