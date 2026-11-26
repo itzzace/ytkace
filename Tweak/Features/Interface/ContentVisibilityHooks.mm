@@ -63,6 +63,7 @@ static IMP OriginalActionCellSizeWithInsets;
 static IMP OriginalASCollectionViewLayout;
 static IMP OriginalContentHostCellLayout;
 static const void *YTKACEContentHiddenAssociation = &YTKACEContentHiddenAssociation;
+static const void *YTKACECommentBoxAssociation = &YTKACECommentBoxAssociation;
 static const void *YTKACEHostCellAssociation = &YTKACEHostCellAssociation;
 static _Atomic NSUInteger YTKACEHostCellCount;
 static NSString *YTKACENormalizedDescription(id object);
@@ -2684,7 +2685,31 @@ static BOOL YTKACEContentContains(NSString *token,
 
 static BOOL YTKACEViewInsideReelOverlay(UIView *view);
 
-static BOOL YTKACEContentShouldHide(UIView *view, BOOL *hideSuperview) {
+// The comments box is matched through inner labels and teaser views, so hiding
+// the matched view alone leaves an empty card behind. Walk up to the comment
+// cell or section that owns the label and hide that instead.
+static UIView *YTKACECommentBoxForView(UIView *view) {
+    UIView *candidate = view.superview;
+    for (NSUInteger depth = 0; candidate != nil && depth < 6; depth++) {
+        NSString *name = NSStringFromClass(candidate.class).lowercaseString;
+        NSString *identifier = candidate.accessibilityIdentifier.lowercaseString;
+        BOOL isCell = [candidate isKindOfClass:UICollectionViewCell.class] ||
+                      [candidate isKindOfClass:UITableViewCell.class];
+        BOOL named = [name containsString:@"comment"] ||
+                     [identifier containsString:@"comment"];
+        if (named && (isCell ||
+                      [name containsString:@"section"] ||
+                      [name containsString:@"container"] ||
+                      [name containsString:@"cell"])) {
+            return candidate;
+        }
+        candidate = candidate.superview;
+    }
+    return nil;
+}
+
+static BOOL YTKACEContentShouldHide(UIView *view, BOOL *hideSuperview,
+                                    UIView *__strong *commentBox) {
     NSString *identifier = [view.accessibilityIdentifier.lowercaseString
         stringByReplacingOccurrencesOfString:@"." withString:@"_"];
     NSString *token = [NSString stringWithFormat:@"%@ %@ %@",
@@ -2705,6 +2730,9 @@ static BOOL YTKACEContentShouldHide(UIView *view, BOOL *hideSuperview) {
             @"id_comment_channel_guidelines_bottom_sheet_container",
             @"id_comment_channel_guidelines_entry_banner_container"
         ])) {
+            if (commentBox != NULL) {
+                *commentBox = YTKACECommentBoxForView(view);
+            }
             return YES;
         }
     }
@@ -2869,7 +2897,8 @@ static void YTKACEApplyContentVisibility(UIView *view) {
     }
 
     BOOL hideSuperview = NO;
-    BOOL hidden = YTKACEContentShouldHide(view, &hideSuperview);
+    UIView *commentBox = nil;
+    BOOL hidden = YTKACEContentShouldHide(view, &hideSuperview, &commentBox);
 
     UIView *target = hideSuperview ? view.superview : view;
     if (target == nil) {
@@ -2886,9 +2915,28 @@ static void YTKACEApplyContentVisibility(UIView *view) {
                                      YTKACEContentHiddenAssociation, @YES,
                                      OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         }
+        if (commentBox != nil && commentBox != target) {
+            objc_setAssociatedObject(target,
+                                     YTKACECommentBoxAssociation, commentBox,
+                                     OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            commentBox.hidden = YES;
+            commentBox.userInteractionEnabled = NO;
+        }
         target.hidden = YES;
         target.userInteractionEnabled = NO;
     } else if (baseline != nil) {
+        UIView *box = objc_getAssociatedObject(
+            target,
+            YTKACECommentBoxAssociation
+        );
+        if (box != nil) {
+            box.hidden = NO;
+            box.userInteractionEnabled = YES;
+            objc_setAssociatedObject(target,
+                                     YTKACECommentBoxAssociation,
+                                     nil,
+                                     OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
         target.hidden = NO;
         target.userInteractionEnabled = YES;
         objc_setAssociatedObject(target,
