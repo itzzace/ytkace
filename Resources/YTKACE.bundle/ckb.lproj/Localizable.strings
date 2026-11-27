@@ -106,6 +106,8 @@
 "Helps recover playback in sideloaded builds." = "یارمەتی گەڕاندنەوەی لێدان دەدات لە وەشانە سایدلۆدکراوەکاندا.";
 "Hide Status Bar" = "شاردنەوەی شریتی دۆخ";
 "Hide Tab Labels" = "شاردنەوەی ناوی تابەکان";
+"Hide Tab Dots" = "خاڵەکانی تاب بشارەوە";
+"Hide the red dot on tabs with new content." = "خاڵە سوورەکە لەسەر تابەکانی ناوەڕۆکی نوێ بشارەوە.";
 "Hold to Seek" = "ڕاگرتن بۆ پێشبردن";
 "Home" = "سەرەکی";
 "Import" = "هاوردەکردن";
@@ -455,6 +457,8 @@
 "Invalid ZIP64 backup" = "پاڵپشتی ZIP64 نادروستە";
 "Keep Captions On" = "ژێرنووس هەمیشە هەڵکراو بێت";
 "Keep Progress Bar Visible" = "شریتی پێشکەوتن هەمیشە دیار بێت";
+"Show End Time" = "کاتی کۆتایی پیشان بدە";
+"Show when the video will end next to its length." = "کاتی کۆتایی ڤیدیۆکە لە تەنیشت درێژییەکەی پیشان بدە.";
 "Language" = "زمان";
 "Learning" = "فێربوون";
 "Library" = "کتێبخانە";

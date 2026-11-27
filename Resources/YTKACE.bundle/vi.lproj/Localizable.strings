@@ -106,6 +106,8 @@
 "Helps recover playback in sideloaded builds." = "Giúp khôi phục phát lại trên bản cài ngoài.";
 "Hide Status Bar" = "Ẩn thanh trạng thái";
 "Hide Tab Labels" = "Ẩn nhãn tab";
+"Hide Tab Dots" = "Ẩn chấm trên tab";
+"Hide the red dot on tabs with new content." = "Ẩn chấm đỏ trên các tab có nội dung mới.";
 "Hold to Seek" = "Giữ để tua";
 "Home" = "Trang chủ";
 "Import" = "Nhập";
@@ -455,6 +457,8 @@
 "Invalid ZIP64 backup" = "Bản sao lưu ZIP64 không hợp lệ";
 "Keep Captions On" = "Luôn bật phụ đề";
 "Keep Progress Bar Visible" = "Luôn hiện thanh tiến trình";
+"Show End Time" = "Hiện giờ kết thúc";
+"Show when the video will end next to its length." = "Hiện thời điểm video kết thúc bên cạnh độ dài.";
 "Language" = "Ngôn ngữ";
 "Learning" = "Học tập";
 "Library" = "Thư viện";

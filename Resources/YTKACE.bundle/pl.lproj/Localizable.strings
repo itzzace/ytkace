@@ -106,6 +106,8 @@
 "Helps recover playback in sideloaded builds." = "Pomaga przywrócić odtwarzanie w wersjach instalowanych spoza App Store.";
 "Hide Status Bar" = "Ukryj pasek statusu";
 "Hide Tab Labels" = "Ukryj nazwy kart";
+"Hide Tab Dots" = "Ukryj kropki na kartach";
+"Hide the red dot on tabs with new content." = "Ukrywa czerwoną kropkę na kartach z nowymi treściami.";
 "Hold to Seek" = "Przytrzymaj, aby przewijać";
 "Home" = "Główna";
 "Import" = "Importuj";
@@ -455,6 +457,8 @@
 "Invalid ZIP64 backup" = "Nieprawidłowa kopia zapasowa ZIP64";
 "Keep Captions On" = "Napisy zawsze włączone";
 "Keep Progress Bar Visible" = "Zawsze pokazuj pasek postępu";
+"Show End Time" = "Pokaż godzinę zakończenia";
+"Show when the video will end next to its length." = "Pokazuje obok długości, kiedy film się skończy.";
 "Language" = "Język";
 "Learning" = "Nauka";
 "Library" = "Biblioteka";
