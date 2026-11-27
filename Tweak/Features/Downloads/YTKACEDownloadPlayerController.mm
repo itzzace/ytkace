@@ -18,6 +18,8 @@
 #import <MediaPlayer/MediaPlayer.h>
 #import <math.h>
 
+extern "C" void YTKACESetDownloadRemoteActive(BOOL active);
+
 NSNotificationName const YTKACEDownloadPlaybackDidChangeNotification =
     @"YTKACEDownloadPlaybackDidChangeNotification";
 NSNotificationName const YTKACEDownloadPlaybackDidStopNotification =
@@ -478,6 +480,7 @@ static void YTKACEStoreCompleted(NSURL *URL, NSTimeInterval duration,
         [session notifyChange];
     });
     self.remoteTargets = targets;
+    YTKACESetDownloadRemoteActive(YES);
     YTKACEDownloadLog(@"library", @"remote commands attached");
 }
 
@@ -485,6 +488,7 @@ static void YTKACEStoreCompleted(NSURL *URL, NSTimeInterval duration,
     if (self.remoteTargets == nil) return;
     for (NSArray *pair in self.remoteTargets) [(MPRemoteCommand *)pair[0] removeTarget:pair[1]];
     self.remoteTargets = nil;
+    YTKACESetDownloadRemoteActive(NO);
     MPNowPlayingInfoCenter.defaultCenter.nowPlayingInfo = nil;
     YTKACEDownloadLog(@"library", @"remote commands released");
 }

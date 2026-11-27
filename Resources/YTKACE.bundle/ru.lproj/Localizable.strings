@@ -106,6 +106,8 @@
 "Helps recover playback in sideloaded builds." = "Помогает восстановить воспроизведение в сторонних сборках.";
 "Hide Status Bar" = "Скрыть строку состояния";
 "Hide Tab Labels" = "Скрыть названия вкладок";
+"Hide Tab Dots" = "Скрыть точки на вкладках";
+"Hide the red dot on tabs with new content." = "Скрывает красную точку на вкладках с новым контентом.";
 "Hold to Seek" = "Перемотка удержанием";
 "Home" = "Главная";
 "Import" = "Импорт";
@@ -455,6 +457,8 @@
 "Invalid ZIP64 backup" = "Недопустимая копия ZIP64";
 "Keep Captions On" = "Не отключать субтитры";
 "Keep Progress Bar Visible" = "Не скрывать полосу прогресса";
+"Show End Time" = "Показывать время окончания";
+"Show when the video will end next to its length." = "Показывает рядом с длительностью, когда закончится видео.";
 "Language" = "Язык";
 "Learning" = "Обучение";
 "Library" = "Медиатека";

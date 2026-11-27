@@ -4163,6 +4163,27 @@ static void YTKACEPivotSetCenter(UIView *receiver, SEL selector, CGPoint center)
     if (moved && YTKACEHasStripBeside(receiver)) [receiver setNeedsLayout];
 }
 
+
+// The red dot on tabs with new content (like Subscriptions).
+static IMP OriginalTabDotLayout;
+static IMP OriginalTabDotSetHidden;
+
+static BOOL YTKACETabDotsHidden(void) {
+    return YTKACEFeatureEnabled(@"YTKACE.Preference.Tabs.DotsHidden");
+}
+
+static void YTKACETabDotSetHidden(UIView *receiver, SEL selector, BOOL hidden) {
+    if (OriginalTabDotSetHidden != NULL) {
+        ((void (*)(id, SEL, BOOL))OriginalTabDotSetHidden)(receiver, selector,
+                                                           hidden || YTKACETabDotsHidden());
+    }
+}
+
+static void YTKACETabDotLayout(UIView *receiver, SEL selector) {
+    if (OriginalTabDotLayout != NULL) ((void (*)(id, SEL))OriginalTabDotLayout)(receiver, selector);
+    if (YTKACETabDotsHidden() && !receiver.hidden) receiver.hidden = YES;
+}
+
 void YTKACEInstallTabBarHooks(void) {
     YTKACEInstallInstanceHook(@"YTSlimStatusBarView", @"layoutSubviews",
                               (IMP)YTKACESlimStatusLayout, &OriginalSlimStatusLayout);
@@ -4216,6 +4237,10 @@ void YTKACEInstallTabBarHooks(void) {
                               @"setSelected:",
                               (IMP)YTKACEPivotItemSetSelected,
                               &OriginalPivotItemSetSelected);
+    YTKACEInstallInstanceHook(@"YTPivotBarIndicatorView", @"layoutSubviews",
+                              (IMP)YTKACETabDotLayout, &OriginalTabDotLayout);
+    YTKACEInstallInstanceHook(@"YTPivotBarIndicatorView", @"setHidden:",
+                              (IMP)YTKACETabDotSetHidden, &OriginalTabDotSetHidden);
     YTKACEInstallInstanceHook(@"YTPivotBarItemView",
                               @"traitCollectionDidChange:",
                               (IMP)YTKACEPivotItemTraitChanged,

@@ -2693,6 +2693,11 @@ static BOOL YTKACEContentShouldHide(UIView *view, BOOL *hideSuperview) {
                        NSStringFromClass(view.class).lowercaseString];
 
     if (YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.CommentsHidden")) {
+        // The comments box under the video is now a carousel card.
+        if ([identifier isEqualToString:@"id_elements_video_metadata_carousel"]) {
+            YTKACECollapseHostCell(view);
+            return YES;
+        }
         if ([identifier isEqualToString:@"id_comment_guidelines_text"]) {
             if (hideSuperview != NULL) {
                 *hideSuperview = YES;
@@ -3526,7 +3531,29 @@ static void YTKACESetupSectionList(id receiver, SEL selector, id model, BOOL loa
     }
 }
 
+// Suggested videos under the player live in the watch next view.
+static IMP OriginalWatchNextLayout;
+
+static void YTKACEWatchNextLayout(UIView *receiver, SEL selector) {
+    if (OriginalWatchNextLayout != NULL) ((void (*)(id, SEL))OriginalWatchNextLayout)(receiver, selector);
+    BOOL hide = YTKACEFeatureEnabled(@"YTKACE.Preference.Overlay.SuggestedVideosHidden");
+    NSNumber *owned = objc_getAssociatedObject(receiver, YTKACEContentHiddenAssociation);
+    if (hide) {
+        if (owned == nil) {
+            objc_setAssociatedObject(receiver, YTKACEContentHiddenAssociation, @YES,
+                                     OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
+        receiver.hidden = YES;
+    } else if (owned != nil) {
+        receiver.hidden = NO;
+        objc_setAssociatedObject(receiver, YTKACEContentHiddenAssociation, nil,
+                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+}
+
 void YTKACEInstallContentVisibilityHooks(void) {
+    YTKACEInstallInstanceHook(@"YTWatchNextView", @"layoutSubviews",
+                              (IMP)YTKACEWatchNextLayout, &OriginalWatchNextLayout);
     YTKACEInstallInstanceHook(
         @"YTAppCollectionViewController",
         @"setupSectionListWithModel:isLoadingMore:isRefreshingFromContinuation:"
