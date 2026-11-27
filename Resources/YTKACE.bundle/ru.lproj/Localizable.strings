@@ -1201,3 +1201,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE использует данные Spo
 "Stops the progress bar on the lock screen and in Control Center from seeking." = "Полоса прогресса на экране блокировки и в Пункте управления не будет перематывать видео.";
 "In ⋯ Menu" = "В меню ⋯";
 "Drop a button here to put it in ⋯." = "Перетащите сюда кнопку, чтобы убрать её в ⋯.";
+"Fill Screen" = "Заполнить экран";
+"Playback Settings" = "Настройки воспроизведения";

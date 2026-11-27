@@ -10,6 +10,7 @@
 #import <objc/runtime.h>
 #import "DuoKit.h"
 #import "../../YTKACE.h"
+#import "../../Runtime/Localization.h"
 #import "../../Runtime/Hooking.h"
 #import "../../Runtime/Preferences.h"
 #import "../Downloads/DownloadLog.h"
@@ -115,6 +116,15 @@ static void YTKACECreateChapterCollectionVoid(id self, SEL _cmd, double total) {
 
 // The chapters of the video that is `total` seconds long, as {start, end, title}
 // in order, or nil when it has none (or only one, which says nothing).
+// YouTube's private fields can be renamed; KVC would throw then.
+static id YTKACEPanelValue(id object, NSString *key) {
+    @try {
+        return [object valueForKey:key];
+    } @catch (__unused NSException *exception) {
+        return nil;
+    }
+}
+
 static NSArray<NSDictionary *> *YTKACEPanelChapters(double total) {
     if (YTKACEChapterControllers == nil || total <= 1.0) return nil;
     // Read again only when YouTube's chapter list changes: this runs on the
@@ -127,9 +137,11 @@ static NSArray<NSDictionary *> *YTKACEPanelChapters(double total) {
         controllers = YTKACEChapterControllers.allObjects;
     }
     for (id controller in controllers.reverseObjectEnumerator) {
-        NSNumber *controllerTotal = [controller valueForKey:@"_totalTime"];
-        if (fabs(controllerTotal.doubleValue - total) > 2.0) continue;
-        NSArray *source = [controller valueForKey:@"_chapters"];
+        id controllerTotal = YTKACEPanelValue(controller, @"_totalTime");
+        if (![controllerTotal isKindOfClass:NSNumber.class]) continue;
+        if (fabs([controllerTotal doubleValue] - total) > 2.0) continue;
+        id sourceValue = YTKACEPanelValue(controller, @"_chapters");
+        NSArray *source = [sourceValue isKindOfClass:NSArray.class] ? sourceValue : nil;
         if (source != nil && source == cachedSource && source.count == cachedCount) return cached;
         NSMutableArray<NSDictionary *> *chapters = [NSMutableArray array];
         for (id chapter in source ?: @[]) {
@@ -729,12 +741,12 @@ static UIVisualEffectView *YTKACEPanelGlass(void) {
 
 - (void)rebuildSettingsMenu {
     __weak __typeof(self) weakSelf = self;
-    UIAction *fill = [UIAction actionWithTitle:@"Fill Screen"
+    UIAction *fill = [UIAction actionWithTitle:YTKACELocalized(@"Fill Screen")
                                          image:[UIImage systemImageNamed:@"arrow.up.left.and.arrow.down.right"]
                                     identifier:nil
                                        handler:^(__unused UIAction *action) { [weakSelf toggleFill]; }];
     fill.state = YTKACEFeatureEnabled(YTKACEDuoDeskFillKey) ? UIMenuElementStateOn : UIMenuElementStateOff;
-    UIAction *settings = [UIAction actionWithTitle:@"Playback Settings"
+    UIAction *settings = [UIAction actionWithTitle:YTKACELocalized(@"Playback Settings")
                                              image:[UIImage systemImageNamed:@"slider.horizontal.3"]
                                         identifier:nil
                                            handler:^(__unused UIAction *action) { [weakSelf settingsPressed]; }];

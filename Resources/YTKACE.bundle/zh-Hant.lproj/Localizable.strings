@@ -1201,3 +1201,5 @@ Licensed under CC BY-NC-SA 4.0." = "YTKACE 使用 SponsorBlock 資料。
 "Stops the progress bar on the lock screen and in Control Center from seeking." = "防止透過鎖定畫面和控制中心的進度列拖曳播放進度。";
 "In ⋯ Menu" = "在 ⋯ 選單中";
 "Drop a button here to put it in ⋯." = "將按鈕拖到這裡即可放入 ⋯。";
+"Fill Screen" = "填滿螢幕";
+"Playback Settings" = "播放設定";
