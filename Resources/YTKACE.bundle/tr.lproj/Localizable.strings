@@ -1201,3 +1201,5 @@ CC BY-NC-SA 4.0 ile lisanslanmıştır.";
 "Stops the progress bar on the lock screen and in Control Center from seeking." = "Kilit ekranı ve Denetim Merkezi'ndeki ilerleme çubuğunun videoyu sarmasını engeller.";
 "In ⋯ Menu" = "⋯ menüsünde";
 "Drop a button here to put it in ⋯." = "Bir düğmeyi ⋯ içine koymak için buraya bırakın.";
+"Fill Screen" = "Ekranı Doldur";
+"Playback Settings" = "Oynatma Ayarları";

@@ -220,6 +220,15 @@ static UIControl *YTKACEExitFullscreenButton(UIView *view) {
 @end
 
 @implementation YTKACEDeskSwipe
+// Leave drags on the glass panel, its tiles and the scrubber alone.
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)recognizer shouldReceiveTouch:(UITouch *)touch {
+    for (UIView *view = touch.view; view != nil && view != recognizer.view; view = view.superview) {
+        if ([view isKindOfClass:UIControl.class] ||
+            [NSStringFromClass(view.class) isEqualToString:@"YTKACEDeskPanel"]) return NO;
+    }
+    return YES;
+}
+
 - (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)recognizer {
     UIPanGestureRecognizer *pan = (UIPanGestureRecognizer *)recognizer;
     if (CGRectIsNull(YTKACEDeskFold(pan.view))) return NO;
@@ -311,9 +320,22 @@ static void YTKACEDeskHideLowerHalf(UIView *player, UIView *container) {
 
 // Called last from NotchSafeVideo.mm's layoutSubviews hook on YTPlayerView
 // (YTKACE hooks a method once), after YouTube has laid out the player.
+// Shorts use YTPlayerView too, but keep their own layout.
+static BOOL YTKACEDeskInShorts(UIView *view) {
+    for (UIView *walker = view.superview; walker != nil; walker = walker.superview) {
+        NSString *name = NSStringFromClass(walker.class);
+        if ([name hasPrefix:@"YTReel"] || [name hasPrefix:@"YTShorts"]) return YES;
+    }
+    return NO;
+}
+
 void YTKACEDuoPlayerLayout(UIView *self) {
     if (!DUOIsDuo()) return;
     YTKACEDuoStatusBarPlayerLayout(self);
+    if (YTKACEDeskInShorts(self)) {
+        YTKACEDuoDeskPanelUpdate(self, CGRectNull);
+        return;
+    }
     DUOObserveHinge(self);
     UIView *container = YTKACEVideoContainer(self);
     CGRect fold = YTKACEDeskFold(self);

@@ -1201,3 +1201,5 @@ CC BY-NC-SA 4.0 라이선스가 적용됩니다.";
 "Stops the progress bar on the lock screen and in Control Center from seeking." = "잠금 화면과 제어 센터의 진행 막대로 탐색하지 않도록 합니다.";
 "In ⋯ Menu" = "⋯ 메뉴 안";
 "Drop a button here to put it in ⋯." = "버튼을 여기에 놓으면 ⋯에 들어갑니다.";
+"Fill Screen" = "화면 채우기";
+"Playback Settings" = "재생 설정";

@@ -1201,3 +1201,5 @@ Licensed under CC BY-NC-SA 4.0." = "يستخدم YTKACE بيانات SponsorBloc
 "Stops the progress bar on the lock screen and in Control Center from seeking." = "يمنع شريط التقدم في شاشة القفل ومركز التحكم من التقديم أو الترجيع.";
 "In ⋯ Menu" = "في قائمة ⋯";
 "Drop a button here to put it in ⋯." = "أفلت زرًا هنا لوضعه في ⋯.";
+"Fill Screen" = "ملء الشاشة";
+"Playback Settings" = "إعدادات التشغيل";

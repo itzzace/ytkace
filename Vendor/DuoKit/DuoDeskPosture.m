@@ -175,7 +175,7 @@ static void DUOApplyReflectionRegions(UIView *host, UIView *root) {
     UIBezierPath *path = [UIBezierPath bezierPath];
     for (NSUInteger index = 0; index < rects.count; index++) {
         CGRect local = CGRectOffset(rects[index].CGRectValue, -origin.x, -origin.y);
-        [path appendPath:[UIBezierPath bezierPathWithRoundedRect:local cornerRadius:radii[index].doubleValue]];
+        [path appendPath:[UIBezierPath bezierPathWithRoundedRect:local cornerRadius:(index < radii.count ? radii[index].doubleValue : 0.0)]];
     }
     CAShapeLayer *mask = [root.layer.mask isKindOfClass:CAShapeLayer.class] ? (CAShapeLayer *)root.layer.mask : nil;
     if (mask == nil) {
