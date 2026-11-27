@@ -1933,7 +1933,9 @@ static NSDictionary *YTKACEQualityDefinition(void) {
             YTKACEPicker(@"AirPlay on Mobile Data", @"YTKACE.Preference.Playback.AirPlayCellularQuality",
                          overrideQualities, overrideValues, 0, @"", @""),
             YTKACEPicker(@"Low Power Mode", @"YTKACE.Preference.Playback.LowPowerQuality",
-                         overrideQualities, overrideValues, 0, @"", @"")
+                         overrideQualities, overrideValues, 0, @"", @""),
+            YTKACEToggleDetail(@"Fix AirPlay on Roku", @"Fixes AirPlay videos that load forever on Roku devices.",
+                               @"YTKACE.Preference.Playback.AirPlayRokuFix")
         ],
         @[
             YTKACEToggleDetail(@"Classic Quality Menu", @"Show the full resolution list instead of YouTube's simple menu.",
