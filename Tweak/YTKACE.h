@@ -99,6 +99,11 @@ void YTKACEStartCastDiscovery(void);
 void YTKACEInstallTabBarHooks(void);
 void YTKACEInstallDuoTabBarHooks(void);
 void YTKACEInstallDuoDeskPlayerHooks(void);
+void YTKACEInstallDuoDeskPanelHooks(void);
+// The laptop panel below the crease (CGRectNull for the crease hides it).
+void YTKACEDuoDeskPanelUpdate(UIView *player, CGRect fold);
+// Crops the laptop layout's picture to fill the half above the crease.
+extern NSString * const YTKACEDuoDeskFillKey;
 void YTKACEInstallDuoStatusBarHooks(void);
 void YTKACERefreshPivotBarBackground(void);
 BOOL YTKACELiquidGlassAvailable(void);

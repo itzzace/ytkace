@@ -26,8 +26,9 @@ static UIViewController *YTKACEWatchLayer(UIView *view) {
     return nil;
 }
 
-// Called from DuoDeskPlayer.mm's layoutSubviews hook on YTPlayerView (YTKACE
-// hooks a method once).
+// Called from DuoDeskPlayer.mm's YTKACEDuoPlayerLayout, which runs from
+// NotchSafeVideo.mm's layoutSubviews hook on YTPlayerView (YTKACE hooks a
+// method once).
 void YTKACEDuoStatusBarPlayerLayout(UIView *player) {
     UIViewController *watch = YTKACEWatchLayer(player);
     if (watch == nil) return;

@@ -1201,3 +1201,5 @@ CC BY-NC-SA 4.0 でライセンスされています。";
 "Stops the progress bar on the lock screen and in Control Center from seeking." = "ロック画面とコントロールセンターの再生バーでシークできないようにします。";
 "In ⋯ Menu" = "⋯ メニュー内";
 "Drop a button here to put it in ⋯." = "ボタンをここにドロップすると ⋯ に入ります。";
+"Fill Screen" = "画面いっぱいに表示";
+"Playback Settings" = "再生設定";
