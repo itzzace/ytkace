@@ -946,6 +946,8 @@ CC BY-NC-SA 4.0 ile lisanslanmıştır.";
 "Normal Home Layout" = "Normal Ana Sayfa Düzeni";
 "Switches the tabbed Home redesign some accounts get back to the normal layout." = "Bazı hesaplara gelen sekmeli Ana Sayfa tasarımını normal düzene döndürür.";
 "Remove Filter Chips" = "Filtreleri Gizle";
+"Stop Feed Previews" = "Akış Önizlemelerini Durdur";
+"Don't play videos in the feed when you scroll or rest a finger on them." = "Kaydırırken veya parmağını üzerinde tutarken akıştaki videoları oynatma.";
 "Hide the filter chips at the top of Home and Subscriptions." = "Ana Sayfa ve Abonelikler'in üstündeki filtreleri gizler.";
 "Show a thin progress line at the bottom of Shorts." = "Shorts'un altında ince bir ilerleme çizgisi gösterir.";
 "Play Shorts Once" = "Shorts'u Bir Kez Oynat";

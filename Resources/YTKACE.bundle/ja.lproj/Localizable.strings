@@ -946,6 +946,8 @@ CC BY-NC-SA 4.0 でライセンスされています。";
 "Normal Home Layout" = "通常のホームレイアウト";
 "Switches the tabbed Home redesign some accounts get back to the normal layout." = "一部のアカウントに表示されるタブ付きのホームデザインを通常のレイアウトに戻します。";
 "Remove Filter Chips" = "フィルタチップを非表示";
+"Stop Feed Previews" = "フィードのプレビューを停止";
+"Don't play videos in the feed when you scroll or rest a finger on them." = "スクロール中や指を置いたときにフィードの動画を再生しません。";
 "Hide the filter chips at the top of Home and Subscriptions." = "ホームと登録チャンネルの上部にあるフィルタチップを非表示にします。";
 "Show a thin progress line at the bottom of Shorts." = "ショートの下部に細いシークバーを表示します。";
 "Play Shorts Once" = "ショートを1回だけ再生";

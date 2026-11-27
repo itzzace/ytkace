@@ -946,6 +946,8 @@ Cấp phép theo CC BY-NC-SA 4.0.";
 "Normal Home Layout" = "Bố cục Trang chủ thông thường";
 "Switches the tabbed Home redesign some accounts get back to the normal layout." = "Chuyển thiết kế Trang chủ có thẻ mà một số tài khoản nhận được về bố cục thông thường.";
 "Remove Filter Chips" = "Ẩn thẻ lọc";
+"Stop Feed Previews" = "Dừng xem trước trong bảng tin";
+"Don't play videos in the feed when you scroll or rest a finger on them." = "Không phát video trong bảng tin khi cuộn hoặc đặt ngón tay lên.";
 "Hide the filter chips at the top of Home and Subscriptions." = "Ẩn các thẻ lọc ở đầu Trang chủ và Kênh đăng ký.";
 "Show a thin progress line at the bottom of Shorts." = "Hiện một thanh tiến trình mỏng ở cuối Shorts.";
 "Play Shorts Once" = "Phát Shorts một lần";

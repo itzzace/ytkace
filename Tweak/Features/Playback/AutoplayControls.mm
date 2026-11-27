@@ -254,7 +254,29 @@ static void YTKACEUserNextEndpoint(id receiver, SEL selector, id endpoint) {
     }
 }
 
+// Videos playing in the feed while scrolling or when a finger rests on a
+// thumbnail (YouTube's "Playback in feeds").
+static NSString *const YTKACEFeedPreviewsKey = @"YTKACE.Preference.Feed.InlinePlaybackDisabled";
+static IMP OriginalInlineMutedEnabled;
+static IMP OriginalInlineMutedPlaybackEnabled;
+
+static BOOL YTKACEInlineMutedEnabled(id receiver, SEL selector) {
+    if (YTKACEFeatureEnabled(YTKACEFeedPreviewsKey)) return NO;
+    return OriginalInlineMutedEnabled != NULL &&
+        ((BOOL (*)(id, SEL))OriginalInlineMutedEnabled)(receiver, selector);
+}
+
+static BOOL YTKACEInlineMutedPlaybackEnabled(id receiver, SEL selector) {
+    if (YTKACEFeatureEnabled(YTKACEFeedPreviewsKey)) return NO;
+    return OriginalInlineMutedPlaybackEnabled != NULL &&
+        ((BOOL (*)(id, SEL))OriginalInlineMutedPlaybackEnabled)(receiver, selector);
+}
+
 void YTKACEInstallAutoplayHooks(void) {
+    YTKACEInstallInstanceHook(@"YTHotConfig", @"isInlineMutedEnabled",
+                              (IMP)YTKACEInlineMutedEnabled, &OriginalInlineMutedEnabled);
+    YTKACEInstallInstanceHook(@"YTInlineMutedPlaybackContainerController", @"isInlineMutedPlayBackEnabled",
+                              (IMP)YTKACEInlineMutedPlaybackEnabled, &OriginalInlineMutedPlaybackEnabled);
     YTKACEInstallInstanceHook(@"YTWatchFlowController", @"playAutoplay",
                               (IMP)YTKACEPlayAutoplay, &OriginalPlayAutoplay);
     YTKACEInstallInstanceHook(@"YTQueueController", @"triggerPendingAutoplay",

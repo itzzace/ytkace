@@ -946,6 +946,8 @@ Concesso in licenza CC BY-NC-SA 4.0.";
 "Normal Home Layout" = "Layout normale della Home";
 "Switches the tabbed Home redesign some accounts get back to the normal layout." = "Riporta al layout normale il nuovo design della Home con schede che ricevono alcuni account.";
 "Remove Filter Chips" = "Nascondi filtri";
+"Stop Feed Previews" = "Ferma anteprime nel feed";
+"Don't play videos in the feed when you scroll or rest a finger on them." = "Non riprodurre i video nel feed quando scorri o ci appoggi un dito.";
 "Hide the filter chips at the top of Home and Subscriptions." = "Nasconde i filtri in alto in Home e Iscrizioni.";
 "Show a thin progress line at the bottom of Shorts." = "Mostra una sottile linea di avanzamento in fondo agli Shorts.";
 "Play Shorts Once" = "Riproduci Shorts una volta";

@@ -946,6 +946,8 @@ CC BY-NC-SA 4.0 라이선스가 적용됩니다.";
 "Normal Home Layout" = "일반 홈 레이아웃";
 "Switches the tabbed Home redesign some accounts get back to the normal layout." = "일부 계정에 적용되는 탭 형식의 홈 디자인을 일반 레이아웃으로 되돌립니다.";
 "Remove Filter Chips" = "필터 칩 숨기기";
+"Stop Feed Previews" = "피드 미리보기 중지";
+"Don't play videos in the feed when you scroll or rest a finger on them." = "스크롤하거나 손가락을 올려 둘 때 피드 동영상을 재생하지 않습니다.";
 "Hide the filter chips at the top of Home and Subscriptions." = "홈과 구독 상단의 필터 칩을 숨깁니다.";
 "Show a thin progress line at the bottom of Shorts." = "Shorts 하단에 얇은 진행률 표시줄을 표시합니다.";
 "Play Shorts Once" = "Shorts 한 번만 재생";

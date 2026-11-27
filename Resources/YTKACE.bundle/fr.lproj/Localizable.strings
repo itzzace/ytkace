@@ -946,6 +946,8 @@ Sous licence CC BY-NC-SA 4.0.";
 "Normal Home Layout" = "Disposition normale de l’accueil";
 "Switches the tabbed Home redesign some accounts get back to the normal layout." = "Rétablit la disposition normale à la place de la refonte de l’accueil avec onglets que reçoivent certains comptes.";
 "Remove Filter Chips" = "Masquer les filtres";
+"Stop Feed Previews" = "Arrêter les aperçus du fil";
+"Don't play videos in the feed when you scroll or rest a finger on them." = "Ne pas lire les vidéos du fil quand tu défiles ou poses un doigt dessus.";
 "Hide the filter chips at the top of Home and Subscriptions." = "Masque les filtres en haut d’Accueil et d’Abonnements.";
 "Show a thin progress line at the bottom of Shorts." = "Affiche une fine ligne de progression en bas des Shorts.";
 "Play Shorts Once" = "Lire les Shorts une fois";

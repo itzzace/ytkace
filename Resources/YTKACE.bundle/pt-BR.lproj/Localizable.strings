@@ -901,6 +901,8 @@
 "Normal Home Layout" = "Layout normal do Início";
 "Switches the tabbed Home redesign some accounts get back to the normal layout." = "Volta o redesign do Início com abas, que algumas contas recebem, para o layout normal.";
 "Remove Filter Chips" = "Ocultar filtros";
+"Stop Feed Previews" = "Parar prévias do feed";
+"Don't play videos in the feed when you scroll or rest a finger on them." = "Não reproduzir vídeos no feed ao rolar ou deixar o dedo sobre eles.";
 "Hide the filter chips at the top of Home and Subscriptions." = "Oculta os filtros no topo do Início e de Inscrições.";
 "Show a thin progress line at the bottom of Shorts." = "Mostra uma linha fina de progresso na parte de baixo dos Shorts.";
 "Play Shorts Once" = "Reproduzir Shorts uma vez";

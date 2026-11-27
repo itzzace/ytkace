@@ -2005,7 +2005,9 @@ static NSDictionary *YTKACEFeedDefinition(void) {
                                @"Switches the tabbed Home redesign some accounts get back to the normal layout.",
                                @"YTKACE.Preference.Feed.HomeTabsHidden"),
             YTKACEToggleDetail(@"Remove Filter Chips", @"Hide the filter chips at the top of Home and Subscriptions.",
-                               @"YTKACE.Preference.Navigation.TopicsHidden")
+                               @"YTKACE.Preference.Navigation.TopicsHidden"),
+            YTKACEToggleDetail(@"Stop Feed Previews", @"Don't play videos in the feed when you scroll or rest a finger on them.",
+                               @"YTKACE.Preference.Feed.InlinePlaybackDisabled")
         ],
         @[
             YTKACEToggle(@"Remove Shorts Shelves", @"YTKACE.Preference.Shorts.FeedHidden", @"", @""),

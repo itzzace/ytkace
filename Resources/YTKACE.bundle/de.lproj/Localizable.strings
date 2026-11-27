@@ -946,6 +946,8 @@ Lizenziert unter CC BY-NC-SA 4.0.";
 "Normal Home Layout" = "Normales Startseiten-Layout";
 "Switches the tabbed Home redesign some accounts get back to the normal layout." = "Setzt das Startseiten-Redesign mit Tabs, das manche Konten bekommen, auf das normale Layout zurück.";
 "Remove Filter Chips" = "Filterleiste ausblenden";
+"Stop Feed Previews" = "Feed-Vorschauen stoppen";
+"Don't play videos in the feed when you scroll or rest a finger on them." = "Videos im Feed nicht abspielen, wenn du scrollst oder einen Finger darauf lässt.";
 "Hide the filter chips at the top of Home and Subscriptions." = "Blendet die Filter oben auf der Startseite und in den Abos aus.";
 "Show a thin progress line at the bottom of Shorts." = "Zeigt unten in Shorts eine dünne Fortschrittslinie.";
 "Play Shorts Once" = "Shorts nur einmal abspielen";

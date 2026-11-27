@@ -969,6 +969,8 @@ Licensed under CC BY-NC-SA 4.0.";
 "Normal Home Layout" = "Normal Home Layout";
 "Switches the tabbed Home redesign some accounts get back to the normal layout." = "Switches the tabbed Home redesign some accounts get back to the normal layout.";
 "Remove Filter Chips" = "Remove Filter Chips";
+"Stop Feed Previews" = "Stop Feed Previews";
+"Don't play videos in the feed when you scroll or rest a finger on them." = "Don't play videos in the feed when you scroll or rest a finger on them.";
 "Hide the filter chips at the top of Home and Subscriptions." = "Hide the filter chips at the top of Home and Subscriptions.";
 "Show a thin progress line at the bottom of Shorts." = "Show a thin progress line at the bottom of Shorts.";
 "Play Shorts Once" = "Play Shorts Once";
