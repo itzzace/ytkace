@@ -158,6 +158,23 @@ static UIImage *YTKACEChipImage(NSString *identifier) {
         return YTKACEYouTubeImage(@[@"yt_outline_closed_caption_24pt", @"ic_closed_caption"], @"captions.bubble");
     }
     if ([identifier isEqualToString:@"yt.gear"]) return YTKACEGearImage();
+    // YouTube's own outline icons for its bar and ⋯ items, as the player draws them.
+    NSDictionary<NSString *, NSArray *> *youtube = @{
+        @"yt.pill.Like": @[@"youtube_outline_experimental/thumb_up_24pt", @"youtube_outline/thumb_up_24pt", @"hand.thumbsup"],
+        @"yt.pill.Dislike": @[@"youtube_outline_experimental/thumb_down_24pt", @"youtube_outline/thumb_down_24pt", @"hand.thumbsdown"],
+        @"yt.pill.Comments": @[@"youtube_outline_experimental/text_bubble_24pt", @"text.bubble"],
+        @"yt.pill.Save": @[@"youtube_outline_experimental/bookmark_24pt", @"bookmark"],
+        @"yt.pill.Share": @[@"youtube_outline_experimental/share_24pt", @"arrowshape.turn.up.right"],
+        @"yt.pill.Ask": @[@"youtube_outline_experimental/spark_24pt", @"youtube_outline/spark_24pt", @"sparkle"],
+        @"yt.pill.Overflow": @[@"youtube_outline_experimental/overflow_horizontal_24pt", @"ellipsis"],
+        @"yt.menu.Report": @[@"youtube_outline_experimental/flag_24pt", @"flag"],
+        @"yt.menu.Remix": @[@"youtube_outline_experimental/remix_24pt", @"youtube_outline/remix_24pt", @"arrow.triangle.2.circlepath"],
+        @"yt.menu.Thanks": @[@"youtube_outline_experimental/dollar_sign_heart_24pt", @"heart"],
+    };
+    NSArray *names = youtube[identifier];
+    if (names.count != 0) {
+        return YTKACEYouTubeImage([names subarrayWithRange:NSMakeRange(0, names.count - 1)], names.lastObject);
+    }
     NSDictionary *symbols = @{@"yt.previous": @"backward.end.fill", @"yt.play": @"pause.fill",
                               @"yt.next": @"forward.end.fill", @"yt.pill.Like": @"hand.thumbsup",
                               @"yt.pill.Dislike": @"hand.thumbsdown", @"yt.pill.Comments": @"text.bubble",
