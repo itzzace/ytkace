@@ -106,6 +106,8 @@
 "Helps recover playback in sideloaded builds." = "Sideload ile yüklenen sürümlerde oynatmayı düzeltmeye yardımcı olur.";
 "Hide Status Bar" = "Durum Çubuğunu Gizle";
 "Hide Tab Labels" = "Sekme Etiketlerini Gizle";
+"Hide Tab Dots" = "Sekme Noktalarını Gizle";
+"Hide the red dot on tabs with new content." = "Yeni içerik olan sekmelerdeki kırmızı noktayı gizler.";
 "Hold to Seek" = "Basılı Tutarak Sar";
 "Home" = "Ana Sayfa";
 "Import" = "İçe Aktar";
@@ -455,6 +457,8 @@
 "Invalid ZIP64 backup" = "Geçersiz ZIP64 yedeği";
 "Keep Captions On" = "Altyazıları Açık Tut";
 "Keep Progress Bar Visible" = "İlerleme Çubuğunu Görünür Tut";
+"Show End Time" = "Bitiş Saatini Göster";
+"Show when the video will end next to its length." = "Videonun ne zaman biteceğini süresinin yanında gösterir.";
 "Language" = "Dil";
 "Learning" = "Eğitim";
 "Library" = "Kitaplık";

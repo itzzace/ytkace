@@ -4,6 +4,7 @@
 #import "../../Runtime/Preferences.h"
 
 #import <Foundation/Foundation.h>
+#import <objc/message.h>
 
 static IMP OriginalMealbarPromo;
 static IMP OriginalPromosheet;
@@ -120,14 +121,115 @@ static BOOL YTKACEShouldThrottleInterstitial(id receiver, SEL selector) {
         NSString *match = nil;
         BOOL promo = YTKACEInterstitialIsPromo(receiver, &match);
         if (promo) {
+            YTKACEDebugLog(@"promo", @"throttled interstitial (%@)", match);
             return YES;
+        }
+        // Modals with client throttling rules only show
+        // once per time window.
+        SEL hasRules = NSSelectorFromString(@"hasModalClientThrottlingRules");
+        SEL rules = NSSelectorFromString(@"modalClientThrottlingRules");
+        SEL setOnce = NSSelectorFromString(@"setOncePerTimeWindow:");
+        if ([receiver respondsToSelector:hasRules] && [receiver respondsToSelector:rules] &&
+            ((BOOL (*)(id, SEL))objc_msgSend)(receiver, hasRules)) {
+            id value = ((id (*)(id, SEL))objc_msgSend)(receiver, rules);
+            if ([value respondsToSelector:setOnce]) {
+                ((void (*)(id, SEL, BOOL))objc_msgSend)(value, setOnce, YES);
+                YTKACEDebugLog(@"promo", @"interstitial set once per window");
+            }
         }
     }
     return OriginalThrottleInterstitial != NULL &&
         ((BOOL (*)(id, SEL))OriginalThrottleInterstitial)(receiver, selector);
 }
 
+// Event handlers for commerce alerts (like "renew Premium"), promo
+// interstitials and promo sheets. YouTube registers them once at setup, so
+// the setting applies from the next launch.
+static IMP OriginalCommerceHandlers;
+static IMP OriginalInterstitialHandlers;
+static IMP OriginalPromosheetHandlers;
+
+static void YTKACECommerceHandlers(id receiver, SEL selector) {
+    if (YTKACEHidePromos()) {
+        YTKACEDebugLog(@"promo", @"blocked commerce handlers");
+        return;
+    }
+    if (OriginalCommerceHandlers != NULL) ((void (*)(id, SEL))OriginalCommerceHandlers)(receiver, selector);
+}
+
+static void YTKACEInterstitialHandlers(id receiver, SEL selector) {
+    if (YTKACEHidePromos()) {
+        YTKACEDebugLog(@"promo", @"blocked interstitial handlers");
+        return;
+    }
+    if (OriginalInterstitialHandlers != NULL) ((void (*)(id, SEL))OriginalInterstitialHandlers)(receiver, selector);
+}
+
+static void YTKACEPromosheetHandlers(id receiver, SEL selector) {
+    if (YTKACEHidePromos()) {
+        YTKACEDebugLog(@"promo", @"blocked promo sheet handlers");
+        return;
+    }
+    if (OriginalPromosheetHandlers != NULL) ((void (*)(id, SEL))OriginalPromosheetHandlers)(receiver, selector);
+}
+
+static IMP OriginalCanShowPromo[2];
+static IMP OriginalCanShowPromoCap[2];
+static IMP OriginalCanShowPromoCaps[2];
+
+static BOOL YTKACECanShowPromo0(id r, SEL s) {
+    if (YTKACEHidePromos()) return NO;
+    return OriginalCanShowPromo[0] != NULL && ((BOOL (*)(id, SEL))OriginalCanShowPromo[0])(r, s);
+}
+static BOOL YTKACECanShowPromo1(id r, SEL s) {
+    if (YTKACEHidePromos()) return NO;
+    return OriginalCanShowPromo[1] != NULL && ((BOOL (*)(id, SEL))OriginalCanShowPromo[1])(r, s);
+}
+static BOOL YTKACECanShowPromoCap0(id r, SEL s, id cap) {
+    if (YTKACEHidePromos()) return NO;
+    return OriginalCanShowPromoCap[0] != NULL && ((BOOL (*)(id, SEL, id))OriginalCanShowPromoCap[0])(r, s, cap);
+}
+static BOOL YTKACECanShowPromoCap1(id r, SEL s, id cap) {
+    if (YTKACEHidePromos()) return NO;
+    return OriginalCanShowPromoCap[1] != NULL && ((BOOL (*)(id, SEL, id))OriginalCanShowPromoCap[1])(r, s, cap);
+}
+static BOOL YTKACECanShowPromoCaps0(id r, SEL s, id caps) {
+    if (YTKACEHidePromos()) return NO;
+    return OriginalCanShowPromoCaps[0] != NULL && ((BOOL (*)(id, SEL, id))OriginalCanShowPromoCaps[0])(r, s, caps);
+}
+static BOOL YTKACECanShowPromoCaps1(id r, SEL s, id caps) {
+    if (YTKACEHidePromos()) return NO;
+    return OriginalCanShowPromoCaps[1] != NULL && ((BOOL (*)(id, SEL, id))OriginalCanShowPromoCaps[1])(r, s, caps);
+}
+
+static IMP OriginalShowSurvey;
+
+static void YTKACEShowSurvey(id receiver, SEL selector, id renderer, id responder) {
+    if (YTKACEHidePromos()) return;
+    if (OriginalShowSurvey != NULL) ((void (*)(id, SEL, id, id))OriginalShowSurvey)(receiver, selector, renderer, responder);
+}
+
 void YTKACEInstallPromoHooks(void) {
+    YTKACEInstallInstanceHook(@"YTCommerceEventGroupHandler", @"addEventHandlers",
+                              (IMP)YTKACECommerceHandlers, &OriginalCommerceHandlers);
+    YTKACEInstallInstanceHook(@"YTInterstitialPromoEventGroupHandler", @"addEventHandlers",
+                              (IMP)YTKACEInterstitialHandlers, &OriginalInterstitialHandlers);
+    YTKACEInstallInstanceHook(@"YTPromosheetEventGroupHandler", @"addEventHandlers",
+                              (IMP)YTKACEPromosheetHandlers, &OriginalPromosheetHandlers);
+    NSArray<NSString *> *throttles = @[@"YTPromoThrottleController", @"YTPromoThrottleControllerImpl"];
+    IMP canShow[2] = {(IMP)YTKACECanShowPromo0, (IMP)YTKACECanShowPromo1};
+    IMP canShowCap[2] = {(IMP)YTKACECanShowPromoCap0, (IMP)YTKACECanShowPromoCap1};
+    IMP canShowCaps[2] = {(IMP)YTKACECanShowPromoCaps0, (IMP)YTKACECanShowPromoCaps1};
+    for (NSUInteger i = 0; i < 2; i++) {
+        YTKACEInstallInstanceHook(throttles[i], @"canShowThrottledPromo",
+                                  canShow[i], &OriginalCanShowPromo[i]);
+        YTKACEInstallInstanceHook(throttles[i], @"canShowThrottledPromoWithFrequencyCap:",
+                                  canShowCap[i], &OriginalCanShowPromoCap[i]);
+        YTKACEInstallInstanceHook(throttles[i], @"canShowThrottledPromoWithFrequencyCaps:",
+                                  canShowCaps[i], &OriginalCanShowPromoCaps[i]);
+    }
+    YTKACEInstallInstanceHook(@"YTSurveyController", @"showSurveyWithRenderer:surveyParentResponder:",
+                              (IMP)YTKACEShowSurvey, &OriginalShowSurvey);
     YTKACEInstallInstanceHook(@"YTMealbarPromoController",
                               @"showMealbarPromoWithEvent:",
                               (IMP)YTKACEMealbarPromo,

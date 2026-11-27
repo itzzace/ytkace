@@ -106,6 +106,8 @@
 "Helps recover playback in sideloaded builds." = "Ajuda a recuperar a reprodução em versões instaladas por sideload.";
 "Hide Status Bar" = "Ocultar barra de status";
 "Hide Tab Labels" = "Ocultar nomes das abas";
+"Hide Tab Dots" = "Ocultar pontos das abas";
+"Hide the red dot on tabs with new content." = "Oculta o ponto vermelho nas abas com conteúdo novo.";
 "Hold to Seek" = "Segurar para avançar";
 "Home" = "Início";
 "Import" = "Importar";
@@ -455,6 +457,8 @@
 "Invalid ZIP64 backup" = "Backup ZIP64 inválido";
 "Keep Captions On" = "Manter legendas ativadas";
 "Keep Progress Bar Visible" = "Manter barra de progresso visível";
+"Show End Time" = "Mostrar horário de término";
+"Show when the video will end next to its length." = "Mostra quando o vídeo vai terminar ao lado da duração.";
 "Language" = "Idioma";
 "Learning" = "Aprendizado";
 "Library" = "Biblioteca";

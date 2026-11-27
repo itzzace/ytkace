@@ -106,6 +106,8 @@
 "Helps recover playback in sideloaded builds." = "사이드로드한 앱의 재생 문제 복구에 도움이 됩니다.";
 "Hide Status Bar" = "상태 막대 숨기기";
 "Hide Tab Labels" = "탭 이름 숨기기";
+"Hide Tab Dots" = "탭 점 숨기기";
+"Hide the red dot on tabs with new content." = "새 콘텐츠가 있는 탭의 빨간 점을 숨깁니다.";
 "Hold to Seek" = "길게 눌러 탐색";
 "Home" = "홈";
 "Import" = "가져오기";
@@ -455,6 +457,8 @@
 "Invalid ZIP64 backup" = "잘못된 ZIP64 백업";
 "Keep Captions On" = "자막 항상 켜기";
 "Keep Progress Bar Visible" = "진행률 표시줄 항상 표시";
+"Show End Time" = "종료 시각 표시";
+"Show when the video will end next to its length." = "동영상 길이 옆에 끝나는 시각을 표시합니다.";
 "Language" = "언어";
 "Learning" = "학습";
 "Library" = "보관함";

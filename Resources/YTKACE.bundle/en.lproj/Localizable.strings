@@ -111,6 +111,8 @@
 "Helps recover playback in sideloaded builds." = "Helps recover playback in sideloaded builds.";
 "Hide Status Bar" = "Hide Status Bar";
 "Hide Tab Labels" = "Hide Tab Labels";
+"Hide Tab Dots" = "Hide Tab Dots";
+"Hide the red dot on tabs with new content." = "Hide the red dot on tabs with new content.";
 "Hold to Seek" = "Hold to Seek";
 "Home" = "Home";
 "Import" = "Import";
@@ -468,6 +470,8 @@
 "Invalid ZIP64 backup" = "Invalid ZIP64 backup";
 "Keep Captions On" = "Keep Captions On";
 "Keep Progress Bar Visible" = "Keep Progress Bar Visible";
+"Show End Time" = "Show End Time";
+"Show when the video will end next to its length." = "Show when the video will end next to its length.";
 "Language" = "Language";
 "Learning" = "Learning";
 "Library" = "Library";

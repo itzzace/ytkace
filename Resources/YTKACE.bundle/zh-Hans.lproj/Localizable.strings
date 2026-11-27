@@ -111,6 +111,8 @@
 "Helps recover playback in sideloaded builds." = "帮助在旁加载版本中恢复播放。";
 "Hide Status Bar" = "隐藏状态栏";
 "Hide Tab Labels" = "隐藏标签文字";
+"Hide Tab Dots" = "隐藏标签圆点";
+"Hide the red dot on tabs with new content." = "隐藏有新内容的标签上的红点。";
 "Hold to Seek" = "长按快进";
 "Home" = "首页";
 "Import" = "导入";
@@ -466,6 +468,8 @@
 "Invalid ZIP64 backup" = "无效的 ZIP64 备份";
 "Keep Captions On" = "保持字幕开启";
 "Keep Progress Bar Visible" = "保持进度条可见";
+"Show End Time" = "显示结束时间";
+"Show when the video will end next to its length." = "在视频时长旁显示结束时间。";
 "Language" = "语言";
 "Learning" = "学习";
 "Library" = "媒体库";
