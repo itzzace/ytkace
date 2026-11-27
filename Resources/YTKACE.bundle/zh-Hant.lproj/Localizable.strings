@@ -106,6 +106,8 @@
 "Helps recover playback in sideloaded builds." = "協助側載版本恢復正常播放。";
 "Hide Status Bar" = "隱藏狀態列";
 "Hide Tab Labels" = "隱藏分頁名稱";
+"Hide Tab Dots" = "隱藏分頁圓點";
+"Hide the red dot on tabs with new content." = "隱藏有新內容的分頁上的紅點。";
 "Hold to Seek" = "按住快轉";
 "Home" = "首頁";
 "Import" = "匯入";
@@ -455,6 +457,8 @@
 "Invalid ZIP64 backup" = "ZIP64 備份無效";
 "Keep Captions On" = "保持字幕開啟";
 "Keep Progress Bar Visible" = "一律顯示進度列";
+"Show End Time" = "顯示結束時間";
+"Show when the video will end next to its length." = "在影片長度旁顯示結束時間。";
 "Language" = "語言";
 "Learning" = "學習";
 "Library" = "媒體庫";

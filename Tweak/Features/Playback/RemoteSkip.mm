@@ -64,15 +64,23 @@ static BOOL YTKACENowPlayingScrubOff(void) {
     return YTKACEFeatureEnabled(YTKACENowPlayingScrubKey);
 }
 
+// True while the downloads player owns the lock screen controls.
+static BOOL YTKACEDownloadRemoteActive;
+
 static void YTKACERemoteSetEnabled(id receiver, SEL selector, BOOL enabled) {
-    if (YTKACENowPlayingScrubOff() &&
-        receiver == MPRemoteCommandCenter.sharedCommandCenter.changePlaybackPositionCommand) {
+    MPRemoteCommandCenter *center = MPRemoteCommandCenter.sharedCommandCenter;
+    BOOL skipCommand = receiver == center.skipForwardCommand || receiver == center.skipBackwardCommand;
+    if (YTKACENowPlayingScrubOff() && receiver == center.changePlaybackPositionCommand) {
         enabled = NO;
     }
     if (YTKACERemoteSkipInterval() > 0) {
-        MPRemoteCommandCenter *center = MPRemoteCommandCenter.sharedCommandCenter;
         if (YTKACEIsTrackCommand(receiver)) enabled = NO;
-        else if (receiver == center.skipForwardCommand || receiver == center.skipBackwardCommand) enabled = YES;
+        else if (skipCommand) enabled = YES;
+    } else if (YTKACEDownloadRemoteActive) {
+        // Skip buttons replace next and previous, so keep them off unless
+        // Lock Screen Skip is on.
+        if (YTKACEIsTrackCommand(receiver)) enabled = YES;
+        else if (skipCommand) enabled = NO;
     }
     ((void (*)(id, SEL, BOOL))OriginalRemoteSetEnabled)(receiver, selector, enabled);
 }
@@ -101,17 +109,38 @@ static void YTKACEConfigureRemoteSkip(void) {
     }
 }
 
+static BOOL YTKACERemoteHookInstalled;
+
+static void YTKACEEnsureRemoteHook(void) {
+    if (YTKACERemoteHookInstalled) return;
+    YTKACERemoteHookInstalled = YES;
+    YTKACEInstallInstanceHook(@"MPRemoteCommand", @"setEnabled:",
+                              (IMP)YTKACERemoteSetEnabled, &OriginalRemoteSetEnabled);
+}
+
+extern "C" void YTKACESetDownloadRemoteActive(BOOL active) {
+    YTKACEDownloadRemoteActive = active;
+    if (!active) return;
+    YTKACEEnsureRemoteHook();
+    MPRemoteCommandCenter *center = MPRemoteCommandCenter.sharedCommandCenter;
+    NSInteger interval = YTKACERemoteSkipInterval();
+    if (interval > 0) {
+        center.skipForwardCommand.preferredIntervals = @[@(interval)];
+        center.skipBackwardCommand.preferredIntervals = @[@(interval)];
+    }
+    // The hook picks the right state for each of these.
+    center.skipForwardCommand.enabled = YES;
+    center.skipBackwardCommand.enabled = YES;
+    center.nextTrackCommand.enabled = YES;
+    center.previousTrackCommand.enabled = YES;
+    center.changePlaybackPositionCommand.enabled = YES;
+}
+
 __attribute__((constructor)) static void YTKACEInstallRemoteSkip(void) {
-    __block BOOL installed = NO;
     void (^install)(void) = ^{
-        if (installed) {
-            YTKACEConfigureRemoteSkip();
-            return;
-        }
-        if (YTKACERemoteSkipInterval() <= 0 && !YTKACENowPlayingScrubOff()) return;
-        installed = YES;
-        YTKACEInstallInstanceHook(@"MPRemoteCommand", @"setEnabled:",
-                                  (IMP)YTKACERemoteSetEnabled, &OriginalRemoteSetEnabled);
+        if (!YTKACERemoteHookInstalled &&
+            YTKACERemoteSkipInterval() <= 0 && !YTKACENowPlayingScrubOff()) return;
+        YTKACEEnsureRemoteHook();
         YTKACEConfigureRemoteSkip();
     };
     [NSNotificationCenter.defaultCenter addObserverForName:UIApplicationDidBecomeActiveNotification object:nil

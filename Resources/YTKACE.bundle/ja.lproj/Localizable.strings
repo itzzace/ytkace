@@ -106,6 +106,8 @@
 "Helps recover playback in sideloaded builds." = "サイドロード版で再生が止まる問題の回復に役立ちます。";
 "Hide Status Bar" = "ステータスバーを非表示";
 "Hide Tab Labels" = "タブの名前を非表示";
+"Hide Tab Dots" = "タブの点を非表示";
+"Hide the red dot on tabs with new content." = "新しいコンテンツがあるタブの赤い点を非表示にします。";
 "Hold to Seek" = "長押しでシーク";
 "Home" = "ホーム";
 "Import" = "読み込む";
@@ -455,6 +457,8 @@
 "Invalid ZIP64 backup" = "ZIP64 バックアップが無効です";
 "Keep Captions On" = "字幕を常にオン";
 "Keep Progress Bar Visible" = "シークバーを常に表示";
+"Show End Time" = "終了時刻を表示";
+"Show when the video will end next to its length." = "動画の長さの横に終了時刻を表示します。";
 "Language" = "言語";
 "Learning" = "学び";
 "Library" = "ライブラリ";

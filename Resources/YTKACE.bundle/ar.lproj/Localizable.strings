@@ -106,6 +106,8 @@
 "Helps recover playback in sideloaded builds." = "يساعد على استعادة التشغيل في النسخ المثبّتة يدويًا.";
 "Hide Status Bar" = "إخفاء شريط الحالة";
 "Hide Tab Labels" = "إخفاء أسماء علامات التبويب";
+"Hide Tab Dots" = "إخفاء نقاط علامات التبويب";
+"Hide the red dot on tabs with new content." = "إخفاء النقطة الحمراء على علامات التبويب ذات المحتوى الجديد.";
 "Hold to Seek" = "الضغط مطولًا للتقديم";
 "Home" = "الصفحة الرئيسية";
 "Import" = "استيراد";
@@ -455,6 +457,8 @@
 "Invalid ZIP64 backup" = "نسخة احتياطية ZIP64 غير صالحة";
 "Keep Captions On" = "إبقاء الترجمة قيد التشغيل";
 "Keep Progress Bar Visible" = "إبقاء شريط التقدم ظاهرًا";
+"Show End Time" = "إظهار وقت الانتهاء";
+"Show when the video will end next to its length." = "إظهار وقت انتهاء الفيديو بجانب مدته.";
 "Language" = "اللغة";
 "Learning" = "التعلّم";
 "Library" = "المكتبة";

@@ -58,6 +58,7 @@ YTKACE_FILES = \
 	Tweak/Features/Playback/CaptionControls.mm \
 	Tweak/Features/Playback/TranscriptExport.mm \
 	Tweak/Features/Playback/SleepTimerControls.mm \
+	Tweak/Features/Playback/EndTime.mm \
 	Tweak/Features/Playback/DoubleTapHooks.mm \
 	Tweak/Features/Playback/VideoZoom.mm \
 	Tweak/Features/Playback/ProgressBarStyle.mm \
