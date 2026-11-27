@@ -10,6 +10,10 @@ extern "C" NSArray<NSString *> *YTKACEFullscreenBarNames(void);
 #import <math.h>
 
 static const void *YTKACEOverlayHiddenAssociation = &YTKACEOverlayHiddenAssociation;
+// YouTube hides overlay buttons itself while the controls fade out. Remember
+// that case separately: restoring it to "hidden" would pin the button hidden
+// after the option is turned off.
+static const NSInteger YTKACEOverlayHiddenByApp = -1;
 static const void *YTKACEOverlayForcedAssociation = &YTKACEOverlayForcedAssociation;
 static const void *YTKACEOverlayEnabledAssociation = &YTKACEOverlayEnabledAssociation;
 static const void *YTKACEOverlayTransformAssociation = &YTKACEOverlayTransformAssociation;
@@ -110,15 +114,19 @@ static void YTKACESetOverlayHidden(UIView *view, BOOL hidden) {
     );
     if (hidden) {
         if (baseline == nil) {
-            objc_setAssociatedObject(view,
-                                     YTKACEOverlayHiddenAssociation,
-                                     @(view.hidden),
-                                     OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            objc_setAssociatedObject(
+                view,
+                YTKACEOverlayHiddenAssociation,
+                view.hidden ? @(YTKACEOverlayHiddenByApp) : @(NO),
+                OBJC_ASSOCIATION_RETAIN_NONATOMIC
+            );
         }
         view.hidden = YES;
         view.userInteractionEnabled = NO;
     } else if (baseline != nil) {
-        view.hidden = baseline.boolValue;
+        view.hidden = baseline.integerValue == YTKACEOverlayHiddenByApp
+            ? NO
+            : baseline.boolValue;
         view.userInteractionEnabled = YES;
         objc_setAssociatedObject(view,
                                  YTKACEOverlayHiddenAssociation,
