@@ -5,6 +5,8 @@
 #import <algorithm>
 #import "../../Runtime/Hooking.h"
 #import "../../Runtime/Preferences.h"
+#import "../../Runtime/Localization.h"
+#import <objc/message.h>
 #import "../Downloads/DownloadLog.h"
 
 // The iPhone bar under the video comes in the watch response as a list of
@@ -401,6 +403,163 @@ struct YTKACEBarShape {
 
 const YTKACEBarShape YTKACEWatchBarShape = {YTKACEBarEntryField, YTKACEEntryRendererField, nil, YES, @"model", NO, nil};
 
+// Like's own renderer (LikeButtonViewModel) draws as a "like this video
+// along with N people" pill in a menu. Dislike's (DislikeButtonViewModel)
+// draws a normal row that fills while its like status entity says Dislike.
+// So Like uses Dislike's renderer with the like/unlike buttons, keyed on its
+// own entity (not the shared one, or a dislike would fill it too), starting
+// as "Dislike" (filled) when the video is liked. Tapping it sends YouTube's
+// like or unlike and flips that entity.
+static const int YTKACELikeStatusLike = 0;
+static const int YTKACELikeStatusDislike = 1;
+static const int YTKACELikeStatusIndifferent = 2;
+
+// The private key for the ⋯ Like row: the shared like status key (base64url
+// of a small proto, "=" percent-escaped) with an extra field 15, so it's a
+// valid key of the same entity type that nothing else uses.
+static NSString *YTKACEOwnLikeKey(NSString *key) {
+    if (key.length == 0) return nil;
+    NSString *base = [[key stringByRemovingPercentEncoding] ?: key
+        stringByReplacingOccurrencesOfString:@"-" withString:@"+"];
+    base = [base stringByReplacingOccurrencesOfString:@"_" withString:@"/"];
+    while (base.length % 4 != 0) base = [base stringByAppendingString:@"="];
+    NSData *raw = [[NSData alloc] initWithBase64EncodedString:base options:0];
+    if (raw.length == 0) return nil;
+    NSMutableData *own = [raw mutableCopy];
+    const uint8_t extra[] = {0x78, 0x01};
+    [own appendBytes:extra length:sizeof(extra)];
+    NSString *encoded = [own base64EncodedStringWithOptions:0];
+    encoded = [encoded stringByReplacingOccurrencesOfString:@"+" withString:@"-"];
+    encoded = [encoded stringByReplacingOccurrencesOfString:@"/" withString:@"_"];
+    return [encoded stringByReplacingOccurrencesOfString:@"=" withString:@"%3D"];
+}
+
+static BOOL YTKACEIsOwnLikeKey(NSString *key) {
+    NSString *base = [[key stringByRemovingPercentEncoding] ?: key
+        stringByReplacingOccurrencesOfString:@"-" withString:@"+"];
+    base = [base stringByReplacingOccurrencesOfString:@"_" withString:@"/"];
+    while (base.length % 4 != 0) base = [base stringByAppendingString:@"="];
+    NSData *raw = [[NSData alloc] initWithBase64EncodedString:base options:0];
+    if (raw.length < 2) return NO;
+    const uint8_t *bytes = (const uint8_t *)raw.bytes;
+    return bytes[raw.length - 2] == 0x78 && bytes[raw.length - 1] == 0x01;
+}
+
+// Mirrors YouTube's like status into the ⋯ Like row's key: "Dislike" (which
+// fills Dislike's renderer) while liked, Indifferent otherwise.
+static IMP OriginalPendingAddEntity;
+static IMP OriginalPendingUpdateEntity;
+
+static id YTKACEOwnLikeEntity(id entity) {
+    static Class likeClass;
+    static Class mutableClass;
+    if (likeClass == Nil) {
+        likeClass = NSClassFromString(@"YTLikeStatusEntityModel");
+        mutableClass = NSClassFromString(@"YTMutableLikeStatusEntityModel");
+    }
+    if (likeClass == Nil || mutableClass == Nil || ![entity isKindOfClass:likeClass]) return nil;
+    NSString *key = ((id (*)(id, SEL))objc_msgSend)(entity, @selector(entityKey));
+    if (![key isKindOfClass:NSString.class] || YTKACEIsOwnLikeKey(key)) return nil;
+    NSString *ownKey = YTKACEOwnLikeKey(key);
+    if (ownKey == nil) return nil;
+    id store = [entity respondsToSelector:@selector(entityStore)]
+        ? ((id (*)(id, SEL))objc_msgSend)(entity, @selector(entityStore)) : nil;
+    id own = ((id (*)(id, SEL, id, id))objc_msgSend)([mutableClass alloc],
+        NSSelectorFromString(@"initWithEntityStore:entityKey:"), store, ownKey);
+    if (own == nil) return nil;
+    const int status = ((int (*)(id, SEL))objc_msgSend)(entity, NSSelectorFromString(@"likeStatus"));
+    ((void (*)(id, SEL, int))objc_msgSend)(own, NSSelectorFromString(@"setLikeStatus:"),
+        status == 0 ? 1 : 2);
+    return own;
+}
+
+static void YTKACEPendingAddEntity(id receiver, SEL selector, id entity, id options) {
+    ((void (*)(id, SEL, id, id))OriginalPendingAddEntity)(receiver, selector, entity, options);
+    id own = YTKACEOwnLikeEntity(entity);
+    if (own != nil) ((void (*)(id, SEL, id, id))OriginalPendingAddEntity)(receiver, selector, own, options);
+}
+
+static void YTKACEPendingUpdateEntity(id receiver, SEL selector, id entity, id options, id mask, id merge) {
+    ((void (*)(id, SEL, id, id, id, id))OriginalPendingUpdateEntity)(receiver, selector, entity, options, mask, merge);
+    id own = YTKACEOwnLikeEntity(entity);
+    if (own != nil && OriginalPendingAddEntity != NULL) {
+        ((void (*)(id, SEL, id, id))OriginalPendingAddEntity)(receiver, NSSelectorFromString(@"addOrReplaceEntity:options:"),
+                                                             own, options);
+    }
+}
+
+static std::string YTKACEPlainLikeRow(const std::string &row) {
+    std::vector<PBField> top;
+    if (!PBParse(row, top) || top.size() != 1 || top.front().type != 2) return row;
+    std::vector<PBField> wrapper;
+    if (!PBParse(top.front().bytes, wrapper)) return row;
+    const std::string title = YTKACELocalized(@"Like").UTF8String ?: "Like";
+    std::string key;
+    int status = YTKACELikeStatusIndifferent;
+    std::vector<PBField> toggleField;
+    for (PBField &field : wrapper) {
+        if (field.number == 3 && field.type == 2) key = field.bytes;
+        if (field.number == 6 && field.type == 2) {
+            std::vector<PBField> entity;
+            status = YTKACELikeStatusLike;  // proto3: an unset status is Like
+            if (PBParse(field.bytes, entity)) {
+                for (const PBField &part : entity) {
+                    if (part.number == 2 && part.type == 0) status = (int)part.value;
+                }
+            }
+        }
+        if (field.number != 1 || field.type != 2) continue;
+        std::vector<PBField> toggle;
+        if (!PBParse(field.bytes, toggle)) continue;
+        for (PBField &inner : toggle) {
+            if (inner.type != 2) continue;
+            std::vector<PBField> states;
+            if (!PBParse(inner.bytes, states)) continue;
+            for (PBField &state : states) {
+                if ((state.number != 1 && state.number != 2) || state.type != 2) continue;
+                std::vector<PBField> holder;
+                if (!PBParse(state.bytes, holder) || holder.empty()) continue;
+                std::vector<PBField> button;
+                if (!PBParse(holder.front().bytes, button)) continue;
+                std::vector<PBField> clean;
+                for (PBField &part : button) {
+                    if (part.number == 51) continue;
+                    if ((part.number == 3 || part.number == 5) && part.type == 2) part.bytes = title;
+                    clean.push_back(part);
+                }
+                holder.front().bytes = PBSerialize(clean);
+                state.bytes = PBSerialize(holder);
+            }
+            inner.bytes = PBSerialize(states);
+        }
+        field.bytes = PBSerialize(toggle);
+        toggleField.push_back(field);
+    }
+    if (key.empty() || toggleField.empty()) return row;
+    NSString *ownKeyString = YTKACEOwnLikeKey([NSString stringWithUTF8String:key.c_str()]);
+    if (ownKeyString == nil) return row;
+    const std::string ownKey = ownKeyString.UTF8String;
+    std::vector<PBField> entity;
+    entity.push_back(PBMessage(1, ownKey));
+    PBField value;
+    value.number = 2;
+    value.type = 0;
+    value.value = status == YTKACELikeStatusLike ? YTKACELikeStatusDislike : YTKACELikeStatusIndifferent;
+    entity.push_back(value);
+    std::vector<PBField> dislike;
+    dislike.push_back(toggleField.front());
+    dislike.push_back(PBMessage(2, ownKey));
+    dislike.push_back(PBMessage(3, PBSerialize(entity)));
+    PBField style;
+    style.number = 4;
+    style.type = 0;
+    style.value = 7;
+    dislike.push_back(style);
+    std::vector<PBField> result;
+    result.push_back(PBMessage(484590786, PBSerialize(dislike)));
+    return PBSerialize(result);
+}
+
 bool YTKACERewriteBar(std::string &bar, NSArray<NSString *> *order, NSSet<NSString *> *hidden,
                       const YTKACEBarShape &shape = YTKACEWatchBarShape) {
     std::vector<PBField> fields;
@@ -448,7 +607,8 @@ bool YTKACERewriteBar(std::string &bar, NSArray<NSString *> *order, NSSet<NSStri
             if (name != nil && ![name isEqualToString:@"Overflow"] &&
                 (shape.menuItems == nil || [shape.menuItems containsObject:name])) {
                 items.push_back({name, YTKACEBarVersion(part.bytes), part.bytes, items.size(), true});
-            } else {
+            } else if (!(shape.menuFromOrder && name != nil && [hidden containsObject:name])) {
+                // ⋯'s own items (Report, Remix, Thanks) can be removed in fullscreen.
                 menuKept.push_back(part);
             }
         }
@@ -482,16 +642,24 @@ bool YTKACERewriteBar(std::string &bar, NSArray<NSString *> *order, NSSet<NSStri
         return leftRank < rightRank;
     });
 
-    // Buttons the user put in ⋯ go into its menu. The fullscreen ⋯ lists its
-    // copies field as the menu, so only those go there, not copies of the bar.
+    // Buttons the user put in ⋯ go into its menu, as ⋯'s own items: the
+    // landscape menu only lists those, the portrait sheet lists both. Ask can
+    // come twice (on the bar and in ⋯), so each name goes in once.
     std::vector<PBField> movedIn;
     if (shape.menuFromOrder && shape.menuNames.count != 0) {
         std::vector<YTKACEBarItem> bar;
+        NSMutableSet<NSString *> *moved = [NSMutableSet set];
         for (const YTKACEBarItem &item : shown) {
             if (item.name != nil && [shape.menuNames containsObject:item.name] &&
                 [@[@"Like", @"Dislike", @"Comments", @"Save", @"Share", @"Ask"] containsObject:item.name]) {
-                movedIn.push_back(PBMessage(YTKACEOverflowCopyField,
-                                            item.hasMenu ? item.menuRenderer : YTKACEMenuRow(item.barRenderer)));
+                if ([moved containsObject:item.name]) continue;
+                [moved addObject:item.name];
+                // YouTube's menu Like is a "N other people" pill, so Like gets a
+                // normal row made from its bar button like Dislike.
+                const bool useMenu = item.hasMenu && ![item.name isEqualToString:@"Like"];
+                std::string row = useMenu ? item.menuRenderer : YTKACEMenuRow(item.barRenderer);
+                if ([item.name isEqualToString:@"Like"]) row = YTKACEPlainLikeRow(row);
+                movedIn.push_back(PBMessage(YTKACEOverflowItemField, row));
             } else {
                 bar.push_back(item);
             }
@@ -846,7 +1014,7 @@ static NSData *YTKACERewrittenResponse(NSData *data) {
     }
     NSArray *fullscreenOrder = YTKACEPreferenceObject(@"YTKACE.Preference.Fullscreen.Order");
     NSMutableSet *fullscreenHidden = [NSMutableSet set];
-    for (NSString *name in @[@"Like", @"Dislike", @"Save", @"Share", @"Ask"]) {
+    for (NSString *name in @[@"Like", @"Dislike", @"Save", @"Share", @"Ask", @"Report", @"Remix", @"Thanks"]) {
         if (YTKACEFeatureEnabled([NSString stringWithFormat:@"YTKACE.Preference.Fullscreen.%@Hidden", name])) {
             [fullscreenHidden addObject:name];
         }
@@ -900,6 +1068,10 @@ __attribute__((constructor)) static void YTKACEInstallActionBarModelHooks(void) 
                               (IMP)YTKACEGetWatchInit, &OriginalGetWatchInit);
     YTKACEInstallInstanceHook(@"YTIGetWatchResponse", @"mergeFromData:extensionRegistry:",
                               (IMP)YTKACEGetWatchMerge, &OriginalGetWatchMerge);
+    YTKACEInstallInstanceHook(@"YTEntityStorePendingEdits", @"addOrReplaceEntity:options:",
+                              (IMP)YTKACEPendingAddEntity, &OriginalPendingAddEntity);
+    YTKACEInstallInstanceHook(@"YTEntityStorePendingEdits", @"updateEntity:options:mask:maskMergeOptions:",
+                              (IMP)YTKACEPendingUpdateEntity, &OriginalPendingUpdateEntity);
     YTKACEInstallInstanceHook(@"YTIWatchNextResponse", @"initWithData:extensionRegistry:error:",
                               (IMP)YTKACEWatchNextInit, &OriginalWatchNextInit);
 }

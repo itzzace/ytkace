@@ -29,6 +29,7 @@ typedef NS_ENUM(NSInteger, YTKACEItemKind) {
     YTKACEItemCenter,
     YTKACEItemPill,
     YTKACEItemMore,
+    YTKACEItemMenuOnly,  // YouTube's own ⋯ items: in ⋯ or hidden
 };
 
 static UIColor *YTKACELayoutSurface(void) {
@@ -47,7 +48,7 @@ static YTKACEItemKind YTKACEKindOf(NSString *identifier);
 
 // The buttons that can go in or out of ⋯: YouTube's fullscreen ones and ours.
 static BOOL YTKACEMenuable(NSString *identifier) {
-    if (YTKACEKindOf(identifier) == YTKACEItemOurs) return YES;
+    if (YTKACEKindOf(identifier) == YTKACEItemOurs || YTKACEKindOf(identifier) == YTKACEItemMenuOnly) return YES;
     return [@[@"yt.pill.Like", @"yt.pill.Dislike", @"yt.pill.Comments", @"yt.pill.Save", @"yt.pill.Share", @"yt.pill.Ask"]
         containsObject:identifier];
 }
@@ -90,6 +91,11 @@ static NSArray<NSDictionary *> *YTKACENativeItems(void) {
         for (NSString *name in YTKACEPillDefaultOrder()) {
             [list addObject:@{@"id": [@"yt.pill." stringByAppendingString:name], @"name": name,
                               @"title": pillTitles[name] ?: name, @"kind": @(YTKACEItemPill),
+                              @"key": [NSString stringWithFormat:@"YTKACE.Preference.Fullscreen.%@Hidden", name]}];
+        }
+        for (NSString *name in @[@"Thanks", @"Report", @"Remix"]) {
+            [list addObject:@{@"id": [@"yt.menu." stringByAppendingString:name], @"name": name, @"title": name,
+                              @"kind": @(YTKACEItemMenuOnly),
                               @"key": [NSString stringWithFormat:@"YTKACE.Preference.Fullscreen.%@Hidden", name]}];
         }
         [list addObject:@{@"id": @"yt.more", @"name": @"more", @"title": @"More videos", @"text": @"More videos",
@@ -156,7 +162,9 @@ static UIImage *YTKACEChipImage(NSString *identifier) {
                               @"yt.next": @"forward.end.fill", @"yt.pill.Like": @"hand.thumbsup",
                               @"yt.pill.Dislike": @"hand.thumbsdown", @"yt.pill.Comments": @"text.bubble",
                               @"yt.pill.Save": @"bookmark", @"yt.pill.Share": @"arrowshape.turn.up.right",
-                              @"yt.pill.Ask": @"sparkle", @"yt.pill.Overflow": @"ellipsis"};
+                              @"yt.pill.Ask": @"sparkle", @"yt.pill.Overflow": @"ellipsis",
+                              @"yt.menu.Thanks": @"heart", @"yt.menu.Report": @"flag",
+                              @"yt.menu.Remix": @"arrow.triangle.2.circlepath"};
     NSString *symbol = symbols[identifier];
     return symbol != nil ? [UIImage systemImageNamed:symbol] : nil;
 }
@@ -542,8 +550,11 @@ static BOOL YTKACESpeedChipIsMenu(void) {
         }
         if (identifier != nil && ![bar containsObject:identifier]) [bar addObject:identifier];
     }
-    // YouTube's buttons put in ⋯.
+    // YouTube's own ⋯ items, then its buttons put in ⋯.
     NSMutableArray *menu = [NSMutableArray array];
+    for (NSString *identifier in @[@"yt.menu.Thanks", @"yt.menu.Report", @"yt.menu.Remix"]) {
+        if (!YTKACEStoredBool(YTKACENativeItem(identifier)[@"key"])) [menu addObject:identifier];
+    }
     id storedMenu = YTKACEPreferenceObject(YTKACEFullscreenMenuKey);
     for (id name in [storedMenu isKindOfClass:NSArray.class] ? storedMenu : @[]) {
         if (![name isKindOfClass:NSString.class]) continue;
@@ -578,6 +589,8 @@ static BOOL YTKACESpeedChipIsMenu(void) {
             return [zone isEqualToString:YTKACEOverlayZoneFullscreen] || [zone isEqualToString:YTKACEMenuZone];
         case YTKACEItemMore:
             return [zone isEqualToString:YTKACEOverlayZoneFullscreen];
+        case YTKACEItemMenuOnly:
+            return [zone isEqualToString:YTKACEMenuZone];
     }
     return NO;
 }
@@ -588,6 +601,7 @@ static BOOL YTKACESpeedChipIsMenu(void) {
         case YTKACEItemCenter: return YTKACECenterZone;
         case YTKACEItemPill:
         case YTKACEItemMore: return YTKACEOverlayZoneFullscreen;
+        case YTKACEItemMenuOnly: return YTKACEMenuZone;
         case YTKACEItemOurs: return YTKACEOverlayZoneBelow;
     }
     return YTKACEOverlayZoneBelow;

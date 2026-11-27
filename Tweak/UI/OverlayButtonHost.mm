@@ -1678,6 +1678,12 @@ static void YTKACEAddMenuRows(id sheet, UIView *source) {
             });
         };
         NSString *title = YTKACELocalized(entry[@"title"]);
+        // Buttons that show a value (quality, speed) keep it in the row.
+        NSString *value = [YTKACEMenuButtonFor(identifier).currentTitle
+            stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+        if (value.length != 0 && ![value isEqualToString:title]) {
+            title = [NSString stringWithFormat:@"%@ · %@", title, value];
+        }
         if (YTKACEMenuRowTitles == nil) {
             YTKACEMenuRowTitles = [NSMutableSet set];
             YTKACEInstallInstanceHook(@"GOODialogActionMDCButton", @"layoutSubviews",
