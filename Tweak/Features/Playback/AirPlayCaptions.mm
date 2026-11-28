@@ -215,14 +215,24 @@ static NSData *YTKACEAirPlayMasterWithCaptions(NSData *data,
                                                NSArray<NSDictionary *> *tracks) {
     NSString *master = [[NSString alloc] initWithData:data
                                              encoding:NSUTF8StringEncoding];
-    if (master == nil || ![master containsString:@"#EXT-X-STREAM-INF:"] ||
-        [master containsString:@"TYPE=SUBTITLES"]) {
+    if (master == nil || ![master containsString:@"#EXT-X-STREAM-INF:"]) {
         return data;
     }
+    // A video with hand-made captions already has SUBTITLES renditions from
+    // YouTube, for those tracks only. The ones added here cover every track,
+    // so they take the place of YouTube's.
+    NSRegularExpression *ownGroup = [NSRegularExpression
+        regularExpressionWithPattern:@",SUBTITLES=\"[^\"]*\"|SUBTITLES=\"[^\"]*\","
+                             options:0
+                               error:nil];
     NSMutableArray<NSString *> *lines = [NSMutableArray array];
     NSMutableSet<NSString *> *names = [NSMutableSet set];
     BOOL added = NO;
     for (NSString *line in [master componentsSeparatedByString:@"\n"]) {
+        if ([line hasPrefix:@"#EXT-X-MEDIA:"] &&
+            [line containsString:@"TYPE=SUBTITLES"]) {
+            continue;
+        }
         if (![line hasPrefix:@"#EXT-X-STREAM-INF:"]) {
             [lines addObject:line];
             continue;
@@ -251,7 +261,12 @@ static NSData *YTKACEAirPlayMasterWithCaptions(NSData *data,
                     YTKACEAirPlayCaptionsPath, (unsigned long)index]];
             }
         }
-        [lines addObject:[line stringByAppendingFormat:@",SUBTITLES=\"%@\"",
+        NSString *variant = [ownGroup
+            stringByReplacingMatchesInString:line
+                                     options:0
+                                       range:NSMakeRange(0, line.length)
+                                withTemplate:@""];
+        [lines addObject:[variant stringByAppendingFormat:@",SUBTITLES=\"%@\"",
                           YTKACEAirPlayCaptionsGroup]];
     }
     return [[lines componentsJoinedByString:@"\n"]
