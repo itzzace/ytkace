@@ -870,6 +870,8 @@ Licensed under CC BY-NC-SA 4.0.";
 "Always On" = "Always On";
 "Always Off" = "Always Off";
 "Caption Language" = "Caption Language";
+"Captions on AirPlay" = "Captions on AirPlay";
+"Show captions on the TV while you AirPlay, with a working CC button." = "Show captions on the TV while you AirPlay, with a working CC button.";
 "English" = "English";
 "Spanish" = "Spanish";
 "Portuguese" = "Portuguese";

@@ -33,6 +33,7 @@ static void YTKACEInstallModules(void) {
     YTKACEInstallHapticHooks();
     YTKACEInstallAutoplayHooks();
     YTKACEInstallCaptionHooks();
+    YTKACEInstallAirPlayCaptionHooks();
     YTKACEInstallTranscriptHooks();
     YTKACEInstallSleepTimerHooks();
     YTKACEInstallPiPHooks();

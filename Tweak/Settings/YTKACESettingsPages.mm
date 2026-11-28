@@ -1966,7 +1966,10 @@ static NSDictionary *YTKACECaptionsDefinition(void) {
                          @[@"", @"en", @"es", @"pt", @"fr", @"de", @"it",
                            @"nl", @"pl", @"tr", @"ru", @"ar", @"hi", @"id",
                            @"vi", @"th", @"ja", @"ko", @"zh"],
-                         0)
+                         0),
+            YTKACEToggleDetail(@"Captions on AirPlay",
+                               @"Show captions on the TV while you AirPlay, with a working CC button.",
+                               @"YTKACE.Preference.Playback.AirPlayCaptions")
         ],
         @[
             YTKACEToggleDetail(@"Transcript Button",
