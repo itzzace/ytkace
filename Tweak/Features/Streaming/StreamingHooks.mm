@@ -454,6 +454,23 @@ static BOOL YTKACECellularQualityValue(id receiver, SEL selector) {
     return original != NULL ? ((BOOL (*)(id, SEL))original)(receiver, selector) : NO;
 }
 
+// YouTube's player config can carry hlsProxyConfig.condensedURLPrefix. When it
+// does, the app adds cnd=<prefix> to every HLS media playlist request and gets
+// back a condensed playlist whose segments are mlhls:// URLs. Each segment then
+// goes receiver -> app -> redirect to googlevideo. Apple receivers follow that
+// redirect. Roku's AirPlay receiver asks for the same segment again and again
+// and never starts. With no prefix the app does not send cnd= and the playlist
+// has plain https segment URLs.
+static NSString *const YTKACEAirPlayRokuFixKey = @"YTKACE.Preference.Playback.AirPlayRokuFix";
+static IMP OriginalCondensedURLPrefix;
+
+static id YTKACECondensedURLPrefix(id receiver, SEL selector) {
+    if (YTKACEFeatureEnabled(YTKACEAirPlayRokuFixKey)) return nil;
+    return OriginalCondensedURLPrefix != NULL
+        ? ((id (*)(id, SEL))OriginalCondensedURLPrefix)(receiver, selector)
+        : nil;
+}
+
 static void YTKACEStoreStreamingOriginal(NSString *className,
                                          NSString *selectorName,
                                          IMP original) {
@@ -522,6 +539,8 @@ void YTKACEInstallStreamingHooks(void) {
     YTKACEInstallInstanceHook(
         @"YTVideoQualitySwitchRedesignedController", @"setUserSelectableFormats:",
         (IMP)YTKACERedesignedSetFormats, &OriginalRedesignedSetFormats);
+    YTKACEInstallInstanceHook(@"YTIHlsProxyConfig", @"condensedURLPrefix",
+                              (IMP)YTKACECondensedURLPrefix, &OriginalCondensedURLPrefix);
 
     Class qualityClass = NSClassFromString(@"YTIMediaQualitySettingsHotConfig");
     Method qualityMethod = qualityClass == Nil ? NULL : class_getInstanceMethod(
