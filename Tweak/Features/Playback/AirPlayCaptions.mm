@@ -26,6 +26,10 @@ static NSString *const YTKACEAirPlayCaptionsKey =
     @"YTKACE.Preference.Playback.AirPlayCaptions";
 static NSString *const YTKACEAirPlayCaptionsPath = @"/ytkace-captions/";
 static NSString *const YTKACEAirPlayCaptionsGroup = @"ytkace-captions";
+// Marks the renditions added here, so they can be told apart from options iOS
+// adds to the stream on its own.
+static NSString *const YTKACEAirPlayCaptionsCharacteristic =
+    @"com.ytkace.caption";
 
 static const void *YTKACEAirPlayCaptionsInfoKey = &YTKACEAirPlayCaptionsInfoKey;
 
@@ -239,9 +243,11 @@ static NSData *YTKACEAirPlayMasterWithCaptions(NSData *data,
                 [lines addObject:[NSString stringWithFormat:
                     @"#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID=\"%@\",NAME=\"%@\","
                      "LANGUAGE=\"%@\",DEFAULT=NO,AUTOSELECT=NO,FORCED=NO,"
+                     "CHARACTERISTICS=\"%@\","
                      "URI=\"mlhls://localhost%@%lu/captions.m3u8\"",
                     YTKACEAirPlayCaptionsGroup, name,
                     YTKACEAirPlayAttribute(track[@"language"]),
+                    YTKACEAirPlayCaptionsCharacteristic,
                     YTKACEAirPlayCaptionsPath, (unsigned long)index]];
             }
         }
@@ -305,6 +311,39 @@ static BOOL YTKACEAirPlayShouldWait(id receiver, SEL selector, id loader,
     return YES;
 }
 
+// iOS can add its own entries to a stream's subtitle options, such as
+// on-device "Transcribed" and "Translated" ones. They show up in the captions
+// menu as plain language names and draw nothing on the TV. The caption
+// controller only reads -options from what it is given, so give it a stand-in
+// that lists the renditions added here.
+@interface YTKACEAirPlayCaptionOptions : NSObject
+@property (nonatomic, copy) NSArray *options;
+@end
+
+@implementation YTKACEAirPlayCaptionOptions
+@end
+
+static id YTKACEAirPlayOwnOptions(id group) {
+    NSArray *options = YTKACEAirPlayObject(group, @"options");
+    if (![options isKindOfClass:NSArray.class]) return group;
+    // An entry iOS derives from one of ours, such as a translation, carries
+    // our mark too. iOS tags everything it generates, so check that as well.
+    NSMutableArray *own = [NSMutableArray array];
+    for (id option in options) {
+        if ([option isKindOfClass:AVMediaSelectionOption.class] &&
+            [(AVMediaSelectionOption *)option hasMediaCharacteristic:
+                YTKACEAirPlayCaptionsCharacteristic] &&
+            ![(AVMediaSelectionOption *)option hasMediaCharacteristic:
+                @"com.apple.machine-generated"]) {
+            [own addObject:option];
+        }
+    }
+    if (own.count == 0 || own.count == options.count) return group;
+    YTKACEAirPlayCaptionOptions *stand = [YTKACEAirPlayCaptionOptions new];
+    stand.options = own;
+    return stand;
+}
+
 // The AirPlay caption controller starts with no track, but the CC button keeps
 // the state it had on the phone. If captions were on, the button then shows on
 // with nothing on the TV, and every tap sends "off". So start AirPlay the way
@@ -340,7 +379,8 @@ static void YTKACEAirPlayOfferCaptions(id player, id assetPlayer) {
             id current = YTKACEAirPlayObject(weakPlayer, @"captionController");
             if (group == nil || ![current respondsToSelector:changed]) return;
             @try {
-                ((void (*)(id, SEL, id))objc_msgSend)(current, changed, group);
+                ((void (*)(id, SEL, id))objc_msgSend)(
+                    current, changed, YTKACEAirPlayOwnOptions(group));
                 YTKACEAirPlayCarryCaptionsOver(weakPlayer, current);
             } @catch (__unused NSException *exception) {
             }
