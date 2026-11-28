@@ -41,6 +41,7 @@ static IMP OriginalLoadPlayerCaptions;
 static IMP OriginalSetUpCaptionController;
 static IMP OriginalStopCaptions;
 static IMP OriginalSetAirPlayCaptionTrack;
+static IMP OriginalAirPlayTrackName;
 
 static const void *YTKACEAirPlayCaptionsWereOnKey =
     &YTKACEAirPlayCaptionsWereOnKey;
@@ -448,6 +449,28 @@ static void YTKACEAirPlaySetCaptionTrack(id receiver, SEL selector, id track,
         receiver, selector, track, reason, updateLanguage);
 }
 
+// The captions menu names an AirPlay track by its language alone, so a video
+// with a hand-made and an auto-generated track in one language lists the same
+// name twice. Use the rendition's name, which is YouTube's name for the track.
+// -displayName often drops it in favour of the language; the title in the
+// option's metadata keeps it.
+static id YTKACEAirPlayTrackName(id receiver, SEL selector) {
+    id name = OriginalAirPlayTrackName != NULL
+        ? ((id (*)(id, SEL))OriginalAirPlayTrackName)(receiver, selector) : nil;
+    id option = YTKACEAirPlayObject(receiver, @"option");
+    if ([option isKindOfClass:AVMediaSelectionOption.class] &&
+        [(AVMediaSelectionOption *)option hasMediaCharacteristic:
+            YTKACEAirPlayCaptionsCharacteristic]) {
+        NSArray<AVMetadataItem *> *titles = [AVMetadataItem
+            metadataItemsFromArray:((AVMediaSelectionOption *)option).commonMetadata
+                           withKey:AVMetadataCommonKeyTitle
+                          keySpace:AVMetadataKeySpaceCommon];
+        NSString *own = titles.firstObject.stringValue;
+        if (own.length != 0) return own;
+    }
+    return name;
+}
+
 void YTKACEInstallAirPlayCaptionHooks(void) {
     YTKACEInstallInstanceHook(
         @"MLHLSStreamSelector", @"initWithVideo:playerConfig:streamingData:",
@@ -478,4 +501,7 @@ void YTKACEInstallAirPlayCaptionHooks(void) {
         @"MLAVMediaCaptionController",
         @"setActiveCaptionTrack:selectionReason:updateCaptionConfigLanguage:",
         (IMP)YTKACEAirPlaySetCaptionTrack, &OriginalSetAirPlayCaptionTrack);
+    YTKACEInstallInstanceHook(@"MLAVMediaCaptionTrack", @"displayName",
+                              (IMP)YTKACEAirPlayTrackName,
+                              &OriginalAirPlayTrackName);
 }
