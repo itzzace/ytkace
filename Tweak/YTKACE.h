@@ -45,6 +45,7 @@ void YTKACEOpenPausedVideoActivated(id player);
 void YTKACEFullscreenVideoActivated(id player);
 BOOL YTKACEQueueVideoIsLive(NSString * _Nullable videoID, id _Nullable player);
 void YTKACEInstallCaptionHooks(void);
+void YTKACEInstallAirPlayCaptionHooks(void);
 void YTKACEInstallTranscriptHooks(void);
 NSArray<NSDictionary *> *_Nullable YTKACEParseCaptionCues(NSData *data);
 NSArray *_Nullable YTKACECaptionTracksForResponse(id playerResponse);

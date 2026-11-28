@@ -56,6 +56,7 @@ YTKACE_FILES = \
 	Tweak/Features/Playback/PreviousNextSeek.mm \
 	Tweak/Features/Playback/AutoplayControls.mm \
 	Tweak/Features/Playback/CaptionControls.mm \
+	Tweak/Features/Playback/AirPlayCaptions.mm \
 	Tweak/Features/Playback/TranscriptExport.mm \
 	Tweak/Features/Playback/SleepTimerControls.mm \
 	Tweak/Features/Playback/EndTime.mm \
